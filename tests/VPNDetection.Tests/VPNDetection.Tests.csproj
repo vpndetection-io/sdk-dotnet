@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>12.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <OutputType>Exe</OutputType>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" Version="4.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/VPNDetection/VPNDetection.csproj" />
+  </ItemGroup>
+
+  <!-- The corpus sdk/common generates. Copied rather than read by relative path so the suite works
+       the same from `dotnet test` and from a published test binary. -->
+  <ItemGroup>
+    <None Include="../../testdata/testdata.json" CopyToOutputDirectory="PreserveNewest" Link="testdata.json" />
+  </ItemGroup>
+
+</Project>

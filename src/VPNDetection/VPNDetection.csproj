@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- The compatibility floor, not a support statement: a net8.0 library loads on every
+         later runtime, so this is the widest reach available without giving up DateOnly,
+         UInt128 and Parallel.ForEachAsync, all of which this library uses. -->
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>12.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>VPNDetection</RootNamespace>
+    <AssemblyName>VPNDetection</AssemblyName>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageId>VPNDetection</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Mslm Dev</Authors>
+    <Company>Mslm Dev</Company>
+    <Product>VPNDetection</Product>
+    <Description>The official .NET client library for the VPNDetection API. Anonymity detection for any IP address: VPNs, residential proxies, Tor nodes, hosting servers, CDNs and relays.</Description>
+    <PackageTags>vpn;proxy;tor;ip;geolocation;fraud;anonymity;vpndetection</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://vpndetection.io</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/vpndetection-io/sdk-dotnet</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
+    <None Include="../../LICENSE" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+</Project>
