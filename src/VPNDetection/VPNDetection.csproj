@@ -35,6 +35,13 @@
     <Deterministic>true</Deterministic>
   </PropertyGroup>
 
+  <!-- Source Link writes the BUILD MACHINE's absolute paths into the symbol package, so a package
+       built anywhere but a runner would publish whatever directory tree it was built in. This maps
+       them to /_/ and makes the artifact reproducible at the same time. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
   </ItemGroup>
