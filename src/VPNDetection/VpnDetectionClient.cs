@@ -77,7 +77,7 @@ public sealed class VpnDetectionClient : IDisposable
         this.concurrency = o.Concurrency;
         this.cacheTtl = o.CacheTtl;
         this.cache = o.CacheEnabled ? new MemoryCache(new MemoryCacheOptions { SizeLimit = o.CacheSize }) : null;
-        this.Database = new Database(this.wire, o.Retries);
+        this.Database = new Database(this.wire, http, o.Retries);
     }
 
     /// <summary>The licensed dataset downloads, for keys that carry the <c>db.download</c> scope.</summary>

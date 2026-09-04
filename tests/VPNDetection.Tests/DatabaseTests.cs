@@ -1,4 +1,6 @@
 using System.Net;
+using System.Net.Sockets;
+using System.Text;
 
 using Xunit;
 
@@ -148,83 +150,284 @@ public class DatabaseTests
         Assert.Equal(origin.PayloadUrl, url);
         Assert.False(origin.StorageWasAsked);
     }
+
+    // The presigned URL authorizes itself, so the request that follows the 302 must carry no
+    // credential: forwarding the API key would hand it to a host with no business holding it.
+    [Fact]
+    public async Task DownloadStreamsToDiskAndShowsStorageNoCredential()
+    {
+        var payload = Payload();
+        using var origin = new RedirectingServer(payload, truncate: false);
+        using var client = new VpnDetectionClient(
+            new VpnDetectionClientOptions { BaseUrl = origin.BaseUrl, ApiKey = "k" });
+        var path = Path.Combine(TempDir(), "dataset.mmdb");
+
+        var written = await client.Database.DownloadAsync("vpn_ip_extended_v1", DatasetFormat.Mmdb, path);
+
+        Assert.Equal(payload.Length, written);
+        Assert.Equal(payload, await File.ReadAllBytesAsync(path));
+        Assert.False(File.Exists(path + ".part"), "the .part file outlived a successful transfer");
+        Assert.Equal(1, origin.StorageRequests);
+        Assert.Null(origin.StorageAuthorization);
+    }
+
+    [Fact]
+    public async Task DownloadBytesAgreesWithTheStreamedCopy()
+    {
+        var payload = Payload();
+        using var origin = new RedirectingServer(payload, truncate: false);
+        using var client = new VpnDetectionClient(
+            new VpnDetectionClientOptions { BaseUrl = origin.BaseUrl, ApiKey = "k" });
+        var path = Path.Combine(TempDir(), "dataset.mmdb");
+        await client.Database.DownloadAsync("vpn_ip_extended_v1", DatasetFormat.Mmdb, path);
+
+        var bytes = await client.Database.DownloadBytesAsync("vpn_ip_extended_v1", DatasetFormat.Mmdb);
+
+        Assert.Equal(await File.ReadAllBytesAsync(path), bytes);
+        Assert.Null(origin.StorageAuthorization);
+    }
+
+    // A transfer that ends short of its declared length must fail rather than leave a file that
+    // reads as a whole dataset. HttpClient raises this for itself, which PHP's streams do not, so
+    // what is pinned here is that the failure surfaces AND that nothing survives it.
+    [Fact]
+    public async Task ATruncatedTransferFailsAndLeavesNothingBehind()
+    {
+        var payload = Payload();
+        using var origin = new RedirectingServer(payload, truncate: true);
+        using var client = new VpnDetectionClient(
+            new VpnDetectionClientOptions { BaseUrl = origin.BaseUrl, ApiKey = "k" });
+        var path = Path.Combine(TempDir(), "dataset.mmdb");
+
+        await Assert.ThrowsAnyAsync<IOException>(
+            () => client.Database.DownloadAsync("vpn_ip_extended_v1", DatasetFormat.Mmdb, path));
+
+        Assert.False(File.Exists(path), "a short transfer left a file that reads as a whole dataset");
+        Assert.False(File.Exists(path + ".part"), "the .part file outlived a failed transfer");
+    }
+
+    [Fact]
+    public async Task DownloadBytesRefusesATruncatedTransfer()
+    {
+        var payload = Payload();
+        using var origin = new RedirectingServer(payload, truncate: true);
+        using var client = new VpnDetectionClient(
+            new VpnDetectionClientOptions { BaseUrl = origin.BaseUrl, ApiKey = "k" });
+
+        await Assert.ThrowsAnyAsync<IOException>(
+            () => client.Database.DownloadBytesAsync("vpn_ip_extended_v1", DatasetFormat.Mmdb));
+    }
+
+    // A dataset the organization does not license is refused by the API before any transfer starts,
+    // and `rc` is what says WHICH refusal it is. Not retryable: retrying a licence decision two
+    // more times helps nobody.
+    [Fact]
+    public async Task AnUnlicensedDatasetIsRefusedOnceAndCarriesTheApiReasonCode()
+    {
+        var handler = new StubHandler(_ => StubHandler.Json(new Route("""{"rc":"NOT_LICENSED"}""", 403)));
+        using var client = Stub.Client(handler, new VpnDetectionClientOptions { ApiKey = "k", Retries = 2 });
+        var path = Path.Combine(TempDir(), "unlicensed.csv.gz");
+
+        var error = await Assert.ThrowsAsync<VpnDetectionException>(
+            () => client.Database.DownloadAsync("hosting_ip_v1", DatasetFormat.Csvgz, path));
+
+        Assert.Equal(ErrorKind.Forbidden, error.Kind);
+        Assert.Equal(403, error.StatusCode);
+        Assert.Equal("NOT_LICENSED", error.Message);
+        Assert.False(error.Retryable);
+        Assert.Single(handler.Calls);
+        Assert.False(File.Exists(path + ".part"), "a refused download still created a file");
+    }
+
+    // Recognisable bytes rather than zeroes, so a copy that dropped or reordered a chunk shows up
+    // as a mismatch instead of matching by accident. Two chunks and a bit, to cross the buffer.
+    private static byte[] Payload()
+    {
+        var bytes = new byte[(64 * 1024 * 2) + 1234];
+        new Random(20260904).NextBytes(bytes);
+        return bytes;
+    }
+
+    private static string TempDir()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "vpndetection-tests-" + Guid.NewGuid().ToString("n"));
+        Directory.CreateDirectory(dir);
+        return dir;
+    }
 }
 
 // A real HTTP origin that answers the download endpoint with a 302 to a SECOND origin, so "the
 // client followed the redirect" is observable rather than assumed. Two origins, because that is
 // what production does: the API redirects to object storage on another host.
 //
-// Storage answers with a gigabyte of Content-Length and one byte of body, and never closes the
-// response, so anything that tries to READ that body blocks forever.
+// Storage is a raw socket rather than an HttpListener, so a response can be malformed on purpose:
+// promise a gigabyte and never finish it, or declare a length and stop half way through it.
 internal sealed class RedirectingServer : IDisposable
 {
     private readonly HttpListener api = new();
-    private readonly HttpListener storage = new();
+    private readonly TcpListener storage;
+    private readonly byte[]? payload;
+    private readonly bool truncate;
+    private readonly List<Socket> held = new();
 
+    /// <summary>An origin whose storage stalls: a gigabyte promised, one byte sent, never closed.</summary>
+    /// <remarks>
+    /// Anything that READS that body blocks forever rather than merely being slow, which is what
+    /// makes "the redirect was followed" fail a test instead of just costing it time.
+    /// </remarks>
     internal RedirectingServer()
+        : this(null, false)
     {
+    }
+
+    /// <summary>An origin whose storage serves <paramref name="payload"/>, whole or cut short.</summary>
+    internal RedirectingServer(byte[]? payload, bool truncate)
+    {
+        this.payload = payload;
+        this.truncate = truncate;
         BaseUrl = $"http://127.0.0.1:{FreePort()}";
-        PayloadUrl = $"http://127.0.0.1:{FreePort()}/dataset.mmdb";
-        api.Prefixes.Add($"{BaseUrl}/");
-        storage.Prefixes.Add($"{new Uri(PayloadUrl).GetLeftPart(UriPartial.Authority)}/");
-        api.Start();
+        storage = new TcpListener(IPAddress.Loopback, 0);
         storage.Start();
-        _ = Task.Run(() => ServeAsync(api, Redirect));
-        _ = Task.Run(() => ServeAsync(storage, StallForever));
+        PayloadUrl = $"http://127.0.0.1:{((IPEndPoint)storage.LocalEndpoint).Port}/dataset.mmdb";
+        api.Prefixes.Add($"{BaseUrl}/");
+        api.Start();
+        _ = Task.Run(ServeApiAsync);
+        _ = Task.Run(ServeStorageAsync);
     }
 
     internal string BaseUrl { get; }
 
     internal string PayloadUrl { get; }
 
-    internal bool StorageWasAsked { get; private set; }
+    internal bool StorageWasAsked => StorageRequests > 0;
+
+    /// <summary>How many times storage was asked for the file.</summary>
+    internal int StorageRequests { get; private set; }
+
+    /// <summary>
+    /// The Authorization header storage received, or null when it received none.
+    /// </summary>
+    /// <remarks>
+    /// The header, not the key: the presigned URL authorizes itself, so the API key must never
+    /// reach this host, and a test that only counted requests would not see it if it did.
+    /// </remarks>
+    internal string? StorageAuthorization { get; private set; }
 
     public void Dispose()
     {
         ((IDisposable)api).Dispose();
-        ((IDisposable)storage).Dispose();
+        storage.Stop();
+        lock (held)
+        {
+            foreach (var socket in held)
+            {
+                socket.Dispose();
+            }
+            held.Clear();
+        }
     }
 
-    private bool Redirect(HttpListenerContext context)
+    private async Task ServeApiAsync()
     {
-        context.Response.StatusCode = 302;
-        context.Response.RedirectLocation = PayloadUrl;
-        return true;
-    }
-
-    private bool StallForever(HttpListenerContext context)
-    {
-        StorageWasAsked = true;
-        context.Response.StatusCode = 200;
-        context.Response.ContentLength64 = 1_000_000_000;
-        context.Response.OutputStream.WriteByte((byte)'x');
-        context.Response.OutputStream.Flush();
-        return false;
-    }
-
-    private static async Task ServeAsync(HttpListener listener, Func<HttpListenerContext, bool> handle)
-    {
-        while (listener.IsListening)
+        while (api.IsListening)
         {
             HttpListenerContext context;
             try
             {
-                context = await listener.GetContextAsync();
+                context = await api.GetContextAsync();
             }
             catch (Exception)
             {
                 return;
             }
-            if (handle(context))
+            context.Response.StatusCode = 302;
+            context.Response.RedirectLocation = PayloadUrl;
+            context.Response.Close();
+        }
+    }
+
+    private async Task ServeStorageAsync()
+    {
+        while (true)
+        {
+            Socket socket;
+            try
             {
-                context.Response.Close();
+                socket = await storage.AcceptSocketAsync();
+            }
+            catch (Exception)
+            {
+                return;
+            }
+            lock (held)
+            {
+                held.Add(socket);
+            }
+            _ = Task.Run(() => AnswerAsync(socket));
+        }
+    }
+
+    private async Task AnswerAsync(Socket socket)
+    {
+        var stream = new NetworkStream(socket, ownsSocket: false);
+        var head = await ReadHeadAsync(stream);
+        foreach (var line in head.Split("\r\n"))
+        {
+            if (line.StartsWith("Authorization:", StringComparison.OrdinalIgnoreCase))
+            {
+                StorageAuthorization = line["Authorization:".Length..].Trim();
             }
         }
+        StorageRequests++;
+
+        if (payload is null)
+        {
+            // A gigabyte promised, one byte sent, and the socket held open: a reader hangs.
+            await WriteAsync(stream, Header(1_000_000_000));
+            await stream.WriteAsync(new byte[] { (byte)'x' });
+            await stream.FlushAsync();
+            return;
+        }
+        await WriteAsync(stream, Header(payload.Length));
+        var sent = truncate ? payload.Length / 2 : payload.Length;
+        await stream.WriteAsync(payload.AsMemory(0, sent));
+        await stream.FlushAsync();
+        if (truncate)
+        {
+            // A clean shutdown short of the declared length, which is the shape HttpClient has to
+            // notice: an aborted socket would prove something weaker.
+            socket.Shutdown(SocketShutdown.Both);
+        }
+        socket.Close();
+    }
+
+    private static string Header(long length)
+        => "HTTP/1.1 200 OK\r\n"
+            + "Content-Type: application/octet-stream\r\n"
+            + $"Content-Length: {length}\r\n"
+            + "Connection: close\r\n\r\n";
+
+    private static Task WriteAsync(Stream stream, string text)
+        => stream.WriteAsync(Encoding.ASCII.GetBytes(text)).AsTask();
+
+    private static async Task<string> ReadHeadAsync(Stream stream)
+    {
+        var head = new StringBuilder();
+        var buffer = new byte[1];
+        while (!head.ToString().EndsWith("\r\n\r\n", StringComparison.Ordinal))
+        {
+            if (await stream.ReadAsync(buffer) == 0)
+            {
+                break;
+            }
+            head.Append((char)buffer[0]);
+        }
+        return head.ToString();
     }
 
     private static int FreePort()
     {
-        var probe = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
+        var probe = new TcpListener(IPAddress.Loopback, 0);
         probe.Start();
         var port = ((IPEndPoint)probe.LocalEndpoint).Port;
         probe.Stop();

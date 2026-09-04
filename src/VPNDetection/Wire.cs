@@ -51,21 +51,27 @@ internal static class Wire
     internal static VpnDetectionException Translate(WireException e)
     {
         var retryAfter = RetryAfterOf(e.Headers);
-        var kind = e.StatusCode switch
-        {
-            400 => ErrorKind.BadRequest,
-            401 => ErrorKind.Unauthorized,
-            403 => ErrorKind.Forbidden,
-            // Present means transient, absent means an allowance is spent. Nothing else in the
-            // response separates the two.
-            429 => retryAfter is null ? ErrorKind.QuotaExceeded : ErrorKind.RateLimited,
-            // Any other 4xx is a CLIENT error. Falling through to ServerError would make it
-            // retryable, so a bad dataset id would be retried twice before failing. Only 5xx and
-            // transport failures are worth a retry.
-            _ => e.StatusCode < 500 ? ErrorKind.BadRequest : ErrorKind.ServerError,
-        };
-        return new VpnDetectionException(kind, MessageOf(e), e.StatusCode, retryAfter, e);
+        return new VpnDetectionException(
+            KindOf(e.StatusCode, retryAfter), MessageOf(e), e.StatusCode, retryAfter, e);
     }
+
+    /// <summary>
+    /// What a status means, for the API and for object storage alike: both ends of a download run
+    /// through here so the rule is written once.
+    /// </summary>
+    internal static ErrorKind KindOf(int status, TimeSpan? retryAfter) => status switch
+    {
+        400 => ErrorKind.BadRequest,
+        401 => ErrorKind.Unauthorized,
+        403 => ErrorKind.Forbidden,
+        // Present means transient, absent means an allowance is spent. Nothing else in the
+        // response separates the two.
+        429 => retryAfter is null ? ErrorKind.QuotaExceeded : ErrorKind.RateLimited,
+        // Any other 4xx is a CLIENT error. Falling through to ServerError would make it retryable,
+        // so a bad dataset id would be retried twice before failing. Only 5xx and transport
+        // failures are worth a retry. Classified on the RANGE, never on an enumerated list.
+        _ => status < 500 ? ErrorKind.BadRequest : ErrorKind.ServerError,
+    };
 
     // The two APIs behind this host answer with different envelopes: the lookup endpoint uses
     // `error`, the database endpoints use `rc`. Both are read here so a caller never has to know
@@ -142,6 +148,26 @@ internal static class Wire
         if (DateTimeOffset.TryParse(value.Trim(), out var when))
         {
             var wait = when - DateTimeOffset.UtcNow;
+            return wait > TimeSpan.Zero ? wait : TimeSpan.Zero;
+        }
+        return null;
+    }
+
+    // The same header off a real response, where it is already parsed into its two forms. Object
+    // storage answers this way, the generated client does not.
+    internal static TimeSpan? RetryAfterOf(System.Net.Http.Headers.HttpResponseHeaders headers)
+    {
+        if (headers.RetryAfter is not { } value)
+        {
+            return null;
+        }
+        if (value.Delta is { } delta)
+        {
+            return delta >= TimeSpan.Zero ? delta : null;
+        }
+        if (value.Date is { } date)
+        {
+            var wait = date - DateTimeOffset.UtcNow;
             return wait > TimeSpan.Zero ? wait : TimeSpan.Zero;
         }
         return null;

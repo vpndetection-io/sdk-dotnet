@@ -157,14 +157,18 @@ Note that `RateLimited` and `QuotaExceeded` both arrive as HTTP 429 and are not 
 
 ### Database downloads
 
-If your key carries the `db.download` scope, the licensed datasets are available through `client.Database`:
+If your key carries the `db.download` scope, the licensed datasets are available through `client.Database`. A licence covers a dataset FAMILY, so the ids below come from its versions. `DownloadAsync` fetches one to a path, streaming it straight to disk so that nothing bigger than a chunk is ever held in memory; or take the bytes, or the time-limited link to run the transfer yourself:
 
 ```csharp
 var datasets = await client.Database.ListAsync();
-var url = await client.Database.DownloadUrlAsync("vpn_ip_extended_v1", DatasetFormat.Mmdb);
+var id = datasets[0].Versions[0].Id;                                            // "vpn_ip_extended_v1"
+
+var written = await client.Database.DownloadAsync(id, DatasetFormat.Mmdb, $"{id}.mmdb");
+var bytes = await client.Database.DownloadBytesAsync("cdn_ip_v1", DatasetFormat.Csvgz);
+var url = await client.Database.DownloadUrlAsync(id, DatasetFormat.Mmdb);
 ```
 
-`DownloadUrlAsync` returns a time-limited link rather than the bytes, so you choose how to transfer a file that can run to gigabytes.
+`DownloadBytesAsync` holds the whole file in memory, and the catalog runs from `cdn_ip_v1` at 10 KB to `resproxy_ip_90d_v1` at 1.79 GB, so use `DownloadAsync` for anything you have not measured.
 
 ### Dependency injection
 
