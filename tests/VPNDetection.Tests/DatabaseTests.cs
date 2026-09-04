@@ -12,8 +12,10 @@ public class DatabaseTests
     private static readonly Dictionary<string, string> Bodies = new()
     {
         ["/api/v1/database/list"] = """
-            {"datasets":[{"id":"vpn_ip_extended_v1","name":"VPN IP Extended","redistribution":"internal",
-            "in_term":true,"formats":[{"format":"mmdb","bytes":1234},{"format":"csvgz","bytes":null}]}]}
+            {"datasets":[{"base":"vpn_ip_extended","name":"VPN IP Extended","redistribution":"internal",
+            "in_term":true,"standing":"licensed","versions":[{"id":"vpn_ip_extended_v1","version":1,
+            "formats":[{"format":"mmdb","bytes":1234},{"format":"csvgz","bytes":null}],
+            "sampleFormats":["csvgz","mmdb"]}]}]}
             """,
         ["/api/v1/database/checksum"] = """
             {"id":"vpn_ip_extended_v1","format":"mmdb",
@@ -43,13 +45,25 @@ public class DatabaseTests
         Assert.Equal("s256", sums.Sha256);
         Assert.Equal("s512", sums.Sha512);
 
+        // A licence is held against the FAMILY, and the ids the download and checksum calls take
+        // hang off its versions. The spec used to claim `{id, formats}` here, which decoded into a
+        // dataset whose every field was empty and left ListAsync unable to say what to download.
         var datasets = await client.Database.ListAsync();
-        Assert.Equal("vpn_ip_extended_v1", Assert.Single(datasets).Id);
-        Assert.True(datasets[0].InTerm);
-        Assert.Equal(DatasetRedistribution.Internal, datasets[0].Redistribution);
-        Assert.Equal(DatasetFormat.Mmdb, datasets[0].Formats[0].Format);
+        var family = Assert.Single(datasets);
+        Assert.Equal("vpn_ip_extended", family.Base);
+        Assert.True(family.InTerm);
+        Assert.Equal(LicensedDatasetStanding.Licensed, family.Standing);
+        Assert.Equal(DatasetRedistribution.Internal, family.Redistribution);
+        var published = Assert.Single(family.Versions);
+        Assert.Equal("vpn_ip_extended_v1", published.Id);
+        Assert.Equal(1, published.Version);
+        Assert.Equal(DatasetFormat.Mmdb, published.Formats[0].Format);
         // `bytes: null` is a published-yet-unbuilt format, not a missing key.
-        Assert.Null(datasets[0].Formats[1].Bytes);
+        Assert.Null(published.Formats[1].Bytes);
+        // An enum inside a LIST is the one place NSwag writes no converter, and System.Text.Json
+        // reads an enum as a number by default, so a healthy answer throws without the converter
+        // Wire.cs registers.
+        Assert.Equal(new[] { DatasetFormat.Csvgz, DatasetFormat.Mmdb }, published.SampleFormats);
 
         var downloads = await client.Database.DownloadsAsync();
         Assert.Equal("vpn_ip_extended_v1", Assert.Single(downloads).DatasetId);

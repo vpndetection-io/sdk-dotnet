@@ -18,7 +18,12 @@ public sealed class Database
         this.retries = retries;
     }
 
-    /// <summary>The datasets your organization is licensed to download.</summary>
+    /// <summary>The dataset families your organization is licensed to download.</summary>
+    /// <remarks>
+    /// A license covers a FAMILY while a download names one of its versions, so the ids
+    /// <see cref="DownloadUrlAsync"/> and <see cref="ChecksumsAsync"/> take come from
+    /// <see cref="LicensedDataset.Versions"/>.
+    /// </remarks>
     public Task<IReadOnlyList<LicensedDataset>> ListAsync(CancellationToken cancellationToken = default)
         => Wire.ExecuteAsync(
             retries,

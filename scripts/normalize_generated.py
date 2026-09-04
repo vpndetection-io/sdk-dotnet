@@ -28,14 +28,15 @@ INTERNAL_TYPES = [
     "Response3",
 ]
 
-# The spec's one csvgz/mmdb enum is reached from four places, and an inline enum
-# gets a name per place, so the generator emits four copies of it. They are
+# The spec's one csvgz/mmdb enum is reached from five places, and an inline enum
+# gets a name per place, so the generator emits five copies of it. They are
 # folded into the single DatasetFormat a caller passes to the Database methods
-# and reads back off LicensedDataset.Formats[].Format.
+# and reads back off LicensedVersion.Formats[].Format.
 TYPE_RENAMES = {
     "DatasetFormatSizeFormat": "DatasetFormat",
     "Format": "DatasetFormat",
     "Format2": "DatasetFormat",
+    "SampleFormats": "DatasetFormat",
     "Checksums": "DatasetChecksums",
     "LicensedDatasetRedistribution": "DatasetRedistribution",
 }
@@ -60,9 +61,18 @@ ENUM_BLOCK = re.compile(
 PROPERTY = re.compile(
     r'(\[System\.Text\.Json\.Serialization\.JsonPropertyName\("(?P<wire>[^"]+)"\)\]\n'
     # An enum property carries a second attribute between the two, and skipping it silently left
-    # DatasetFormatSize.Format named after its own type.
-    r"(?:[ \t]*\[[^\n]*\]\n)*"
+    # DatasetFormatSize.Format named after its own type. A LIST of enums carries a comment there
+    # instead of an attribute, and skipping that left sampleFormats named DatasetFormat.
+    r"(?:[ \t]*(?:\[|//)[^\n]*\n)*"
     r"\s*public\s+[^\n]*?\s)(?P<name>[A-Za-z_][A-Za-z0-9_]*)(?=\s*\{ get; set; \})"
+)
+
+# NSwag writes a per-property converter for a scalar enum and this comment for an enum inside a
+# LIST, where System.Text.Json's default is to read a NUMBER. Wire.cs registers a converter for
+# DatasetFormat to cover it, so a list of any OTHER enum would deserialize no healthy answer.
+ITEM_CONVERTER_TODO = re.compile(
+    r"// TODO\(system\.text\.json\): Add string enum item converter\n"
+    r"[ \t]*public [^\n]*?IReadOnlyList<(?P<item>[A-Za-z_][A-Za-z0-9_]*)>"
 )
 
 
@@ -201,6 +211,9 @@ def check(src) -> int:
             bad.append(f"property {m.group('name')} should be {want}, from the wire name")
     for m in re.finditer(r"^\s*public (?:partial class|enum) (Response\d?|Error|Format\d?)\b", src, re.M):
         bad.append(f"wire type {m.group(1)} is still public")
+    for m in ITEM_CONVERTER_TODO.finditer(src):
+        if m.group("item") != "DatasetFormat":
+            bad.append(f"a list of {m.group('item')} has no item converter; only DatasetFormat has one")
     for line in bad:
         print(f"NORMALIZE FAILED: {line}", file=sys.stderr)
     return 1 if bad else 0

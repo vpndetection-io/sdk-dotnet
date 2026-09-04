@@ -1330,12 +1330,21 @@ namespace VPNDetection
 
     }
 
+    /// <summary>
+    /// One dataset FAMILY your organization is licensed for. A license covers
+    /// <br/>the family, while a download names a specific version, so the ids you
+    /// <br/>pass to the download and checksum endpoints come from `versions`.
+    /// <br/>
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class LicensedDataset
     {
 
-        [System.Text.Json.Serialization.JsonPropertyName("id")]
-        public string Id { get; set; } = default!;
+        /// <summary>
+        /// The dataset family, e.g. `vpn_ip`. What the license is held against.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("base")]
+        public string Base { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         public string Name { get; set; } = default!;
@@ -1344,13 +1353,7 @@ namespace VPNDetection
         public string? Summary { get; set; } = default!;
 
         /// <summary>
-        /// Licensed but no longer published. Talk to us.
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("retired")]
-        public bool? Retired { get; set; } = default!;
-
-        /// <summary>
-        /// What your license permits you to do with the data
+        /// What your license permits you to do with the data.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("redistribution")]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<DatasetRedistribution>))]
@@ -1359,17 +1362,71 @@ namespace VPNDetection
         [System.Text.Json.Serialization.JsonPropertyName("starts")]
         public System.DateTimeOffset? Starts { get; set; } = default!;
 
+        /// <summary>
+        /// Null when the license does not expire.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("expires")]
         public System.DateTimeOffset? Expires { get; set; } = default!;
 
         /// <summary>
-        /// False when the license has lapsed; downloads are refused
+        /// False when the license has lapsed; downloads are refused.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("in_term")]
         public bool InTerm { get; set; } = default!;
 
+        /// <summary>
+        /// `licensed` is a live grant, `expired` one whose term has ended, and
+        /// <br/>`unlicensed` a dataset published but never bought.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("standing")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<LicensedDatasetStanding>))]
+        public LicensedDatasetStanding Standing { get; set; } = default!;
+
+        /// <summary>
+        /// Every published version of this family. The `id` here is what the
+        /// <br/>download and checksum endpoints take.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("versions")]
+        public System.Collections.Generic.IReadOnlyList<LicensedVersion> Versions { get; set; } = new System.Collections.Generic.List<LicensedVersion>();
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class LicensedVersion
+    {
+
+        /// <summary>
+        /// The versioned dataset id, e.g. `vpn_ip_v1`. Pass this to download.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("version")]
+        public int Version { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("summary")]
+        public string? Summary { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("formats")]
         public System.Collections.Generic.IReadOnlyList<DatasetFormatSize> Formats { get; set; } = new System.Collections.Generic.List<DatasetFormatSize>();
+
+        /// <summary>
+        /// The formats an evaluation sample is published in, if any.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sampleFormats")]
+        // TODO(system.text.json): Add string enum item converter
+        public System.Collections.Generic.IReadOnlyList<DatasetFormat>? SampleFormats { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -1576,6 +1633,22 @@ namespace VPNDetection
         Redistribute = 2,
 
     }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum LicensedDatasetStanding
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"expired")]
+        Expired = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"licensed")]
+        Licensed = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"unlicensed")]
+        Unlicensed = 2,
+
+    }
+
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public enum DownloadOutcome
