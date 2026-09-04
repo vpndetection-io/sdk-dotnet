@@ -34,6 +34,12 @@ INDEX="https://api.nuget.org/v3-flatcontainer/vpndetection/index.json"
 
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
 export DOTNET_NOLOGO=1
+# The suite is built for net8.0, and a box carrying only a newer runtime refuses to launch it at
+# all: measured on the 10.0 SDK image, the run dies as "Zero tests ran", which reads like a broken
+# suite rather than a missing runtime. Major rolls onto whatever IS installed, so the floor is used
+# where it exists and a newer runtime otherwise. Not Disable, which turns off PATCH roll-forward
+# too and demands an exact 8.0.0 no machine carries.
+export DOTNET_ROLL_FORWARD=Major
 
 function main() {
     command -v dotnet >/dev/null || {
