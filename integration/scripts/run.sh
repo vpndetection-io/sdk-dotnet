@@ -113,7 +113,10 @@ function publishedVersions() {
         if [ -n "$version" ] && inRange "$version" "$low" "$high" ; then
             echo "$version"
         fi
-    done < <(printf '%s' "$body" | tr -d ' \n' \
+    # \r as well as \n: nuget.org answers with CRLF, and left in place every version comes out
+    # as "\r1.0.0", which the anchored match below drops. The gate would then report nothing
+    # published forever, which is indistinguishable from the truth before the first release.
+    done < <(printf '%s' "$body" | tr -d ' \r\n' \
         | sed -n 's/.*"versions":\[\([^]]*\)\].*/\1/p' | tr ',' '\n' | tr -d '"' \
         | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V)
     return 0
