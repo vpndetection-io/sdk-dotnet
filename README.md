@@ -45,20 +45,6 @@ Console.WriteLine(result.IsHosting);        // True
 Console.WriteLine(result.Hosting?.Provider);
 ```
 
-The tier-gated members are `bool?`, and `null` there means **your plan does not include this field**, which is a different answer from `false`. Use `??` when you only care whether the address is flagged, and compare against `null` when the difference matters:
-
-```csharp
-if (result.IsHosting ?? false)
-{
-    // Definitely hosting.
-}
-
-if (result.IsHosting is null)
-{
-    // Not in your plan; nobody checked.
-}
-```
-
 ### Batch lookup
 
 You can do batch lookups with a list, which parallelizes requests for you efficiently:
@@ -181,6 +167,15 @@ services.AddHttpClient<VpnDetectionClient>()
 ```
 
 `AllowAutoRedirect = false` matters: the database download endpoint answers `302` with the link this library hands back, and .NET's default handler would follow it and fetch the whole dataset instead. A client that follows redirects is refused with a clear error rather than quietly downloading gigabytes.
+
+### Absent is not false
+
+Only `Ip` and `IsVpn` come back on every plan. The rest are `bool?`, where `null` means "not in your plan" rather than "checked, and no".
+
+```csharp
+result.IsHosting ?? false   // when you only want the flag
+result.IsHosting is null    // not in your plan
+```
 
 ## Other Libraries
 
