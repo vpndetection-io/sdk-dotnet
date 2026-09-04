@@ -1439,6 +1439,11 @@ namespace VPNDetection
 
     }
 
+    /// <summary>
+    /// One download ATTEMPT, refusals included - a denial is what answers "it
+    /// <br/>stopped working", so they are listed rather than dropped.
+    /// <br/>
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class Download
     {
@@ -1453,8 +1458,36 @@ namespace VPNDetection
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<DownloadOutcome>))]
         public DownloadOutcome Outcome { get; set; } = default!;
 
+        /// <summary>
+        /// The evaluation sample rather than the database itself.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sample")]
+        public bool Sample { get; set; } = default!;
+
+        /// <summary>
+        /// Object size at redirect time, NOT bytes delivered: the transfer is a
+        /// <br/>presigned redirect straight to object storage, so we never observe it.
+        /// <br/>
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("bytes")]
         public int? Bytes { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("http_status")]
+        public int? HttpStatus { get; set; } = default!;
+
+        /// <summary>
+        /// The key that made the request. Null when the org acted through the
+        /// <br/>console rather than through a key.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("apikey_id")]
+        public string? ApikeyId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("client_ip")]
+        public string? ClientIp { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("user_agent")]
+        public string? UserAgent { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("created")]
         public System.DateTimeOffset Created { get; set; } = default!;
@@ -1533,6 +1566,18 @@ namespace VPNDetection
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("size")]
         public System.Collections.Generic.IDictionary<string, int>? Size { get; set; } = default!;
+
+        /// <summary>
+        /// Bytes per format of the evaluation sample, where one is published
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sample_size")]
+        public System.Collections.Generic.IDictionary<string, int>? SampleSize { get; set; } = default!;
+
+        /// <summary>
+        /// Row count in the evaluation sample
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sample_entries")]
+        public int? SampleEntries { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
