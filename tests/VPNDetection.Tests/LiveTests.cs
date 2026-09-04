@@ -24,7 +24,7 @@ public class LiveTests
         Console.WriteLine($"45.83.91.1  -> isVpn={vpn.IsVpn} isHosting={Show(vpn.IsHosting)} "
             + $"isBogon={vpn.IsBogon} raw={Corpus.AsWire(vpn.Raw)}");
         Console.WriteLine($"1.1.1.1     -> isVpn={notVpn.IsVpn} isHosting={Show(notVpn.IsHosting)} "
-            + $"isHostingOrFalse={notVpn.IsHosting ?? false} raw={Corpus.AsWire(notVpn.Raw)}");
+            + $"isHosting ?? false={notVpn.IsHosting ?? false} raw={Corpus.AsWire(notVpn.Raw)}");
         Console.WriteLine($"192.168.1.1 -> isVpn={bogon.IsVpn} isBogon={bogon.IsBogon} "
             + $"raw={Corpus.AsWire(bogon.Raw)}");
 
