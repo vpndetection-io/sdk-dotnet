@@ -40,7 +40,9 @@ internal sealed record Rung(string Tier, string? Secret, bool Widens)
         => All.Where(rung => rung.SkipReason is null).ToArray();
 
     internal string Key
-        => Secret is null ? string.Empty : (Environment.GetEnvironmentVariable(Secret) ?? string.Empty).Trim();
+        => Secret is null
+            ? string.Empty
+            : (Environment.GetEnvironmentVariable(Secret) ?? string.Empty).Trim();
 
     /// <summary>Why this rung cannot be exercised, or null when it can.</summary>
     internal string? SkipReason

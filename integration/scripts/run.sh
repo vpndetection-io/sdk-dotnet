@@ -131,7 +131,8 @@ function localFeed() {
 function packLocal() {
     local feed version
     feed="$(localFeed)"
-    version="$(sed -n 's|.*<Version>\(.*\)</Version>.*|\1|p' ../src/VPNDetection/VPNDetection.csproj | head -1)-local"
+    version="$(sed -n 's|.*<Version>\(.*\)</Version>.*|\1|p' \
+        ../src/VPNDetection/VPNDetection.csproj | head -1)-local"
     rm -rf "$feed"
     mkdir -p "$feed"
     dotnet pack ../src/VPNDetection/VPNDetection.csproj -c Release \

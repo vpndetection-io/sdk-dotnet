@@ -53,16 +53,18 @@ public class DatabaseTests
                     served.Contains(want),
                     $"the payload carries {string.Join(", ", served)}, and LicensedDataset declares {want}");
             }
-            Assert.DoesNotContain(
-                "docsGroup", served, StringComparer.Ordinal);
+            // A docs-site slug, and never API surface. It was published here once.
+            Assert.DoesNotContain("docsGroup", served, StringComparer.Ordinal);
 
             var ids = new List<string>();
             foreach (var family in datasets)
             {
                 Assert.False(string.IsNullOrEmpty(family.Base), "a licensed family carries no base");
                 Assert.False(string.IsNullOrEmpty(family.Name), $"{family.Base} carries no name");
-                Assert.True(Enum.IsDefined(family.Standing), $"{family.Base} carries an undocumented standing");
-                Assert.True(Enum.IsDefined(family.Redistribution), $"{family.Base} carries an undocumented right");
+                Assert.True(
+                    Enum.IsDefined(family.Standing), $"{family.Base} carries an undocumented standing");
+                Assert.True(
+                    Enum.IsDefined(family.Redistribution), $"{family.Base} carries an undocumented right");
                 // The point of the family shape: a license covers the family, and these are the ids
                 // the download and checksum calls take. Before the spec was corrected this list did
                 // not exist, so ListAsync could not tell a caller what to download.
@@ -194,7 +196,8 @@ public class DatabaseTests
         return size;
     }
 
-    private static string Digest(byte[] body) => Convert.ToHexString(SHA256.HashData(body)).ToLowerInvariant();
+    private static string Digest(byte[] body)
+        => Convert.ToHexString(SHA256.HashData(body)).ToLowerInvariant();
 
     private sealed record Transfer(
         long Written, string Path, DatasetChecksums Checksums, IReadOnlyList<Fact> Facts);

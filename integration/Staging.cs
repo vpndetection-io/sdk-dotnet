@@ -78,7 +78,9 @@ internal static class Staging
                 // Checked here rather than in one test, so no comparison anywhere can be made
                 // against a tier that silently ran unauthenticated: an empty or unsent key answers
                 // the free shape, which satisfies every containment check vacuously.
-                Assert.True(rung.Secret is null || fixture.CarriedKey, $"the {rung.Tier} key never reached the wire");
+                Assert.True(
+                    rung.Secret is null || fixture.CarriedKey,
+                    $"the {rung.Tier} key never reached the wire");
                 Answers[rung.Tier] = fixture;
                 return fixture;
             }
