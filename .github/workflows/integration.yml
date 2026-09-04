@@ -1,0 +1,37 @@
+name: Integration
+
+# Exercises the package as PUBLISHED on nuget.org, against staging. CI builds this working tree;
+# nothing there would notice a tag that never landed, a package that ships no net8.0 asset, or an
+# API a consumer cannot reach.
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+  schedule:
+    # Off the hour on purpose: scheduled runs bunched at :00 are queued behind everyone else's and
+    # can be dropped entirely under load.
+    - cron: '47 6 * * *'
+
+jobs:
+  staging:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '8.0.x'
+      # One entry point, used identically by a human and by this job: it skips with a reason when
+      # nothing published satisfies the declared range, and each tier whose key is missing skips
+      # from inside the suite.
+      #
+      # One org per plan tier, because the tier comes from the ORG rather than from the key. A
+      # secret that does not exist interpolates to an empty string here, which the suite treats as
+      # absent.
+      - run: ./scripts/run.sh
+        working-directory: integration
+        env:
+          VPNDETECTION_STAGING_KEY_FREE: ${{ secrets.VPNDETECTION_STAGING_KEY_FREE }}
+          VPNDETECTION_STAGING_KEY_STARTER: ${{ secrets.VPNDETECTION_STAGING_KEY_STARTER }}
+          VPNDETECTION_STAGING_KEY_SCALE: ${{ secrets.VPNDETECTION_STAGING_KEY_SCALE }}
+          VPNDETECTION_STAGING_KEY_MAX: ${{ secrets.VPNDETECTION_STAGING_KEY_MAX }}
