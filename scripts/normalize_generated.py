@@ -38,7 +38,7 @@ TYPE_RENAMES = {
     "Format2": "DatasetFormat",
     "SampleFormats": "DatasetFormat",
     "Checksums": "DatasetChecksums",
-    "LicensedDatasetRedistribution": "DatasetRedistribution",
+    "LicensedDatasetLicenseType": "DatasetLicenseType",
 }
 
 # NSwag 14.6 tags enum members with JsonStringEnumMemberName, which only exists from .NET 9, while

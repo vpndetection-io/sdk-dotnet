@@ -12,7 +12,7 @@ namespace VPNDetection.Integration;
 // the gigabyte datasets through CI.
 public class DatabaseTests
 {
-    // The max organization licenses cdn_ip for redistribution, and at ~10 KB it is the only dataset
+    // The max organization licenses cdn_ip for license_type, and at ~10 KB it is the only dataset
     // small enough to move in CI.
     private const string DatasetId = "cdn_ip_v1";
 
@@ -64,7 +64,7 @@ public class DatabaseTests
                 Assert.True(
                     Enum.IsDefined(family.Standing), $"{family.Base} carries an undocumented standing");
                 Assert.True(
-                    Enum.IsDefined(family.Redistribution), $"{family.Base} carries an undocumented right");
+                    Enum.IsDefined(family.LicenseType), $"{family.Base} carries an undocumented right");
                 // The point of the family shape: a license covers the family, and these are the ids
                 // the download and checksum calls take. Before the spec was corrected this list did
                 // not exist, so ListAsync could not tell a caller what to download.

@@ -14,7 +14,7 @@ public class DatabaseTests
     private static readonly Dictionary<string, string> Bodies = new()
     {
         ["/api/v1/database/list"] = """
-            {"datasets":[{"base":"vpn_ip_extended","name":"VPN IP Extended","redistribution":"internal",
+            {"datasets":[{"base":"vpn_ip_extended","name":"VPN IP Extended","license_type":"standard",
             "in_term":true,"standing":"licensed","versions":[{"id":"vpn_ip_extended_v1","version":1,
             "formats":[{"format":"mmdb","bytes":1234},{"format":"csvgz","bytes":null}],
             "sampleFormats":["csvgz","mmdb"]}]}]}
@@ -55,7 +55,7 @@ public class DatabaseTests
         Assert.Equal("vpn_ip_extended", family.Base);
         Assert.True(family.InTerm);
         Assert.Equal(LicensedDatasetStanding.Licensed, family.Standing);
-        Assert.Equal(DatasetRedistribution.Internal, family.Redistribution);
+        Assert.Equal(DatasetLicenseType.Internal, family.LicenseType);
         var published = Assert.Single(family.Versions);
         Assert.Equal("vpn_ip_extended_v1", published.Id);
         Assert.Equal(1, published.Version);

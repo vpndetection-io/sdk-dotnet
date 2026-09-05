@@ -75,7 +75,7 @@ namespace VPNDetection
         partial void ProcessResponse(System.Net.Http.HttpClient client, System.Net.Http.HttpResponseMessage response);
 
         /// <summary>
-        /// Classify one IP address
+        /// Lookup
         /// </summary>
         /// <remarks>
         /// Answers what is known about a single IPv4 or IPv6 address. Which fields
@@ -93,7 +93,7 @@ namespace VPNDetection
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Classify one IP address
+        /// Lookup
         /// </summary>
         /// <remarks>
         /// Answers what is known about a single IPv4 or IPv6 address. Which fields
@@ -226,8 +226,11 @@ namespace VPNDetection
         }
 
         /// <summary>
-        /// The datasets your organization is licensed to download
+        /// List
         /// </summary>
+        /// <remarks>
+        /// Every dataset this organization holds a licence for, with the term and the license_type right beside each one.
+        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task<Response> ListDatabasesAsync()
@@ -237,8 +240,11 @@ namespace VPNDetection
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// The datasets your organization is licensed to download
+        /// List
         /// </summary>
+        /// <remarks>
+        /// Every dataset this organization holds a licence for, with the term and the license_type right beside each one.
+        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<Response> ListDatabasesAsync(System.Threading.CancellationToken cancellationToken)
@@ -320,8 +326,11 @@ namespace VPNDetection
         }
 
         /// <summary>
-        /// Redirect to a time-limited download URL for one dataset
+        /// Download
         /// </summary>
+        /// <remarks>
+        /// Answers `302` with a time-limited URL pointing straight at object storage. Follow the redirect; the link authorizes the START of a transfer, so one already running is not interrupted when it lapses.
+        /// </remarks>
         /// <param name="id">Dataset id, e.g. vpn_ip_extended_v1</param>
         /// <param name="format">Not every dataset is built in every format. The `_provider`
         /// <br/>catalogues are keyed by provider id rather than by IP range, so no
@@ -334,8 +343,11 @@ namespace VPNDetection
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Redirect to a time-limited download URL for one dataset
+        /// Download
         /// </summary>
+        /// <remarks>
+        /// Answers `302` with a time-limited URL pointing straight at object storage. Follow the redirect; the link authorizes the START of a transfer, so one already running is not interrupted when it lapses.
+        /// </remarks>
         /// <param name="id">Dataset id, e.g. vpn_ip_extended_v1</param>
         /// <param name="format">Not every dataset is built in every format. The `_provider`
         /// <br/>catalogues are keyed by provider id rather than by IP range, so no
@@ -472,7 +484,7 @@ namespace VPNDetection
         }
 
         /// <summary>
-        /// What is inside one dataset - schema, samples, row count, sizes
+        /// Metadata
         /// </summary>
         /// <remarks>
         /// Poll this to decide whether today's build is worth fetching: it carries
@@ -490,7 +502,7 @@ namespace VPNDetection
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// What is inside one dataset - schema, samples, row count, sizes
+        /// Metadata
         /// </summary>
         /// <remarks>
         /// Poll this to decide whether today's build is worth fetching: it carries
@@ -616,8 +628,11 @@ namespace VPNDetection
         }
 
         /// <summary>
-        /// Checksums for one published file, to verify a download
+        /// Checksums
         /// </summary>
+        /// <remarks>
+        /// Checksums for one published file, so a download can be verified after it lands.
+        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task<Response2> DatabaseChecksumAsync(string id, DatasetFormat format)
@@ -627,8 +642,11 @@ namespace VPNDetection
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Checksums for one published file, to verify a download
+        /// Checksums
         /// </summary>
+        /// <remarks>
+        /// Checksums for one published file, so a download can be verified after it lands.
+        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<Response2> DatabaseChecksumAsync(string id, DatasetFormat format, System.Threading.CancellationToken cancellationToken)
@@ -760,8 +778,11 @@ namespace VPNDetection
         }
 
         /// <summary>
-        /// Your organization's recent download attempts, newest first
+        /// History
         /// </summary>
+        /// <remarks>
+        /// Recent download attempts for this organization, newest first. Refusals are listed too, so a failed transfer can be accounted for.
+        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task<Response3> ListDownloadsAsync(int? limit)
@@ -771,8 +792,11 @@ namespace VPNDetection
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Your organization's recent download attempts, newest first
+        /// History
         /// </summary>
+        /// <remarks>
+        /// Recent download attempts for this organization, newest first. Refusals are listed too, so a failed transfer can be accounted for.
+        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<Response3> ListDownloadsAsync(int? limit, System.Threading.CancellationToken cancellationToken)
@@ -1355,9 +1379,9 @@ namespace VPNDetection
         /// <summary>
         /// What your license permits you to do with the data.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("redistribution")]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<DatasetRedistribution>))]
-        public DatasetRedistribution Redistribution { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("license_type")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<LicensedDatasetLicense_type>))]
+        public LicensedDatasetLicense_type LicenseType { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("starts")]
         public System.DateTimeOffset? Starts { get; set; } = default!;
@@ -1665,14 +1689,14 @@ namespace VPNDetection
 
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public enum DatasetRedistribution
+    public enum LicensedDatasetLicense_type
     {
 
         [System.Runtime.Serialization.EnumMember(Value = @"evaluation")]
         Evaluation = 0,
 
-        [System.Runtime.Serialization.EnumMember(Value = @"internal")]
-        Internal = 1,
+        [System.Runtime.Serialization.EnumMember(Value = @"standard")]
+        Standard = 1,
 
         [System.Runtime.Serialization.EnumMember(Value = @"redistribute")]
         Redistribute = 2,
