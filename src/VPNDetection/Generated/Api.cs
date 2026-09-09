@@ -1374,7 +1374,7 @@ namespace VPNDetection
         public string Name { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("summary")]
-        public string? Summary { get; set; } = default!;
+        public string Summary { get; set; } = default!;
 
         /// <summary>
         /// What your license permits you to do with the data.
