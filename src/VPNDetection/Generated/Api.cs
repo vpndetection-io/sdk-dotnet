@@ -1387,10 +1387,22 @@ namespace VPNDetection
         public System.DateTimeOffset? Starts { get; set; } = default!;
 
         /// <summary>
-        /// Null when the license does not expire.
+        /// A hard stop. Null when the license has no end date, which is the normal case for a rolling agreement, and when there is no license. A rolling license reports its turnover date in renews_at instead.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("expires")]
         public System.DateTimeOffset? Expires { get; set; } = default!;
+
+        /// <summary>
+        /// When a rolling license next renews. Null when the license has no defined term, when expires sets a hard stop instead, and when there is no license.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("renews_at")]
+        public System.DateTimeOffset? RenewsAt { get; set; } = default!;
+
+        /// <summary>
+        /// The last day notice of non-renewal can be given for the term ending at renews_at. Null whenever renews_at is, and when the agreement records no notice period.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("notice_due_at")]
+        public System.DateTimeOffset? NoticeDueAt { get; set; } = default!;
 
         /// <summary>
         /// False when the license has lapsed; downloads are refused.
