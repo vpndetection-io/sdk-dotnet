@@ -1063,19 +1063,19 @@ namespace VPNDetection
         public bool? IsCdn { get; set; } = default!;
 
         /// <summary>
-        /// Whether the address was seen in a residential proxy pool. Max only.
+        /// Whether the address was seen in a residential proxy pool. Scale and above.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_resproxy")]
         public bool? IsResproxy { get; set; } = default!;
 
         /// <summary>
-        /// Whether the address was seen in a datacenter proxy pool. Max only.
+        /// Whether the address was seen in a datacenter proxy pool. Scale and above.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_dcproxy")]
         public bool? IsDcproxy { get; set; } = default!;
 
         /// <summary>
-        /// Whether the address was seen in a mobile proxy pool. Max only.
+        /// Whether the address was seen in a mobile proxy pool. Scale and above.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_mobproxy")]
         public bool? IsMobproxy { get; set; } = default!;
