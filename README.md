@@ -45,6 +45,26 @@ Console.WriteLine(result.IsHosting);        // True
 Console.WriteLine(result.Hosting?.Provider);
 ```
 
+### Your own address
+
+```csharp
+var result = await client.MyIpAsync();
+Console.WriteLine(result.Ip);   // the address we saw this call come from
+```
+
+Same answer `LookupAsync` would give for that address, and the same cost against your allowance. It is deliberately not cached: which address you are is the whole question, and a machine that moves between networks would otherwise be told where it used to be.
+
+### Your plan and usage
+
+```csharp
+var acct = await client.MyAccountAsync();
+Console.WriteLine(acct.Plan.Key);         // max
+Console.WriteLine(acct.Usage.Requests);   // 580
+Console.WriteLine(acct.Usage.WindowEnd);  // when the allowance resets
+```
+
+Usage counts against the anniversary of your subscription, not the calendar month and not the billing period, and it is the same number a lookup is gated on. `HardLimit` is `null` on an uncapped plan, which is not the same as zero.
+
 ### Batch lookup
 
 You can do batch lookups with a list, which parallelizes requests for you efficiently:
