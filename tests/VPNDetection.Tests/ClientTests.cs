@@ -163,57 +163,7 @@ public class ClientTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => client.LookupAsync("1.1.1.1", cts.Token));
     }
-}
 
-// Answers slowly enough that concurrent calls overlap, and records the peak number in flight.
-// Asserting the PEAK is the only way to tell a real limit from an option that was accepted and
-// ignored.
-internal sealed class ConcurrencyTrackingHandler : HttpMessageHandler
-{
-    private readonly List<string> calls = new();
-    private int inFlight;
-
-    internal int Peak { get; private set; }
-
-    internal IReadOnlyList<string> Calls
-    {
-        get
-        {
-            lock (calls)
-            {
-                return calls.ToArray();
-            }
-        }
-    }
-
-    protected override async Task<HttpResponseMessage> SendAsync(
-        HttpRequestMessage request, CancellationToken cancellationToken)
-    {
-        lock (calls)
-        {
-            calls.Add(request.RequestUri!.PathAndQuery);
-            inFlight++;
-            Peak = Math.Max(Peak, inFlight);
-        }
-        await Task.Delay(20, cancellationToken);
-        lock (calls)
-        {
-            inFlight--;
-        }
-        var ip = request.RequestUri!.AbsolutePath.TrimStart('/');
-        return StubHandler.Json(new Route(Stub.LookupBody(ip)));
-    }
-}
-
-internal sealed class SlowestFirstHandler : HttpMessageHandler
-{
-    protected override async Task<HttpResponseMessage> SendAsync(
-        HttpRequestMessage request, CancellationToken cancellationToken)
-    {
-        var ip = request.RequestUri!.AbsolutePath.TrimStart('/');
-        await Task.Delay(60 - (10 * int.Parse(ip[^1..])), cancellationToken);
-        return StubHandler.Json(new Route(Stub.LookupBody(ip)));
-    }
     private const string AccountBody = """
         {
           "org_id": "85bb51e4-2eb6-4a31-8e4d-02ba8b98fe61",
@@ -296,5 +246,55 @@ internal sealed class SlowestFirstHandler : HttpMessageHandler
 
         await Assert.ThrowsAsync<VpnDetectionException>(() => client.MyAccountAsync());
     }
+}
 
+// Answers slowly enough that concurrent calls overlap, and records the peak number in flight.
+// Asserting the PEAK is the only way to tell a real limit from an option that was accepted and
+// ignored.
+internal sealed class ConcurrencyTrackingHandler : HttpMessageHandler
+{
+    private readonly List<string> calls = new();
+    private int inFlight;
+
+    internal int Peak { get; private set; }
+
+    internal IReadOnlyList<string> Calls
+    {
+        get
+        {
+            lock (calls)
+            {
+                return calls.ToArray();
+            }
+        }
+    }
+
+    protected override async Task<HttpResponseMessage> SendAsync(
+        HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        lock (calls)
+        {
+            calls.Add(request.RequestUri!.PathAndQuery);
+            inFlight++;
+            Peak = Math.Max(Peak, inFlight);
+        }
+        await Task.Delay(20, cancellationToken);
+        lock (calls)
+        {
+            inFlight--;
+        }
+        var ip = request.RequestUri!.AbsolutePath.TrimStart('/');
+        return StubHandler.Json(new Route(Stub.LookupBody(ip)));
+    }
+}
+
+internal sealed class SlowestFirstHandler : HttpMessageHandler
+{
+    protected override async Task<HttpResponseMessage> SendAsync(
+        HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        var ip = request.RequestUri!.AbsolutePath.TrimStart('/');
+        await Task.Delay(60 - (10 * int.Parse(ip[^1..])), cancellationToken);
+        return StubHandler.Json(new Route(Stub.LookupBody(ip)));
+    }
 }
