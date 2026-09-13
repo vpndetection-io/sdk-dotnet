@@ -1659,10 +1659,14 @@ namespace VPNDetection
         public DatabaseFormat Format { get; set; } = default!;
 
         /// <summary>
-        /// Size of the published file, or null when it has not been published yet
+        /// Size of the published file, or null when it has not been published
+        /// <br/>yet. int64 because it is not hypothetical: resproxy_ip_14d's MMDB is
+        /// <br/>4.58 GB, so a 32-bit field cannot carry the catalogue and `list`
+        /// <br/>throws for every caller rather than for that one entry.
+        /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("bytes")]
-        public int? Bytes { get; set; } = default!;
+        public long? Bytes { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -1822,10 +1826,12 @@ namespace VPNDetection
         /// <summary>
         /// Object size at redirect time, NOT bytes delivered: the transfer is a
         /// <br/>presigned redirect straight to object storage, so we never observe it.
+        /// <br/>int64 for the same reason as DatabaseFormatSize.bytes - it is the
+        /// <br/>size of the same object.
         /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("bytes")]
-        public int? Bytes { get; set; } = default!;
+        public long? Bytes { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("http_status")]
         public int? HttpStatus { get; set; } = default!;
@@ -1950,13 +1956,13 @@ namespace VPNDetection
         /// Bytes per format
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("size")]
-        public System.Collections.Generic.IDictionary<string, int>? Size { get; set; } = default!;
+        public System.Collections.Generic.IDictionary<string, long>? Size { get; set; } = default!;
 
         /// <summary>
         /// Bytes per format of the evaluation sample, where one is published
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sample_size")]
-        public System.Collections.Generic.IDictionary<string, int>? SampleSize { get; set; } = default!;
+        public System.Collections.Generic.IDictionary<string, long>? SampleSize { get; set; } = default!;
 
         /// <summary>
         /// Row count in the evaluation sample

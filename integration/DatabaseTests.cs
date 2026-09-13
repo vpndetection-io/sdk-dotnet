@@ -16,7 +16,7 @@ public class DatabaseTests
     // small enough to move in CI.
     private const string DatasetId = "cdn_ip_v1";
 
-    private const DatasetFormat Format = DatasetFormat.Csvgz;
+    private const DatabaseFormat Format = DatabaseFormat.Csvgz;
 
     // 8 MiB against a ~10 KB dataset. Three orders of magnitude of headroom, so tripping it means
     // the suite is pointed somewhere unintended, which is exactly when a transfer must not proceed.
@@ -41,7 +41,7 @@ public class DatabaseTests
             // as a zero value when the payload disagrees, and a bare "want a string" costs a whole
             // CI cycle to interpret.
             var served = recorder.JsonBody("/api/v1/database/list")
-                .GetProperty("datasets")
+                .GetProperty("databases")
                 .EnumerateArray()
                 .SelectMany(dataset => dataset.EnumerateObject().Select(field => field.Name))
                 .Distinct()
@@ -51,20 +51,32 @@ public class DatabaseTests
             {
                 Assert.True(
                     served.Contains(want),
-                    $"the payload carries {string.Join(", ", served)}, and LicensedDataset declares {want}");
+                    $"the payload carries {string.Join(", ", served)}, and Database declares {want}");
             }
             // A docs-site slug, and never API surface. It was published here once.
             Assert.DoesNotContain("docsGroup", served, StringComparer.Ordinal);
 
-            var ids = new List<string>();
+            var licensed = new List<string>();
             foreach (var family in datasets)
             {
-                Assert.False(string.IsNullOrEmpty(family.Base), "a licensed family carries no base");
+                Assert.False(string.IsNullOrEmpty(family.Base), "a family carries no base");
                 Assert.False(string.IsNullOrEmpty(family.Name), $"{family.Base} carries no name");
                 Assert.True(
                     Enum.IsDefined(family.Standing), $"{family.Base} carries an undocumented standing");
-                Assert.True(
-                    Enum.IsDefined(family.LicenseType), $"{family.Base} carries an undocumented right");
+                // `list` answers the WHOLE catalogue, so an unlicensed family is a normal row with
+                // no licence type at all. Asserting one either way is what tells a null apart from
+                // an enum value the client does not know.
+                if (family.Standing == Standing.Unlicensed)
+                {
+                    Assert.Null(family.LicenseType);
+                }
+                else
+                {
+                    Assert.True(
+                        family.LicenseType is { } right && Enum.IsDefined(right),
+                        $"{family.Base} is {family.Standing} and carries an undocumented right");
+                    licensed.Add(family.Base);
+                }
                 // The point of the family shape: a license covers the family, and these are the ids
                 // the download and checksum calls take. Before the spec was corrected this list did
                 // not exist, so ListAsync could not tell a caller what to download.
@@ -73,10 +85,12 @@ public class DatabaseTests
                 {
                     Assert.False(string.IsNullOrEmpty(version.Id), $"{family.Base} has a version with no id");
                     Assert.True(version.Formats.Count > 0, $"{version.Id} carries no formats");
-                    ids.Add(version.Id);
                 }
             }
-            Console.WriteLine($"licensed: {string.Join(", ", ids)}");
+            // The max org holds grants in staging, so an empty list here is the catalogue arriving
+            // without any of them rather than a plan that buys nothing.
+            Assert.NotEmpty(licensed);
+            Console.WriteLine($"catalogue: {datasets.Count}, licensed: {string.Join(", ", licensed)}");
         }
     }
 
@@ -187,7 +201,7 @@ public class DatabaseTests
         }
     }
 
-    private static long PublishedSize(DatasetMetadata metadata)
+    private static long PublishedSize(DatabaseMetadata metadata)
     {
         Assert.True(metadata.Size is not null, $"{DatasetId} publishes no size to check a transfer against");
         Assert.True(
@@ -200,5 +214,5 @@ public class DatabaseTests
         => Convert.ToHexString(SHA256.HashData(body)).ToLowerInvariant();
 
     private sealed record Transfer(
-        long Written, string Path, DatasetChecksums Checksums, IReadOnlyList<Fact> Facts);
+        long Written, string Path, DbChecksums Checksums, IReadOnlyList<Fact> Facts);
 }

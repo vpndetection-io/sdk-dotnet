@@ -19,7 +19,7 @@
          anything published satisfies it. The runner overrides this with the newest published
          version for the run, so a daily run keeps testing what is newest rather than the lowest
          version the range happens to admit. -->
-    <VpnDetectionVersion Condition="'$(VpnDetectionVersion)' == ''">[1.0.0,2.0.0)</VpnDetectionVersion>
+    <VpnDetectionVersion Condition="'$(VpnDetectionVersion)' == ''">[4.0.0,5.0.0)</VpnDetectionVersion>
   </PropertyGroup>
 
   <ItemGroup>
