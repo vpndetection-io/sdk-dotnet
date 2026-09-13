@@ -229,7 +229,7 @@ namespace VPNDetection
         /// List
         /// </summary>
         /// <remarks>
-        /// Every dataset this organization holds a licence for, with the term and the license_type right beside each one.
+        /// Every database this organization holds a licence for, with the term and the license_type right beside each one.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
@@ -243,7 +243,7 @@ namespace VPNDetection
         /// List
         /// </summary>
         /// <remarks>
-        /// Every dataset this organization holds a licence for, with the term and the license_type right beside each one.
+        /// Every database this organization holds a licence for, with the term and the license_type right beside each one.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
@@ -332,11 +332,11 @@ namespace VPNDetection
         /// Answers `302` with a time-limited URL pointing straight at object storage. Follow the redirect; the link authorizes the START of a transfer, so one already running is not interrupted when it lapses.
         /// </remarks>
         /// <param name="id">Dataset id, e.g. vpn_ip_extended_v1</param>
-        /// <param name="format">Not every dataset is built in every format. The `_provider`
+        /// <param name="format">Not every database is built in every format. The `_provider`
         /// <br/>catalogues are keyed by provider id rather than by IP range, so no
         /// <br/>MMDB exists for them.</param>
         /// <exception cref="WireException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task DownloadDatabaseAsync(string id, DatasetFormat format)
+        public virtual System.Threading.Tasks.Task DownloadDatabaseAsync(string id, DatabaseFormat format)
         {
             return DownloadDatabaseAsync(id, format, System.Threading.CancellationToken.None);
         }
@@ -349,11 +349,11 @@ namespace VPNDetection
         /// Answers `302` with a time-limited URL pointing straight at object storage. Follow the redirect; the link authorizes the START of a transfer, so one already running is not interrupted when it lapses.
         /// </remarks>
         /// <param name="id">Dataset id, e.g. vpn_ip_extended_v1</param>
-        /// <param name="format">Not every dataset is built in every format. The `_provider`
+        /// <param name="format">Not every database is built in every format. The `_provider`
         /// <br/>catalogues are keyed by provider id rather than by IP range, so no
         /// <br/>MMDB exists for them.</param>
         /// <exception cref="WireException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task DownloadDatabaseAsync(string id, DatasetFormat format, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task DownloadDatabaseAsync(string id, DatabaseFormat format, System.Threading.CancellationToken cancellationToken)
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -414,7 +414,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<Error>("The dataset is not built in the requested format", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<Error>("The database is not built in the requested format", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 401)
@@ -434,7 +434,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<Error>("Your organization holds no license for this dataset, or its term has ended", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<Error>("Your organization holds no license for this database, or its term has ended", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 404)
@@ -444,7 +444,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<Error>("No such dataset", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<Error>("No such database", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 503)
@@ -490,12 +490,12 @@ namespace VPNDetection
         /// Poll this to decide whether today's build is worth fetching: it carries
         /// <br/>`updated` and `entries` without downloading anything.
         /// <br/>
-        /// <br/>No `format` parameter - one document describes every format the dataset
+        /// <br/>No `format` parameter - one document describes every format the database
         /// <br/>is built in.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task<DatasetMetadata> DatabaseMetadataAsync(string id)
+        public virtual System.Threading.Tasks.Task<DatabaseMetadata> DatabaseMetadataAsync(string id)
         {
             return DatabaseMetadataAsync(id, System.Threading.CancellationToken.None);
         }
@@ -508,12 +508,12 @@ namespace VPNDetection
         /// Poll this to decide whether today's build is worth fetching: it carries
         /// <br/>`updated` and `entries` without downloading anything.
         /// <br/>
-        /// <br/>No `format` parameter - one document describes every format the dataset
+        /// <br/>No `format` parameter - one document describes every format the database
         /// <br/>is built in.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<DatasetMetadata> DatabaseMetadataAsync(string id, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<DatabaseMetadata> DatabaseMetadataAsync(string id, System.Threading.CancellationToken cancellationToken)
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -560,7 +560,7 @@ namespace VPNDetection
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<DatasetMetadata>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<DatabaseMetadata>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -585,7 +585,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<Error>("Your organization holds no license for this dataset, or its term has ended", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<Error>("Your organization holds no license for this database, or its term has ended", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 404)
@@ -595,7 +595,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<Error>("No such dataset", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<Error>("No such database", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 503)
@@ -635,7 +635,7 @@ namespace VPNDetection
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task<Response2> DatabaseChecksumAsync(string id, DatasetFormat format)
+        public virtual System.Threading.Tasks.Task<Response2> DatabaseChecksumAsync(string id, DatabaseFormat format)
         {
             return DatabaseChecksumAsync(id, format, System.Threading.CancellationToken.None);
         }
@@ -649,7 +649,7 @@ namespace VPNDetection
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<Response2> DatabaseChecksumAsync(string id, DatasetFormat format, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<Response2> DatabaseChecksumAsync(string id, DatabaseFormat format, System.Threading.CancellationToken cancellationToken)
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -715,7 +715,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<Error>("The dataset is not built in the requested format", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<Error>("The database is not built in the requested format", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 401)
@@ -735,7 +735,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<Error>("Your organization holds no license for this dataset, or its term has ended", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<Error>("Your organization holds no license for this database, or its term has ended", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 404)
@@ -745,7 +745,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<Error>("No such dataset", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<Error>("No such database", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 503)
@@ -1172,7 +1172,16 @@ namespace VPNDetection
         public string? Confidence { get; set; } = default!;
 
         /// <summary>
-        /// How the address was attributed to the provider. Max only.
+        /// The class of evidence the attribution rests on, one of four values.
+        /// <br/>Max only.
+        /// <br/>
+        /// <br/>`scan` - we spoke the VPN protocol to the address ourselves and got a
+        /// <br/>valid server response. `scrape` - the operator published the address
+        /// <br/>through its own API, client or configuration. `registry` - public
+        /// <br/>registration or naming records attribute it to the operator.
+        /// <br/>`infer` - the address was extrapolated from confirmed neighbours in
+        /// <br/>the same block.
+        /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("method")]
         public string? Method { get; set; } = default!;
@@ -1329,13 +1338,64 @@ namespace VPNDetection
 
     }
 
+    /// <summary>
+    /// What a license permits you to do with the data.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class DatasetFormatSize
+    public enum LicenseType
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"evaluation")]
+        Evaluation = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"standard")]
+        Standard = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"redistribute")]
+        Redistribute = 2,
+
+    }
+
+    /// <summary>
+    /// Where your license for a database family stands today.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum Standing
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"expired")]
+        Expired = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"licensed")]
+        Licensed = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"unlicensed")]
+        Unlicensed = 2,
+
+    }
+
+    /// <summary>
+    /// A file format a database version is published in.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum DatabaseFormat
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"csvgz")]
+        Csvgz = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"mmdb")]
+        Mmdb = 1,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class DatabaseFormatSize
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("format")]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<DatasetFormat>))]
-        public DatasetFormat Format { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<DatabaseFormat>))]
+        public DatabaseFormat Format { get; set; } = default!;
 
         /// <summary>
         /// Size of the published file, or null when it has not been published yet
@@ -1355,17 +1415,17 @@ namespace VPNDetection
     }
 
     /// <summary>
-    /// One dataset FAMILY your organization is licensed for. A license covers
+    /// One database FAMILY your organization is licensed for. A license covers
     /// <br/>the family, while a download names a specific version, so the ids you
     /// <br/>pass to the download and checksum endpoints come from `versions`.
     /// <br/>
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class LicensedDataset
+    public partial class Database
     {
 
         /// <summary>
-        /// The dataset family, e.g. `vpn_ip`. What the license is held against.
+        /// The database family, e.g. `vpn_ip`. What the license is held against.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("base")]
         public string Base { get; set; } = default!;
@@ -1380,8 +1440,8 @@ namespace VPNDetection
         /// What your license permits you to do with the data.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("license_type")]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<LicensedDatasetLicense_type>))]
-        public LicensedDatasetLicense_type LicenseType { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<LicenseType>))]
+        public LicenseType LicenseType { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("starts")]
         public System.DateTimeOffset? Starts { get; set; } = default!;
@@ -1412,12 +1472,12 @@ namespace VPNDetection
 
         /// <summary>
         /// `licensed` is a live grant, `expired` one whose term has ended, and
-        /// <br/>`unlicensed` a dataset published but never bought.
+        /// <br/>`unlicensed` a database published but never bought.
         /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("standing")]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<LicensedDatasetStanding>))]
-        public LicensedDatasetStanding Standing { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<Standing>))]
+        public Standing Standing { get; set; } = default!;
 
         /// <summary>
         /// Every published version of this family. The `id` here is what the
@@ -1425,7 +1485,7 @@ namespace VPNDetection
         /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("versions")]
-        public System.Collections.Generic.IReadOnlyList<LicensedVersion> Versions { get; set; } = new System.Collections.Generic.List<LicensedVersion>();
+        public System.Collections.Generic.IReadOnlyList<DatabaseVersion> Versions { get; set; } = new System.Collections.Generic.List<DatabaseVersion>();
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -1439,11 +1499,11 @@ namespace VPNDetection
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class LicensedVersion
+    public partial class DatabaseVersion
     {
 
         /// <summary>
-        /// The versioned dataset id, e.g. `vpn_ip_v1`. Pass this to download.
+        /// The versioned database id, e.g. `vpn_ip_v1`. Pass this to download.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         public string Id { get; set; } = default!;
@@ -1455,14 +1515,14 @@ namespace VPNDetection
         public string? Summary { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("formats")]
-        public System.Collections.Generic.IReadOnlyList<DatasetFormatSize> Formats { get; set; } = new System.Collections.Generic.List<DatasetFormatSize>();
+        public System.Collections.Generic.IReadOnlyList<DatabaseFormatSize> Formats { get; set; } = new System.Collections.Generic.List<DatabaseFormatSize>();
 
         /// <summary>
         /// The formats an evaluation sample is published in, if any.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("sampleFormats")]
+        [System.Text.Json.Serialization.JsonPropertyName("sample_formats")]
         // TODO(system.text.json): Add string enum item converter
-        public System.Collections.Generic.IReadOnlyList<DatasetFormat>? SampleFormats { get; set; } = default!;
+        public System.Collections.Generic.IReadOnlyList<DatabaseFormat>? SampleFormats { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -1539,8 +1599,38 @@ namespace VPNDetection
 
     }
 
+    /// <summary>
+    /// The published digests for one database file.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class DatasetMetadataColumn
+    public partial class DbChecksums
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("md5")]
+        public string Md5 { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("sha1")]
+        public string Sha1 { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("sha256")]
+        public string Sha256 { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("sha512")]
+        public string Sha512 { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class DatabaseMetadataColumn
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("name")]
@@ -1564,7 +1654,7 @@ namespace VPNDetection
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class DatasetMetadata
+    public partial class DatabaseMetadata
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("id")]
@@ -1589,7 +1679,7 @@ namespace VPNDetection
         /// Columns, keyed by format
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("schema")]
-        public System.Collections.Generic.IDictionary<string, System.Collections.Generic.IReadOnlyList<DatasetMetadataColumn>> Schema { get; set; } = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IReadOnlyList<DatasetMetadataColumn>>();
+        public System.Collections.Generic.IDictionary<string, System.Collections.Generic.IReadOnlyList<DatabaseMetadataColumn>> Schema { get; set; } = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IReadOnlyList<DatabaseMetadataColumn>>();
 
         /// <summary>
         /// A few real rows, keyed by format
@@ -1627,24 +1717,11 @@ namespace VPNDetection
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public enum DatasetFormat
-    {
-
-        [System.Runtime.Serialization.EnumMember(Value = @"csvgz")]
-        Csvgz = 0,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"mmdb")]
-        Mmdb = 1,
-
-    }
-
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
     internal partial class Response
     {
 
-        [System.Text.Json.Serialization.JsonPropertyName("datasets")]
-        public System.Collections.Generic.IReadOnlyList<LicensedDataset> Datasets { get; set; } = new System.Collections.Generic.List<LicensedDataset>();
+        [System.Text.Json.Serialization.JsonPropertyName("databases")]
+        public System.Collections.Generic.IReadOnlyList<Database> Databases { get; set; } = new System.Collections.Generic.List<Database>();
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -1668,7 +1745,7 @@ namespace VPNDetection
         public string Format { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("checksums")]
-        public DatasetChecksums Checksums { get; set; } = new DatasetChecksums();
+        public DbChecksums Checksums { get; set; } = new DbChecksums();
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -1699,38 +1776,6 @@ namespace VPNDetection
 
     }
 
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public enum LicensedDatasetLicense_type
-    {
-
-        [System.Runtime.Serialization.EnumMember(Value = @"evaluation")]
-        Evaluation = 0,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"standard")]
-        Standard = 1,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"redistribute")]
-        Redistribute = 2,
-
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public enum LicensedDatasetStanding
-    {
-
-        [System.Runtime.Serialization.EnumMember(Value = @"expired")]
-        Expired = 0,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"licensed")]
-        Licensed = 1,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"unlicensed")]
-        Unlicensed = 2,
-
-    }
-
-
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public enum DownloadOutcome
     {
@@ -1752,33 +1797,6 @@ namespace VPNDetection
 
         [System.Runtime.Serialization.EnumMember(Value = @"unavailable")]
         Unavailable = 5,
-
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class DatasetChecksums
-    {
-
-        [System.Text.Json.Serialization.JsonPropertyName("md5")]
-        public string? Md5 { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("sha1")]
-        public string? Sha1 { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("sha256")]
-        public string? Sha256 { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("sha512")]
-        public string? Sha512 { get; set; } = default!;
-
-        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
-
-        [System.Text.Json.Serialization.JsonExtensionData]
-        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
-        {
-            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
-            set { _additionalProperties = value; }
-        }
 
     }
 

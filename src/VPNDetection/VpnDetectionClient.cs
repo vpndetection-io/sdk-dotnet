@@ -42,7 +42,7 @@ public sealed class VpnDetectionClient : IDisposable
     /// <c>IHttpClientFactory</c> and typed-client registration.
     /// </summary>
     /// <remarks>
-    /// The supplied client MUST NOT follow redirects, or <see cref="VPNDetection.Database.DownloadUrlAsync"/>
+    /// The supplied client MUST NOT follow redirects, or <see cref="VPNDetection.DatabaseApi.DownloadUrlAsync"/>
     /// would fetch a dataset that routinely runs to gigabytes instead of returning its link.
     /// Register it with
     /// <c>.ConfigurePrimaryHttpMessageHandler(() =&gt; new HttpClientHandler { AllowAutoRedirect = false })</c>.
@@ -77,11 +77,11 @@ public sealed class VpnDetectionClient : IDisposable
         this.concurrency = o.Concurrency;
         this.cacheTtl = o.CacheTtl;
         this.cache = o.CacheEnabled ? new MemoryCache(new MemoryCacheOptions { SizeLimit = o.CacheSize }) : null;
-        this.Database = new Database(this.wire, http, o.Retries);
+        this.Database = new DatabaseApi(this.wire, http, o.Retries);
     }
 
     /// <summary>The licensed dataset downloads, for keys that carry the <c>db.download</c> scope.</summary>
-    public Database Database { get; }
+    public DatabaseApi Database { get; }
 
     /// <summary>
     /// Whether an address is private, loopback, link-local, documentation, multicast or otherwise

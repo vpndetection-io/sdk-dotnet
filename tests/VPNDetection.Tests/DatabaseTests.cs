@@ -14,10 +14,10 @@ public class DatabaseTests
     private static readonly Dictionary<string, string> Bodies = new()
     {
         ["/api/v1/database/list"] = """
-            {"datasets":[{"base":"vpn_ip_extended","name":"VPN IP Extended","summary":"vpn_ip rows","starts":"2026-01-01T00:00:00.000Z","expires":null,"renews_at":null,"notice_due_at":null,"license_type":"standard",
+            {"databases":[{"base":"vpn_ip_extended","name":"VPN IP Extended","summary":"vpn_ip rows","starts":"2026-01-01T00:00:00.000Z","expires":null,"renews_at":null,"notice_due_at":null,"license_type":"standard",
             "in_term":true,"standing":"licensed","versions":[{"id":"vpn_ip_extended_v1","version":1,
             "formats":[{"format":"mmdb","bytes":1234},{"format":"csvgz","bytes":null}],
-            "sampleFormats":["csvgz","mmdb"]}]}]}
+            "sample_formats":["csvgz","mmdb"]}]}]}
             """,
         ["/api/v1/database/checksum"] = """
             {"id":"vpn_ip_extended_v1","format":"mmdb",
@@ -40,7 +40,7 @@ public class DatabaseTests
             StubHandler.Json(new Route(Bodies[request.RequestUri!.AbsolutePath])));
         using var client = Stub.Client(handler, new VpnDetectionClientOptions { ApiKey = "k" });
 
-        var sums = await client.Database.ChecksumsAsync("vpn_ip_extended_v1", DatasetFormat.Mmdb);
+        var sums = await client.Database.ChecksumsAsync("vpn_ip_extended_v1", DatabaseFormat.Mmdb);
         Assert.Equal("m", sums.Md5);
         Assert.Equal("s1", sums.Sha1);
         // The digest a caller actually wants must not be null.
@@ -50,22 +50,22 @@ public class DatabaseTests
         // A licence is held against the FAMILY, and the ids the download and checksum calls take
         // hang off its versions. The spec used to claim `{id, formats}` here, which decoded into a
         // dataset whose every field was empty and left ListAsync unable to say what to download.
-        var datasets = await client.Database.ListAsync();
-        var family = Assert.Single(datasets);
+        var databases = await client.Database.ListAsync();
+        var family = Assert.Single(databases);
         Assert.Equal("vpn_ip_extended", family.Base);
         Assert.True(family.InTerm);
-        Assert.Equal(LicensedDatasetStanding.Licensed, family.Standing);
-        Assert.Equal(LicensedDatasetLicense_type.Standard, family.LicenseType);
+        Assert.Equal(Standing.Licensed, family.Standing);
+        Assert.Equal(LicenseType.Standard, family.LicenseType);
         var published = Assert.Single(family.Versions);
         Assert.Equal("vpn_ip_extended_v1", published.Id);
         Assert.Equal(1, published.Version);
-        Assert.Equal(DatasetFormat.Mmdb, published.Formats[0].Format);
+        Assert.Equal(DatabaseFormat.Mmdb, published.Formats[0].Format);
         // `bytes: null` is a published-yet-unbuilt format, not a missing key.
         Assert.Null(published.Formats[1].Bytes);
         // An enum inside a LIST is the one place NSwag writes no converter, and System.Text.Json
         // reads an enum as a number by default, so a healthy answer throws without the converter
         // Wire.cs registers.
-        Assert.Equal(new[] { DatasetFormat.Csvgz, DatasetFormat.Mmdb }, published.SampleFormats);
+        Assert.Equal(new[] { DatabaseFormat.Csvgz, DatabaseFormat.Mmdb }, published.SampleFormats);
 
         var downloads = await client.Database.DownloadsAsync();
         Assert.Equal("vpn_ip_extended_v1", Assert.Single(downloads).DatasetId);
@@ -83,7 +83,7 @@ public class DatabaseTests
         var handler = new StubHandler(_ => StubHandler.Json(new Route(Bodies["/api/v1/database/checksum"])));
         using var client = Stub.Client(handler, new VpnDetectionClientOptions { ApiKey = "k" });
 
-        await client.Database.ChecksumsAsync("vpn_ip_extended_v1", DatasetFormat.Mmdb);
+        await client.Database.ChecksumsAsync("vpn_ip_extended_v1", DatabaseFormat.Mmdb);
 
         Assert.Contains("format=mmdb", handler.Calls[0]);
     }
@@ -99,7 +99,7 @@ public class DatabaseTests
         });
         using var client = Stub.Client(handler, new VpnDetectionClientOptions { ApiKey = "k" });
 
-        var url = await client.Database.DownloadUrlAsync("vpn_ip_extended_v1", DatasetFormat.Mmdb);
+        var url = await client.Database.DownloadUrlAsync("vpn_ip_extended_v1", DatabaseFormat.Mmdb);
 
         Assert.Equal("https://s3.example.test/vpn_ip_extended_v1.mmdb?sig=abc", url);
     }
@@ -131,7 +131,7 @@ public class DatabaseTests
         using var client = new VpnDetectionClient(
             following, new VpnDetectionClientOptions { BaseUrl = origin.BaseUrl, ApiKey = "k" });
 
-        var call = client.Database.DownloadUrlAsync("vpn_ip_extended_v1", DatasetFormat.Mmdb);
+        var call = client.Database.DownloadUrlAsync("vpn_ip_extended_v1", DatabaseFormat.Mmdb);
         var error = await Assert.ThrowsAsync<InvalidOperationException>(
             () => call.WaitAsync(TimeSpan.FromSeconds(15)));
 
@@ -145,7 +145,7 @@ public class DatabaseTests
         using var origin = new RedirectingServer();
         using var client = new VpnDetectionClient(new VpnDetectionClientOptions { BaseUrl = origin.BaseUrl });
 
-        var url = await client.Database.DownloadUrlAsync("vpn_ip_extended_v1", DatasetFormat.Mmdb);
+        var url = await client.Database.DownloadUrlAsync("vpn_ip_extended_v1", DatabaseFormat.Mmdb);
 
         Assert.Equal(origin.PayloadUrl, url);
         Assert.False(origin.StorageWasAsked);
@@ -162,7 +162,7 @@ public class DatabaseTests
             new VpnDetectionClientOptions { BaseUrl = origin.BaseUrl, ApiKey = "k" });
         var path = Path.Combine(TempDir(), "dataset.mmdb");
 
-        var written = await client.Database.DownloadAsync("vpn_ip_extended_v1", DatasetFormat.Mmdb, path);
+        var written = await client.Database.DownloadAsync("vpn_ip_extended_v1", DatabaseFormat.Mmdb, path);
 
         Assert.Equal(payload.Length, written);
         Assert.Equal(payload, await File.ReadAllBytesAsync(path));
@@ -179,9 +179,9 @@ public class DatabaseTests
         using var client = new VpnDetectionClient(
             new VpnDetectionClientOptions { BaseUrl = origin.BaseUrl, ApiKey = "k" });
         var path = Path.Combine(TempDir(), "dataset.mmdb");
-        await client.Database.DownloadAsync("vpn_ip_extended_v1", DatasetFormat.Mmdb, path);
+        await client.Database.DownloadAsync("vpn_ip_extended_v1", DatabaseFormat.Mmdb, path);
 
-        var bytes = await client.Database.DownloadBytesAsync("vpn_ip_extended_v1", DatasetFormat.Mmdb);
+        var bytes = await client.Database.DownloadBytesAsync("vpn_ip_extended_v1", DatabaseFormat.Mmdb);
 
         Assert.Equal(await File.ReadAllBytesAsync(path), bytes);
         Assert.Null(origin.StorageAuthorization);
@@ -200,7 +200,7 @@ public class DatabaseTests
         var path = Path.Combine(TempDir(), "dataset.mmdb");
 
         await Assert.ThrowsAnyAsync<IOException>(
-            () => client.Database.DownloadAsync("vpn_ip_extended_v1", DatasetFormat.Mmdb, path));
+            () => client.Database.DownloadAsync("vpn_ip_extended_v1", DatabaseFormat.Mmdb, path));
 
         Assert.False(File.Exists(path), "a short transfer left a file that reads as a whole dataset");
         Assert.False(File.Exists(path + ".part"), "the .part file outlived a failed transfer");
@@ -215,7 +215,7 @@ public class DatabaseTests
             new VpnDetectionClientOptions { BaseUrl = origin.BaseUrl, ApiKey = "k" });
 
         await Assert.ThrowsAnyAsync<IOException>(
-            () => client.Database.DownloadBytesAsync("vpn_ip_extended_v1", DatasetFormat.Mmdb));
+            () => client.Database.DownloadBytesAsync("vpn_ip_extended_v1", DatabaseFormat.Mmdb));
     }
 
     // A dataset the organization does not license is refused by the API before any transfer starts,
@@ -229,7 +229,7 @@ public class DatabaseTests
         var path = Path.Combine(TempDir(), "unlicensed.csv.gz");
 
         var error = await Assert.ThrowsAsync<VpnDetectionException>(
-            () => client.Database.DownloadAsync("hosting_ip_v1", DatasetFormat.Csvgz, path));
+            () => client.Database.DownloadAsync("hosting_ip_v1", DatabaseFormat.Csvgz, path));
 
         Assert.Equal(ErrorKind.Forbidden, error.Kind);
         Assert.Equal(403, error.StatusCode);

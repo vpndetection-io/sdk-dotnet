@@ -143,11 +143,11 @@ Note that `RateLimited` and `QuotaExceeded` both arrive as HTTP 429 and are not 
 
 ### Database downloads
 
-If your key carries the `db.download` scope, the licensed datasets are available through `client.Database`. A licence covers a dataset FAMILY, so the ids below come from its versions. `DownloadAsync` fetches one to a path, streaming it straight to disk so that nothing bigger than a chunk is ever held in memory; or take the bytes, or the time-limited link to run the transfer yourself:
+If your key carries the `db.download` scope, the licensed databases are available through `client.Database`. A licence covers a database FAMILY, so the ids below come from its versions. `DownloadAsync` fetches one to a path, streaming it straight to disk so that nothing bigger than a chunk is ever held in memory; or take the bytes, or the time-limited link to run the transfer yourself:
 
 ```csharp
-var datasets = await client.Database.ListAsync();
-var id = datasets[0].Versions[0].Id;                                            // "vpn_ip_extended_v1"
+var databases = await client.Database.ListAsync();
+var id = databases[0].Versions[0].Id;                                            // "vpn_ip_extended_v1"
 
 var written = await client.Database.DownloadAsync(id, DatasetFormat.Mmdb, $"{id}.mmdb");
 var bytes = await client.Database.DownloadBytesAsync("cdn_ip_v1", DatasetFormat.Csvgz);
@@ -166,7 +166,7 @@ services.AddHttpClient<VpnDetectionClient>()
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 ```
 
-`AllowAutoRedirect = false` matters: the database download endpoint answers `302` with the link this library hands back, and .NET's default handler would follow it and fetch the whole dataset instead. A client that follows redirects is refused with a clear error rather than quietly downloading gigabytes.
+`AllowAutoRedirect = false` matters: the database download endpoint answers `302` with the link this library hands back, and .NET's default handler would follow it and fetch the whole database instead. A client that follows redirects is refused with a clear error rather than quietly downloading gigabytes.
 
 ### Absent is not false
 

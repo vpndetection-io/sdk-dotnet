@@ -190,12 +190,12 @@ internal partial class WireClient
 
     // NSwag gives a scalar enum property its own JsonStringEnumConverter, but where an enum sits
     // inside a LIST it writes a "TODO: Add string enum item converter" comment and nothing else,
-    // and System.Text.Json's default is to read an enum as a NUMBER. So `sampleFormats: ["csvgz"]`
+    // and System.Text.Json's default is to read an enum as a NUMBER. So `sample_formats: ["csvgz"]`
     // throws on a perfectly healthy answer unless the converter is registered for the document.
     // Registered for the one enum that appears in a list rather than for all of them;
     // scripts/normalize_generated.py refuses to emit a client where a SECOND enum needs it.
     static partial void UpdateJsonSerializerSettings(JsonSerializerOptions settings)
-        => settings.Converters.Add(new JsonStringEnumConverter<DatasetFormat>());
+        => settings.Converters.Add(new JsonStringEnumConverter<DatabaseFormat>());
 
     partial void PrepareRequest(HttpClient client, HttpRequestMessage request, string url)
     {

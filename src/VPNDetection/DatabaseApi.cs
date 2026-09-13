@@ -7,7 +7,7 @@ namespace VPNDetection;
 /// Access is granted by contract rather than self-serve, so every method here answers
 /// <see cref="ErrorKind.Unauthorized"/> for a key without the <c>db.download</c> scope.
 /// </remarks>
-public sealed class Database
+public sealed class DatabaseApi
 {
     // One chunk of a transfer, and therefore the ceiling on what a download of any size costs in
     // memory.
@@ -17,7 +17,7 @@ public sealed class Database
     private readonly HttpClient transfer;
     private readonly int retries;
 
-    internal Database(WireClient wire, HttpClient transfer, int retries)
+    internal DatabaseApi(WireClient wire, HttpClient transfer, int retries)
     {
         this.wire = wire;
         this.transfer = transfer;
@@ -28,12 +28,12 @@ public sealed class Database
     /// <remarks>
     /// A license covers a FAMILY while a download names one of its versions, so the ids
     /// <see cref="DownloadAsync"/> and <see cref="ChecksumsAsync"/> take come from
-    /// <see cref="LicensedDataset.Versions"/>.
+    /// <see cref="Database.Versions"/>.
     /// </remarks>
-    public Task<IReadOnlyList<LicensedDataset>> ListAsync(CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<Database>> ListAsync(CancellationToken cancellationToken = default)
         => Wire.ExecuteAsync(
             retries,
-            async ct => (await wire.ListDatabasesAsync(ct).ConfigureAwait(false)).Datasets,
+            async ct => (await wire.ListDatabasesAsync(ct).ConfigureAwait(false)).Databases,
             cancellationToken);
 
     /// <summary>
@@ -43,7 +43,7 @@ public sealed class Database
     /// Carries <c>Updated</c> and <c>Entries</c>, so it answers whether today's build is worth
     /// fetching without downloading anything.
     /// </remarks>
-    public Task<DatasetMetadata> MetadataAsync(string id, CancellationToken cancellationToken = default)
+    public Task<DatabaseMetadata> MetadataAsync(string id, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(id);
         return Wire.ExecuteAsync(retries, ct => wire.DatabaseMetadataAsync(id, ct), cancellationToken);
@@ -56,8 +56,8 @@ public sealed class Database
     /// The whole set is returned rather than one digest: which ones a dataset publishes is the
     /// API's choice, not this library's.
     /// </remarks>
-    public Task<DatasetChecksums> ChecksumsAsync(
-        string id, DatasetFormat format, CancellationToken cancellationToken = default)
+    public Task<DbChecksums> ChecksumsAsync(
+        string id, DatabaseFormat format, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(id);
         return Wire.ExecuteAsync(
@@ -83,7 +83,7 @@ public sealed class Database
     /// authorizes the START of a transfer, so one already running is not interrupted when it lapses.
     /// </remarks>
     public Task<string> DownloadUrlAsync(
-        string id, DatasetFormat format, CancellationToken cancellationToken = default)
+        string id, DatabaseFormat format, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(id);
         return Wire.ExecuteAsync(retries, async ct =>
@@ -121,7 +121,7 @@ public sealed class Database
     /// different problems, and only one of them is ours.</para>
     /// </remarks>
     public async Task<long> DownloadAsync(
-        string id, DatasetFormat format, string path, CancellationToken cancellationToken = default)
+        string id, DatabaseFormat format, string path, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(id);
         ArgumentException.ThrowIfNullOrEmpty(path);
@@ -163,7 +163,7 @@ public sealed class Database
     /// into a parser; use <see cref="DownloadAsync"/> for anything you have not measured.
     /// </remarks>
     public async Task<byte[]> DownloadBytesAsync(
-        string id, DatasetFormat format, CancellationToken cancellationToken = default)
+        string id, DatabaseFormat format, CancellationToken cancellationToken = default)
     {
         using var response = await FetchAsync(id, format, cancellationToken).ConfigureAwait(false);
         var body = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
@@ -190,7 +190,7 @@ public sealed class Database
     // not go through. Measured: .NET drops Authorization across a cross-host redirect too, so this
     // is belt and braces rather than the only thing standing between the key and object storage.
     private async Task<HttpResponseMessage> FetchAsync(
-        string id, DatasetFormat format, CancellationToken cancellationToken)
+        string id, DatabaseFormat format, CancellationToken cancellationToken)
     {
         var url = await DownloadUrlAsync(id, format, cancellationToken).ConfigureAwait(false);
         return await Wire.ExecuteAsync(retries, async ct =>
