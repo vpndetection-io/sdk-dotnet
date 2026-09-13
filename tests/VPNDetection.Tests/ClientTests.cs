@@ -214,4 +214,87 @@ internal sealed class SlowestFirstHandler : HttpMessageHandler
         await Task.Delay(60 - (10 * int.Parse(ip[^1..])), cancellationToken);
         return StubHandler.Json(new Route(Stub.LookupBody(ip)));
     }
+    private const string AccountBody = """
+        {
+          "org_id": "85bb51e4-2eb6-4a31-8e4d-02ba8b98fe61",
+          "apikey": {
+            "id": "0ab424cc-7619-4dad-b027-afacdc2cedb0",
+            "expires": null,
+            "allowed_cidrs": []
+          },
+          "plan": {"key": "max", "tier": "max"},
+          "usage": {
+            "requests": 580,
+            "quota": 5000000,
+            "hard_limit": null,
+            "window_start": "2026-09-04T07:00:00Z",
+            "window_end": "2026-10-04T07:00:00Z"
+          }
+        }
+        """;
+
+    [Fact]
+    public async Task MyIpClassifiesTheCallingAddress()
+    {
+        var handler = StubHandler.Lookups(Stub.Route("myip", Stub.LookupBody("45.83.91.1", isVpn: true)));
+        using var client = Stub.Client(handler);
+
+        var result = await client.MyIpAsync();
+
+        Assert.Equal("45.83.91.1", result.Ip);
+        Assert.True(result.IsVpn);
+    }
+
+    [Fact]
+    public async Task MyIpIsNotCached()
+    {
+        // The cache is keyed by address, and which address this is IS the question.
+        var handler = StubHandler.Lookups(Stub.Route("myip", Stub.LookupBody("45.83.91.1", isVpn: true)));
+        using var client = Stub.Client(handler);
+
+        await client.MyIpAsync();
+        await client.MyIpAsync();
+
+        Assert.Equal(2, handler.Calls.Count);
+    }
+
+    [Fact]
+    public async Task MyAccountReportsThePlanAndTheUsage()
+    {
+        var handler = StubHandler.Lookups(Stub.Route("api/v1/account/me", AccountBody));
+        using var client = Stub.Client(handler);
+
+        var account = await client.MyAccountAsync();
+
+        Assert.Equal("max", account.Plan.Key);
+        Assert.Equal(580, account.Usage.Requests);
+        Assert.Equal(5000000, account.Usage.Quota);
+        // Null means NEVER stop, which is not the same as a limit of zero.
+        Assert.Null(account.Usage.HardLimit);
+        Assert.Empty(account.Apikey.AllowedCidrs);
+    }
+
+    [Fact]
+    public async Task MyAccountIsNotCached()
+    {
+        // The whole point is what has been spent.
+        var handler = StubHandler.Lookups(Stub.Route("api/v1/account/me", AccountBody));
+        using var client = Stub.Client(handler);
+
+        await client.MyAccountAsync();
+        await client.MyAccountAsync();
+
+        Assert.Equal(2, handler.Calls.Count);
+    }
+
+    [Fact]
+    public async Task MyAccountSurfacesAnUnauthorizedKey()
+    {
+        var handler = StubHandler.Lookups(
+            Stub.Route("api/v1/account/me", """{"error":"invalid API key"}""", 401));
+        using var client = Stub.Client(handler, new VpnDetectionClientOptions { Retries = 0 });
+
+        await Assert.ThrowsAsync<VpnDetectionException>(() => client.MyAccountAsync());
+    }
+
 }

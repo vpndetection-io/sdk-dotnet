@@ -138,6 +138,68 @@ public sealed class VpnDetectionClient : IDisposable
         return result;
     }
 
+    /// <summary>Classify the address this client is calling from, with the client's defaults.</summary>
+    public Task<Result> MyIpAsync(CancellationToken cancellationToken = default)
+        => MyIpAsync(null, cancellationToken);
+
+    /// <summary>
+    /// Classify the address this client is calling from.
+    /// </summary>
+    /// <remarks>
+    /// The same answer <see cref="LookupAsync(string, CancellationToken)"/> would give for that
+    /// address, at the same cost against your allowance. The address is the one our edge observed,
+    /// so a call made through a proxy or a VPN reports the exit it left through - usually the point
+    /// of asking.
+    /// <para>
+    /// Deliberately NOT cached. The cache is keyed by address, and which address this is IS the
+    /// question: a machine that moves between networks would otherwise be told where it used to be.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="VpnDetectionException">
+    /// The lookup failed. Read <see cref="VpnDetectionException.Kind"/>.
+    /// </exception>
+    public Task<Result> MyIpAsync(
+        LookupOptions? options, CancellationToken cancellationToken = default)
+        => Wire.ExecuteAsync(
+            options?.Retries ?? retries,
+            async ct => Result.Of(await wire.LookupMyIpAsync(ct).ConfigureAwait(false)),
+            cancellationToken);
+
+    /// <summary>What this client's key is entitled to, with the client's defaults.</summary>
+    public Task<AccountMe> MyAccountAsync(CancellationToken cancellationToken = default)
+        => MyAccountAsync(null, cancellationToken);
+
+    /// <summary>
+    /// What this client's key is entitled to, and how much of it has been used.
+    /// </summary>
+    /// <remarks>
+    /// Named for what it answers rather than <c>Me</c>, which sits one letter from
+    /// <see cref="MyIpAsync(CancellationToken)"/> and means something quite different: one is which
+    /// address you are calling FROM, the other is which account you are calling AS.
+    /// <para>
+    /// Unlike a lookup there is no useful unauthenticated answer, so a client built without an API
+    /// key gets an unauthorized error rather than a partial one.
+    /// </para>
+    /// <para>
+    /// Usage counts against the ALLOWANCE WINDOW - the anniversary of the subscription, not the
+    /// calendar month and not the billing period - and it is the same number a lookup is gated on.
+    /// It can lag by a few seconds, because requests are counted in memory and flushed in aggregate.
+    /// </para>
+    /// <para>
+    /// Deliberately NOT cached: the whole point is what has been spent, and a cached answer is a
+    /// wrong one within seconds of the next request.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="VpnDetectionException">
+    /// The call failed. Read <see cref="VpnDetectionException.Kind"/>.
+    /// </exception>
+    public Task<AccountMe> MyAccountAsync(
+        LookupOptions? options, CancellationToken cancellationToken = default)
+        => Wire.ExecuteAsync(
+            options?.Retries ?? retries,
+            ct => wire.AccountMeAsync(ct),
+            cancellationToken);
+
     /// <summary>Classify many addresses concurrently, with the client's defaults.</summary>
     public Task<IReadOnlyDictionary<string, BatchResult>> LookupBatchAsync(
         IEnumerable<string> ips, CancellationToken cancellationToken = default)
