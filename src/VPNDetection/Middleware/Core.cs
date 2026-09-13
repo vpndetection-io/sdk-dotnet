@@ -11,8 +11,12 @@ namespace VPNDetection.Middleware;
 /// <remarks>
 /// Everything is optional except that you almost certainly want an <see cref="ApiKey"/>: the free
 /// allowance is counted per source address, and a server is one source address.
+///
+/// <para>Deliberately not sealed: an adapter adds the one or two settings that only its framework
+/// has (ASP.NET Core's <c>OnBlocked</c>) by deriving, which keeps a single flat options object at
+/// the call site instead of nesting this one inside another.</para>
 /// </remarks>
-public sealed class MiddlewareOptions<TRequest>
+public class MiddlewareOptions<TRequest>
 {
     /// <summary>What to do when a condition names a member the plan does not serve.</summary>
     public enum MissingField
