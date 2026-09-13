@@ -55,7 +55,7 @@ public class DatabaseTests
         Assert.Equal("vpn_ip_extended", family.Base);
         Assert.True(family.InTerm);
         Assert.Equal(Standing.Licensed, family.Standing);
-        Assert.Equal(LicenseType.Standard, family.LicenseType);
+        Assert.Equal(DatabaseLicense_type.Standard, family.LicenseType);
         var published = Assert.Single(family.Versions);
         Assert.Equal("vpn_ip_extended_v1", published.Id);
         Assert.Equal(1, published.Version);

@@ -226,10 +226,160 @@ namespace VPNDetection
         }
 
         /// <summary>
+        /// Lookup your own address
+        /// </summary>
+        /// <remarks>
+        /// Answers what is known about the address this request came from, which is
+        /// <br/>the same answer `GET /{ip}` gives for that address: the plan behind the
+        /// <br/>presented key decides which fields come back, and the request counts
+        /// <br/>against the same allowance.
+        /// <br/>
+        /// <br/>The address is the one our edge observed, so a request through a proxy
+        /// <br/>or a VPN reports the exit it left through rather than the machine that
+        /// <br/>made it. That is usually the point of asking.
+        /// </remarks>
+        /// <returns>The classification of your own address. Present fields are those
+        /// <br/>your plan includes; see the tier table in the API description.</returns>
+        /// <exception cref="WireException">A server side error occurred.</exception>
+        public virtual System.Threading.Tasks.Task<LookupResponse> LookupMyIpAsync()
+        {
+            return LookupMyIpAsync(System.Threading.CancellationToken.None);
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Lookup your own address
+        /// </summary>
+        /// <remarks>
+        /// Answers what is known about the address this request came from, which is
+        /// <br/>the same answer `GET /{ip}` gives for that address: the plan behind the
+        /// <br/>presented key decides which fields come back, and the request counts
+        /// <br/>against the same allowance.
+        /// <br/>
+        /// <br/>The address is the one our edge observed, so a request through a proxy
+        /// <br/>or a VPN reports the exit it left through rather than the machine that
+        /// <br/>made it. That is usually the point of asking.
+        /// </remarks>
+        /// <returns>The classification of your own address. Present fields are those
+        /// <br/>your plan includes; see the tier table in the API description.</returns>
+        /// <exception cref="WireException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<LookupResponse> LookupMyIpAsync(System.Threading.CancellationToken cancellationToken)
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "myip"
+                    urlBuilder_.Append("myip");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<LookupResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 401)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<LookupError>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WireException<LookupError>("The presented API key is unknown, revoked, or expired.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 403)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<LookupError>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WireException<LookupError>("The key restricts which source addresses may use it, and this\nrequest did not come from one of them.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 429)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<LookupError>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WireException<LookupError>("Either the request rate was too high, or an allowance is spent.\nThe two are told apart by the message, not the status.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 500)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<LookupError>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WireException<LookupError>("The VPN dataset could not be consulted.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WireException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <summary>
         /// List
         /// </summary>
         /// <remarks>
-        /// Every database this organization holds a licence for, with the term and the license_type right beside each one.
+        /// Every database this organization may SEE, with where its licence stands.
+        /// <br/>Not just the ones you hold: a customer with one grant should be able to
+        /// <br/>tell what else is published without asking. `standing` is the
+        /// <br/>difference - `licensed`, `expired`, or `unlicensed` for one never
+        /// <br/>bought.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
@@ -243,7 +393,11 @@ namespace VPNDetection
         /// List
         /// </summary>
         /// <remarks>
-        /// Every database this organization holds a licence for, with the term and the license_type right beside each one.
+        /// Every database this organization may SEE, with where its licence stands.
+        /// <br/>Not just the ones you hold: a customer with one grant should be able to
+        /// <br/>tell what else is published without asking. `standing` is the
+        /// <br/>difference - `licensed`, `expired`, or `unlicensed` for one never
+        /// <br/>bought.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
@@ -883,6 +1037,128 @@ namespace VPNDetection
             }
         }
 
+        /// <summary>
+        /// Your key, plan and usage
+        /// </summary>
+        /// <remarks>
+        /// Answers what the presented key is, what plan is behind it, and what has
+        /// <br/>been spent against that plan's allowance in the current window.
+        /// </remarks>
+        /// <returns>The key's entitlements and consumption.</returns>
+        /// <exception cref="WireException">A server side error occurred.</exception>
+        public virtual System.Threading.Tasks.Task<AccountMe> AccountMeAsync()
+        {
+            return AccountMeAsync(System.Threading.CancellationToken.None);
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Your key, plan and usage
+        /// </summary>
+        /// <remarks>
+        /// Answers what the presented key is, what plan is behind it, and what has
+        /// <br/>been spent against that plan's allowance in the current window.
+        /// </remarks>
+        /// <returns>The key's entitlements and consumption.</returns>
+        /// <exception cref="WireException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<AccountMe> AccountMeAsync(System.Threading.CancellationToken cancellationToken)
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/v1/account/me"
+                    urlBuilder_.Append("api/v1/account/me");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<AccountMe>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 401)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<AccountError>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WireException<AccountError>("No key was presented, or it is unknown, revoked or expired.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 403)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<AccountError>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WireException<AccountError>("The key restricts which source addresses may use it, and this\nrequest did not come from one of them.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 503)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<AccountError>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WireException<AccountError>("The usage counters could not be read. Reported rather than guessed\nat: the whole answer is the number, and a confident zero would read\nas \"you have used nothing\".\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WireException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
         protected struct ObjectResponseResult<T>
         {
             public ObjectResponseResult(T responseObject, string responseText)
@@ -1339,25 +1615,10 @@ namespace VPNDetection
     }
 
     /// <summary>
-    /// What a license permits you to do with the data.
-    /// </summary>
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public enum LicenseType
-    {
-
-        [System.Runtime.Serialization.EnumMember(Value = @"evaluation")]
-        Evaluation = 0,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"standard")]
-        Standard = 1,
-
-        [System.Runtime.Serialization.EnumMember(Value = @"redistribute")]
-        Redistribute = 2,
-
-    }
-
-    /// <summary>
-    /// Where your license for a database family stands today.
+    /// Where your license for a database family stands today. `licensed` is a
+    /// <br/>live grant, `expired` one whose term has ended, and `unlicensed` a
+    /// <br/>database published but never bought.
+    /// <br/>
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public enum Standing
@@ -1437,11 +1698,14 @@ namespace VPNDetection
         public string Summary { get; set; } = default!;
 
         /// <summary>
-        /// What your license permits you to do with the data.
+        /// What a license permits you to do with the data. Null for a family
+        /// <br/>you hold no license for, which is every one with standing
+        /// <br/>`unlicensed`.
+        /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("license_type")]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<LicenseType>))]
-        public LicenseType LicenseType { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<DatabaseLicense_type>))]
+        public DatabaseLicense_type? LicenseType { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("starts")]
         public System.DateTimeOffset? Starts { get; set; } = default!;
@@ -1470,11 +1734,6 @@ namespace VPNDetection
         [System.Text.Json.Serialization.JsonPropertyName("in_term")]
         public bool InTerm { get; set; } = default!;
 
-        /// <summary>
-        /// `licensed` is a live grant, `expired` one whose term has ended, and
-        /// <br/>`unlicensed` a database published but never bought.
-        /// <br/>
-        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("standing")]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<Standing>))]
         public Standing Standing { get; set; } = default!;
@@ -1717,6 +1976,172 @@ namespace VPNDetection
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class AccountMe
+    {
+
+        /// <summary>
+        /// The organization the key belongs to.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("org_id")]
+        public System.Guid OrgId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("apikey")]
+        public AccountApikey Apikey { get; set; } = new AccountApikey();
+
+        [System.Text.Json.Serialization.JsonPropertyName("plan")]
+        public AccountPlan Plan { get; set; } = new AccountPlan();
+
+        [System.Text.Json.Serialization.JsonPropertyName("usage")]
+        public AccountUsage Usage { get; set; } = new AccountUsage();
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    /// <summary>
+    /// The credential itself. The key is never echoed - only its id, which is
+    /// <br/>what the console shows and what you can act on.
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class AccountApikey
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public System.Guid Id { get; set; } = default!;
+
+        /// <summary>
+        /// Null for a key with no end date, which is the normal case.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("expires")]
+        public System.DateTimeOffset? Expires { get; set; } = default!;
+
+        /// <summary>
+        /// The source addresses this key may be used from. EMPTY means
+        /// <br/>unrestricted, never "deny all".
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("allowed_cidrs")]
+        public System.Collections.Generic.IReadOnlyList<string> AllowedCidrs { get; set; } = new System.Collections.Generic.List<string>();
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class AccountPlan
+    {
+
+        /// <summary>
+        /// The plan the organization is on.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        public string Key { get; set; } = default!;
+
+        /// <summary>
+        /// The field tier, which decides how much of a lookup answer comes
+        /// <br/>back. What each tier includes is documented on the lookup endpoint
+        /// <br/>rather than repeated here, so there is one place it can be wrong.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("tier")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<AccountPlanTier>))]
+        public AccountPlanTier Tier { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class AccountUsage
+    {
+
+        /// <summary>
+        /// Requests counted in the current window. The same number the lookup
+        /// <br/>API gates on, and it can lag by a few seconds.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("requests")]
+        public long Requests { get; set; } = default!;
+
+        /// <summary>
+        /// What the plan includes. Zero on a plan that includes none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("quota")]
+        public long Quota { get; set; } = default!;
+
+        /// <summary>
+        /// Where we stop serving. NULL means never, which is the normal state
+        /// <br/>of an uncapped paid plan and is not the same as zero. Above the
+        /// <br/>quota and below this, requests are served and billed as overage.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("hard_limit")]
+        public long? HardLimit { get; set; } = default!;
+
+        /// <summary>
+        /// When the current allowance period began.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("window_start")]
+        public System.DateTimeOffset WindowStart { get; set; } = default!;
+
+        /// <summary>
+        /// When the allowance next resets.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("window_end")]
+        public System.DateTimeOffset WindowEnd { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class AccountError
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("error")]
+        public string Error { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
     internal partial class Response
     {
 
@@ -1777,6 +2202,21 @@ namespace VPNDetection
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum DatabaseLicense_type
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"evaluation")]
+        Evaluation = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"standard")]
+        Standard = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"redistribute")]
+        Redistribute = 2,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public enum DownloadOutcome
     {
 
@@ -1797,6 +2237,24 @@ namespace VPNDetection
 
         [System.Runtime.Serialization.EnumMember(Value = @"unavailable")]
         Unavailable = 5,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum AccountPlanTier
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"free")]
+        Free = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"starter")]
+        Starter = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"scale")]
+        Scale = 2,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"max")]
+        Max = 3,
 
     }
 
