@@ -13,3 +13,4 @@ obj/
 
 # Package output from scripts/publish.sh.
 artifacts/
+__pycache__/
