@@ -166,23 +166,24 @@ def fold_duplicate_format_enums(src):
 def fix_enum_member_names(src):
     """Retags enum members with the attribute NSwag's own query serializer reads.
 
-    Also asserts that each wire value is the camelCase of its C# member name, which is what the
-    READ side needs: NSwag's per-property converter matches on member names. Every value in this
-    spec is one lowercase word, so the two coincide; a spec that grew a multi-word value would
-    break reads silently, so it fails here loudly instead.
+    Also asserts each wire value still round-trips on the READ side, which matches the C# member
+    name CASE-INSENSITIVELY. So the invariant is `wire.lower() == member.lower()`, not that the
+    wire value is the camelCase of the member: `S256` (PKCE) is a legal wire value that no member
+    name camelCases to, and it reads back perfectly because the two differ in no letter at all.
+    A value that differs by more than case WOULD break reads silently, so it still fails loudly.
     """
     mismatched = []
 
     def retag(m):
         wire, member = m.group("wire"), m.group("member")
-        if wire != member[:1].lower() + member[1:]:
-            mismatched.append(f"{member} serializes as {wire!r}, which camelCase would not produce")
+        if wire.lower() != member.lower():
+            mismatched.append(f"{member} serializes as {wire!r}, which the reader cannot match")
         return (f'{m.group("indent")}[System.Runtime.Serialization.EnumMember(Value = @"{wire}")]\n'
                 f'{m.group("next")}{member} = ')
 
     src, n = ENUM_MEMBER.subn(retag, src)
     if mismatched:
-        raise SystemExit("enum wire values no longer match their member names:\n  " + "\n  ".join(mismatched))
+        raise SystemExit("enum wire values no longer match their member names case-insensitively:\n  " + "\n  ".join(mismatched))
     return src, n
 
 

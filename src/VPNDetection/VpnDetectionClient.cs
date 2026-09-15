@@ -166,8 +166,8 @@ public sealed class VpnDetectionClient : IDisposable
             cancellationToken);
 
     /// <summary>What this client's key is entitled to, with the client's defaults.</summary>
-    public Task<AccountMe> MyAccountAsync(CancellationToken cancellationToken = default)
-        => MyAccountAsync(null, cancellationToken);
+    public Task<Entitlement> MyEntitlementAsync(CancellationToken cancellationToken = default)
+        => MyEntitlementAsync(null, cancellationToken);
 
     /// <summary>
     /// What this client's key is entitled to, and how much of it has been used.
@@ -175,7 +175,7 @@ public sealed class VpnDetectionClient : IDisposable
     /// <remarks>
     /// Named for what it answers rather than <c>Me</c>, which sits one letter from
     /// <see cref="MyIpAsync(CancellationToken)"/> and means something quite different: one is which
-    /// address you are calling FROM, the other is which account you are calling AS.
+    /// address you are calling FROM, the other is what the key you are calling WITH may spend.
     /// <para>
     /// Unlike a lookup there is no useful unauthenticated answer, so a client built without an API
     /// key gets an unauthorized error rather than a partial one.
@@ -193,11 +193,11 @@ public sealed class VpnDetectionClient : IDisposable
     /// <exception cref="VpnDetectionException">
     /// The call failed. Read <see cref="VpnDetectionException.Kind"/>.
     /// </exception>
-    public Task<AccountMe> MyAccountAsync(
+    public Task<Entitlement> MyEntitlementAsync(
         LookupOptions? options, CancellationToken cancellationToken = default)
         => Wire.ExecuteAsync(
             options?.Retries ?? retries,
-            ct => wire.AccountMeAsync(ct),
+            ct => wire.MyEntitlementAsync(ct),
             cancellationToken);
 
     /// <summary>Classify many addresses concurrently, with the client's defaults.</summary>

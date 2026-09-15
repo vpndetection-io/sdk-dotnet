@@ -57,7 +57,7 @@ Same answer `LookupAsync` would give for that address, and the same cost against
 ### Your plan and usage
 
 ```csharp
-var acct = await client.MyAccountAsync();
+var acct = await client.MyEntitlementAsync();
 Console.WriteLine(acct.Plan.Key);         // max
 Console.WriteLine(acct.Usage.Requests);   // 580
 Console.WriteLine(acct.Usage.WindowEnd);  // when the allowance resets

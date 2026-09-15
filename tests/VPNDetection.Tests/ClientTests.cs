@@ -164,7 +164,7 @@ public class ClientTests
             () => client.LookupAsync("1.1.1.1", cts.Token));
     }
 
-    private const string AccountBody = """
+    private const string EntitlementBody = """
         {
           "org_id": "85bb51e4-2eb6-4a31-8e4d-02ba8b98fe61",
           "apikey": {
@@ -209,42 +209,42 @@ public class ClientTests
     }
 
     [Fact]
-    public async Task MyAccountReportsThePlanAndTheUsage()
+    public async Task MyEntitlementReportsThePlanAndTheUsage()
     {
-        var handler = StubHandler.Lookups(Stub.Route("api/v1/account/me", AccountBody));
+        var handler = StubHandler.Lookups(Stub.Route("api/v1/entitlement", EntitlementBody));
         using var client = Stub.Client(handler);
 
-        var account = await client.MyAccountAsync();
+        var ent = await client.MyEntitlementAsync();
 
-        Assert.Equal("max", account.Plan.Key);
-        Assert.Equal(580, account.Usage.Requests);
-        Assert.Equal(5000000, account.Usage.Quota);
+        Assert.Equal("max", ent.Plan.Key);
+        Assert.Equal(580, ent.Usage.Requests);
+        Assert.Equal(5000000, ent.Usage.Quota);
         // Null means NEVER stop, which is not the same as a limit of zero.
-        Assert.Null(account.Usage.HardLimit);
-        Assert.Empty(account.Apikey.AllowedCidrs);
+        Assert.Null(ent.Usage.HardLimit);
+        Assert.Empty(ent.Apikey.AllowedCidrs);
     }
 
     [Fact]
-    public async Task MyAccountIsNotCached()
+    public async Task MyEntitlementIsNotCached()
     {
         // The whole point is what has been spent.
-        var handler = StubHandler.Lookups(Stub.Route("api/v1/account/me", AccountBody));
+        var handler = StubHandler.Lookups(Stub.Route("api/v1/entitlement", EntitlementBody));
         using var client = Stub.Client(handler);
 
-        await client.MyAccountAsync();
-        await client.MyAccountAsync();
+        await client.MyEntitlementAsync();
+        await client.MyEntitlementAsync();
 
         Assert.Equal(2, handler.Calls.Count);
     }
 
     [Fact]
-    public async Task MyAccountSurfacesAnUnauthorizedKey()
+    public async Task MyEntitlementSurfacesAnUnauthorizedKey()
     {
         var handler = StubHandler.Lookups(
-            Stub.Route("api/v1/account/me", """{"error":"invalid API key"}""", 401));
+            Stub.Route("api/v1/entitlement", """{"error":"invalid API key"}""", 401));
         using var client = Stub.Client(handler, new VpnDetectionClientOptions { Retries = 0 });
 
-        await Assert.ThrowsAsync<VpnDetectionException>(() => client.MyAccountAsync());
+        await Assert.ThrowsAsync<VpnDetectionException>(() => client.MyEntitlementAsync());
     }
 }
 
