@@ -18,6 +18,10 @@ public sealed class VpnDetectionClient : IDisposable
     /// <summary>The production API, used when no other base URL is configured.</summary>
     public const string DefaultBaseUrl = "https://api.vpndetection.io";
 
+    // The most addresses POST /batch takes in one call; a larger batch is sent in chunks of this
+    // size.
+    private const int BatchMax = 1000;
+
     private readonly WireClient wire;
     private readonly HttpClient? ownedHttpClient;
     private readonly MemoryCache? cache;
@@ -206,13 +210,17 @@ public sealed class VpnDetectionClient : IDisposable
         => LookupBatchAsync(ips, null, cancellationToken);
 
     /// <summary>
-    /// Classify many addresses concurrently.
+    /// Classify many addresses in as few requests as possible.
     /// </summary>
     /// <remarks>
-    /// Keyed by address rather than positional, so duplicates in the input collapse to a single
-    /// request and the caller never has to line two lists up. An address that fails carries its
-    /// error as its value, so one bad entry cannot lose the rest of the answers. Iteration order is
-    /// the order the addresses were first seen in the input.
+    /// Bogons are answered locally and cached answers are reused; everything else goes to the
+    /// batch endpoint in chunks of up to 1000 addresses, with at most <c>Concurrency</c> chunks in
+    /// flight. Keyed by address rather than positional, so duplicates in the input collapse to a
+    /// single entry and the caller never has to line two lists up. An address that fails carries
+    /// its error as its value, so one bad entry cannot lose the rest of the answers: the API reports
+    /// a per-entry failure with the status the single lookup would have answered, and a chunk that
+    /// fails as a whole marks every address in it. Iteration order is the order the addresses were
+    /// first seen in the input.
     /// </remarks>
     public async Task<IReadOnlyDictionary<string, BatchResult>> LookupBatchAsync(
         IEnumerable<string> ips, BatchOptions? options, CancellationToken cancellationToken = default)
@@ -228,30 +236,96 @@ public sealed class VpnDetectionClient : IDisposable
             }
         }
 
-        var perCall = options?.Retries is null ? null : new LookupOptions { Retries = options.Retries };
         var answers = new ConcurrentDictionary<string, BatchResult>(StringComparer.Ordinal);
+        var pending = new List<string>();
+        foreach (var ip in unique)
+        {
+            if (Bogon.IsBogon(ip))
+            {
+                answers[ip] = BatchResult.Found(Result.Bogon(ip));
+                continue;
+            }
+            if (cache is not null && cache.TryGetValue(ip, out Result? hit) && hit is not null)
+            {
+                answers[ip] = BatchResult.Found(hit);
+                continue;
+            }
+            pending.Add(ip);
+        }
+
+        var chunks = new List<List<string>>();
+        for (var from = 0; from < pending.Count; from += BatchMax)
+        {
+            chunks.Add(pending.GetRange(from, Math.Min(BatchMax, pending.Count - from)));
+        }
+        var retries = options?.Retries ?? this.retries;
         // Parallel.ForEachAsync bounds itself, so a per-call concurrency cannot be capped by the
         // client's the way a shared limiter would cap it.
         await Parallel.ForEachAsync(
-            unique,
+            chunks,
             new ParallelOptions
             {
                 MaxDegreeOfParallelism = options?.Concurrency ?? concurrency,
                 CancellationToken = cancellationToken,
             },
-            async (ip, ct) =>
+            async (chunk, ct) =>
             {
-                try
+                foreach (var (ip, answer) in await LookupChunkAsync(chunk, retries, ct).ConfigureAwait(false))
                 {
-                    answers[ip] = BatchResult.Found(await LookupAsync(ip, perCall, ct).ConfigureAwait(false));
-                }
-                catch (VpnDetectionException e)
-                {
-                    answers[ip] = BatchResult.Failed(e);
+                    answers[ip] = answer;
                 }
             }).ConfigureAwait(false);
 
         return new OrderedResults(unique, answers);
+    }
+
+    // One POST /batch, mapped back onto the addresses it was asked about. A chunk-level failure -
+    // the call refused, the transport failing, the retries exhausted - becomes every address's
+    // error, exactly as it would have been had each been looked up alone.
+    private async Task<Dictionary<string, BatchResult>> LookupChunkAsync(
+        List<string> chunk, int retries, CancellationToken cancellationToken)
+    {
+        var answers = new Dictionary<string, BatchResult>(StringComparer.Ordinal);
+        BatchLookupResponse body;
+        try
+        {
+            body = await Wire.ExecuteAsync(
+                retries,
+                ct => wire.LookupBatchAsync(new BatchLookupRequest { Ips = chunk }, ct),
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (VpnDetectionException e)
+        {
+            foreach (var ip in chunk)
+            {
+                answers[ip] = BatchResult.Failed(e);
+            }
+            return answers;
+        }
+        foreach (var ip in chunk)
+        {
+            if (body.Results.TryGetValue(ip, out var served))
+            {
+                var result = Result.Of(served);
+                // Size 1 per entry, so MemoryCache's SizeLimit counts addresses rather than bytes
+                // and CacheSize means what every other SDK's cache size means.
+                cache?.Set(ip, result, new MemoryCacheEntryOptions
+                {
+                    Size = 1,
+                    AbsoluteExpirationRelativeToNow = cacheTtl,
+                });
+                answers[ip] = BatchResult.Found(result);
+                continue;
+            }
+            if (body.Errors.TryGetValue(ip, out var failed))
+            {
+                answers[ip] = BatchResult.Failed(Wire.FromEntry(failed.Status, failed.Error));
+                continue;
+            }
+            answers[ip] = BatchResult.Failed(new VpnDetectionException(
+                ErrorKind.ServerError, $"the batch answer did not include {ip}", 200, null, null));
+        }
+        return answers;
     }
 
     /// <summary>Releases the cache, and the <see cref="HttpClient"/> if this client created it.</summary>

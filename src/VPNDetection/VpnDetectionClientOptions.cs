@@ -25,7 +25,7 @@ public sealed class VpnDetectionClientOptions
     /// <summary>How long an answer stays fresh. Default 1 hour.</summary>
     public TimeSpan CacheTtl { get; set; } = TimeSpan.FromHours(1);
 
-    /// <summary>Concurrent in-flight requests during a batch. Default 8.</summary>
+    /// <summary>Concurrent batch requests - chunks of up to 1000 addresses - during a batch. Default 8.</summary>
     public int Concurrency { get; set; } = 8;
 
     /// <summary>Retry attempts for a transient failure. Default 2.</summary>
@@ -68,6 +68,6 @@ public sealed class BatchOptions
     /// <summary>Retry attempts for a transient failure, per address.</summary>
     public int? Retries { get; init; }
 
-    /// <summary>Concurrent in-flight requests for THIS batch only.</summary>
+    /// <summary>Concurrent batch requests - chunks of up to 1000 addresses - for THIS batch only.</summary>
     public int? Concurrency { get; init; }
 }

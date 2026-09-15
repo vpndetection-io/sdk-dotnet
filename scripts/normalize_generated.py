@@ -69,7 +69,7 @@ PROPERTY = re.compile(
 
 # NSwag writes a per-property converter for a scalar enum and this comment for an enum inside a
 # LIST, where System.Text.Json's default is to read a NUMBER. Wire.cs registers a converter for
-# DatasetFormat to cover it, so a list of any OTHER enum would deserialize no healthy answer.
+# DatabaseFormat to cover it, so a list of any OTHER enum would deserialize no healthy answer.
 ITEM_CONVERTER_TODO = re.compile(
     r"// TODO\(system\.text\.json\): Add string enum item converter\n"
     r"[ \t]*public [^\n]*?IReadOnlyList<(?P<item>[A-Za-z_][A-Za-z0-9_]*)>"
@@ -213,8 +213,8 @@ def check(src) -> int:
     for m in re.finditer(r"^\s*public (?:partial class|enum) (Response\d?|Error|Format\d?)\b", src, re.M):
         bad.append(f"wire type {m.group(1)} is still public")
     for m in ITEM_CONVERTER_TODO.finditer(src):
-        if m.group("item") != "DatasetFormat":
-            bad.append(f"a list of {m.group('item')} has no item converter; only DatasetFormat has one")
+        if m.group("item") != "DatabaseFormat":
+            bad.append(f"a list of {m.group('item')} has no item converter; only DatabaseFormat has one")
     for line in bad:
         print(f"NORMALIZE FAILED: {line}", file=sys.stderr)
     return 1 if bad else 0

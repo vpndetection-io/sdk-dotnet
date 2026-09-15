@@ -123,11 +123,64 @@ internal sealed class StubHandler : HttpMessageHandler
     internal static StubHandler Lookups(IReadOnlyDictionary<string, Route> routes)
         => new(request =>
         {
+            if (request.Method == HttpMethod.Post && request.RequestUri!.AbsolutePath == "/batch")
+            {
+                return Batch(routes, request);
+            }
             var ip = Uri.UnescapeDataString(request.RequestUri!.AbsolutePath.TrimStart('/'));
             return routes.TryGetValue(ip, out var route)
                 ? Json(route)
                 : Json(new Route("""{"error":"not a valid IP address"}""", 400));
         });
+
+    // A POST /batch is answered the way the API answers one: every address the table knows is a
+    // result if its route is a 200 and an entry error otherwise, and an unknown address is the 400
+    // the API gives a string that is not one. One call however many addresses, which is what the
+    // request counts measure.
+    private static HttpResponseMessage Batch(IReadOnlyDictionary<string, Route> routes, HttpRequestMessage request)
+    {
+        var results = new Dictionary<string, JsonElement>();
+        var errors = new Dictionary<string, object>();
+        foreach (var ip in Ips(request))
+        {
+            if (!routes.TryGetValue(ip, out var route))
+            {
+                errors[ip] = new { status = 400, error = "not a valid IP address" };
+            }
+            else if (route.Status == 200)
+            {
+                using var doc = JsonDocument.Parse(route.Body);
+                results[ip] = doc.RootElement.Clone();
+            }
+            else
+            {
+                errors[ip] = new { status = route.Status, error = Message(route.Body) };
+            }
+        }
+        return Json(new Route(JsonSerializer.Serialize(new { results = results, errors = errors })));
+    }
+
+    /// <summary>The addresses in a POST body, which a batch is answered from rather than the path.</summary>
+    internal static IReadOnlyList<string> Ips(HttpRequestMessage request)
+    {
+        var text = request.Content is null ? "" : request.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return Array.Empty<string>();
+        }
+        using var doc = JsonDocument.Parse(text);
+        if (!doc.RootElement.TryGetProperty("ips", out var ips) || ips.ValueKind != JsonValueKind.Array)
+        {
+            return Array.Empty<string>();
+        }
+        return ips.EnumerateArray().Select(e => e.GetString()!).ToArray();
+    }
+
+    private static string Message(string body)
+    {
+        using var doc = JsonDocument.Parse(body);
+        return doc.RootElement.TryGetProperty("error", out var error) ? error.GetString() ?? "" : "";
+    }
 
     internal static HttpResponseMessage Json(Route route)
     {

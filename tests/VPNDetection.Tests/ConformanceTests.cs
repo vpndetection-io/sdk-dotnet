@@ -165,7 +165,7 @@ public class ConformanceTests
         foreach (var ip in Strings(expect, "errorKeys"))
         {
             Assert.False(got[ip].IsSuccess, $"{ip} should carry its error");
-            Assert.NotNull(got[ip].Error);
+            Assert.Equal(expect.GetProperty("errorKinds").GetProperty(ip).GetString(), Wire(got[ip].Error!.Kind));
         }
         Assert.False(got["1.1.1.1"].Result!.IsVpn);
     }
@@ -184,6 +184,57 @@ public class ConformanceTests
         }
 
         Assert.Equal(c.GetProperty("expect").GetProperty("httpRequests").GetInt32(), handler.Calls.Count);
+    }
+
+    [Fact]
+    public async Task ALargeBatchIsSentInChunksOfAThousand()
+    {
+        var c = Corpus.Case("batch", "chunks-of-one-thousand");
+        var routes = new Dictionary<string, Route>();
+        foreach (var ip in Inputs(c))
+        {
+            routes[ip] = new Route(Stub.LookupBody(ip));
+        }
+        var handler = StubHandler.Lookups(routes);
+        using var client = Stub.Client(handler, new VpnDetectionClientOptions { CacheEnabled = false });
+
+        var got = await client.LookupBatchAsync(Inputs(c));
+
+        var expect = c.GetProperty("expect");
+        Assert.Equal(expect.GetProperty("keyCount").GetInt32(), got.Count);
+        Assert.Equal(expect.GetProperty("httpRequests").GetInt32(), handler.Calls.Count);
+        foreach (var ip in Inputs(c))
+        {
+            Assert.True(got[ip].IsSuccess, $"{ip} should be answered for itself");
+            Assert.Equal(ip, got[ip].Result!.Ip);
+        }
+    }
+
+    // A per-entry failure carries no headers, so its 429 can only be a spent allowance, and a 500
+    // is the server's; neither is retried per entry, because retries belong to the call and the
+    // call succeeded.
+    [Fact]
+    public async Task AnEntryErrorIsClassifiedByItsStatus()
+    {
+        var c = Corpus.Case("batch", "an-entry-error-is-classified-by-its-status");
+        var handler = StubHandler.Lookups(new Dictionary<string, Route>
+        {
+            ["1.1.1.1"] = new Route(Stub.LookupBody("1.1.1.1")),
+            ["8.8.8.8"] = new Route("""{"error":"request allowance exceeded; raise or remove your overage limit"}""", 429),
+            ["9.9.9.9"] = new Route("""{"error":"lookup failed"}""", 500),
+        });
+        using var client = Stub.Client(handler, new VpnDetectionClientOptions { Retries = 3 });
+
+        var got = await client.LookupBatchAsync(Inputs(c));
+
+        var expect = c.GetProperty("expect");
+        Assert.Equal(Strings(expect, "keys"), got.Keys.ToArray());
+        foreach (var entry in expect.GetProperty("errorKinds").EnumerateObject())
+        {
+            Assert.False(got[entry.Name].IsSuccess, $"{entry.Name} should carry its error");
+            Assert.Equal(entry.Value.GetString(), Wire(got[entry.Name].Error!.Kind));
+        }
+        Assert.Equal(expect.GetProperty("httpRequests").GetInt32(), handler.Calls.Count);
     }
 
     // ErrorKind.BadRequest is `bad_request` in the corpus. Spelling the mapping out beats making

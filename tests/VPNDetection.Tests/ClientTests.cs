@@ -6,8 +6,10 @@ namespace VPNDetection.Tests;
 // ConformanceTests.
 public class ClientTests
 {
+    // Enough addresses for seven chunks of the batch endpoint's 1000, so a concurrency bound has
+    // something to bound: one request per chunk, and only the chunks overlap.
     private static readonly string[] Addresses =
-        Enumerable.Range(1, 12).Select(i => $"9.9.9.{i}").ToArray();
+        Enumerable.Range(0, 6001).Select(i => $"9.{1 + i / 65536}.{i / 256 % 256}.{i % 256}").ToArray();
 
     [Fact]
     public void IsBogonIsOnTheClientAndAgreesWithTheStandaloneForm()
@@ -31,7 +33,7 @@ public class ClientTests
 
         await client.LookupBatchAsync(Addresses, new BatchOptions { Concurrency = 3 });
 
-        Assert.Equal(Addresses.Length, handler.Calls.Count);
+        Assert.Equal(7, handler.Calls.Count);
         Assert.True(handler.Peak <= 3, $"peak in flight was {handler.Peak}, expected at most 3");
         Assert.True(handler.Peak > 1, "requests should still overlap");
     }
@@ -137,8 +139,8 @@ public class ClientTests
     [Fact]
     public async Task ABatchIsKeyedInInputOrderRegardlessOfWhichAddressAnswersFirst()
     {
-        // The last address answers first, so a map that enumerated in completion order would
-        // report the reverse.
+        // The answers arrive in one chunk, keyed by a dictionary with no order of its own, so a
+        // map that enumerated the dictionary would report an arbitrary order.
         var handler = new SlowestFirstHandler();
         using var client = Stub.Client(handler, new VpnDetectionClientOptions { CacheEnabled = false });
 
@@ -283,8 +285,8 @@ internal sealed class ConcurrencyTrackingHandler : HttpMessageHandler
         {
             inFlight--;
         }
-        var ip = request.RequestUri!.AbsolutePath.TrimStart('/');
-        return StubHandler.Json(new Route(Stub.LookupBody(ip)));
+        // A batch arrives as one POST per chunk, so it is answered from the addresses in the body.
+        return StubHandler.Json(new Route(BatchAnswers.Of(StubHandler.Ips(request))));
     }
 }
 
@@ -293,8 +295,26 @@ internal sealed class SlowestFirstHandler : HttpMessageHandler
     protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request, CancellationToken cancellationToken)
     {
+        // A batch arrives as one POST per chunk and is answered from the addresses in the body; a
+        // single lookup is still answered from its path, slowest first.
+        var ips = StubHandler.Ips(request);
+        if (ips.Count > 0)
+        {
+            return StubHandler.Json(new Route(BatchAnswers.Of(ips)));
+        }
         var ip = request.RequestUri!.AbsolutePath.TrimStart('/');
         await Task.Delay(60 - (10 * int.Parse(ip[^1..])), cancellationToken);
         return StubHandler.Json(new Route(Stub.LookupBody(ip)));
+    }
+}
+
+// The answer a batch gets from a handler that has nothing to say about any address: every address
+// in the body, not a VPN.
+internal static class BatchAnswers
+{
+    internal static string Of(IReadOnlyList<string> ips)
+    {
+        var results = string.Join(",", ips.Select(ip => $"\"{ip}\":{Stub.LookupBody(ip)}"));
+        return "{\"results\":{" + results + "},\"errors\":{}}";
     }
 }

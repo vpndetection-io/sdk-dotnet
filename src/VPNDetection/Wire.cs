@@ -56,6 +56,14 @@ internal static class Wire
     }
 
     /// <summary>
+    /// A per-entry failure inside a successful batch: the status the single lookup would have
+    /// answered, and its message, with no headers at all - so a 429 here is a spent allowance,
+    /// which is the only kind the API puts in an entry.
+    /// </summary>
+    internal static VpnDetectionException FromEntry(int status, string message)
+        => new(KindOf(status, null), message, status, null, null);
+
+    /// <summary>
     /// What a status means, for the API and for object storage alike: both ends of a download run
     /// through here so the rule is written once.
     /// </summary>

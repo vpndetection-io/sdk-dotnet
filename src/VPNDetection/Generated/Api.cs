@@ -372,6 +372,189 @@ namespace VPNDetection
         }
 
         /// <summary>
+        /// Batch
+        /// </summary>
+        /// <remarks>
+        /// Answers up to 1000 addresses in one call. Each distinct string in `ips`
+        /// <br/>is one lookup: it costs exactly what `GET /{ip}` costs for that address
+        /// <br/>and comes back with exactly the fields that call would carry for your
+        /// <br/>plan. Exact duplicates collapse to one entry and one lookup.
+        /// <br/>
+        /// <br/>Both maps in the answer are keyed by the string you sent, so nothing has
+        /// <br/>to be lined up by position; the `ip` inside each result is the
+        /// <br/>normalized form. An address that could not be answered sits in `errors`
+        /// <br/>with the status and message the single lookup would have given, and
+        /// <br/>never disturbs the others: a string that is not an address is a `400`
+        /// <br/>there, and an allowance that runs out part way through leaves the
+        /// <br/>remaining entries as `429`s.
+        /// <br/>
+        /// <br/>The call itself fails only for the reasons below, and a `429` on the
+        /// <br/>call always carries `Retry-After`: the batch is admitted or refused
+        /// <br/>whole by the rate limit, so a per-entry `429` is always a spent
+        /// <br/>allowance and never a throttle.
+        /// </remarks>
+        /// <returns>One entry per distinct input string, in `results` or in `errors`.
+        /// <br/>Present fields within a result are those your plan includes; see the
+        /// <br/>tier table in the API description.</returns>
+        /// <exception cref="WireException">A server side error occurred.</exception>
+        public virtual System.Threading.Tasks.Task<BatchLookupResponse> LookupBatchAsync(BatchLookupRequest body)
+        {
+            return LookupBatchAsync(body, System.Threading.CancellationToken.None);
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Batch
+        /// </summary>
+        /// <remarks>
+        /// Answers up to 1000 addresses in one call. Each distinct string in `ips`
+        /// <br/>is one lookup: it costs exactly what `GET /{ip}` costs for that address
+        /// <br/>and comes back with exactly the fields that call would carry for your
+        /// <br/>plan. Exact duplicates collapse to one entry and one lookup.
+        /// <br/>
+        /// <br/>Both maps in the answer are keyed by the string you sent, so nothing has
+        /// <br/>to be lined up by position; the `ip` inside each result is the
+        /// <br/>normalized form. An address that could not be answered sits in `errors`
+        /// <br/>with the status and message the single lookup would have given, and
+        /// <br/>never disturbs the others: a string that is not an address is a `400`
+        /// <br/>there, and an allowance that runs out part way through leaves the
+        /// <br/>remaining entries as `429`s.
+        /// <br/>
+        /// <br/>The call itself fails only for the reasons below, and a `429` on the
+        /// <br/>call always carries `Retry-After`: the batch is admitted or refused
+        /// <br/>whole by the rate limit, so a per-entry `429` is always a spent
+        /// <br/>allowance and never a throttle.
+        /// </remarks>
+        /// <returns>One entry per distinct input string, in `results` or in `errors`.
+        /// <br/>Present fields within a result are those your plan includes; see the
+        /// <br/>tier table in the API description.</returns>
+        /// <exception cref="WireException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<BatchLookupResponse> LookupBatchAsync(BatchLookupRequest body, System.Threading.CancellationToken cancellationToken)
+        {
+            if (body == null)
+                throw new System.ArgumentNullException("body");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(body, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "batch"
+                    urlBuilder_.Append("batch");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<BatchLookupResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<LookupError>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WireException<LookupError>("The body is not a batch, or names too few or too many addresses.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 401)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<LookupError>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WireException<LookupError>("The presented API key is unknown, revoked, or expired.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 403)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<LookupError>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WireException<LookupError>("The key restricts which source addresses may use it, and this\nrequest did not come from one of them.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 413)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<LookupError>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WireException<LookupError>("The body is larger than any batch of 1000 addresses can be.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 429)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<LookupError>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WireException<LookupError>("The rate limit refused the whole call. Always transient and always\nwith `Retry-After`; a spent allowance is reported per entry in a\n`200` instead.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WireException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <summary>
         /// List
         /// </summary>
         /// <remarks>
@@ -3039,6 +3222,95 @@ namespace VPNDetection
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("mobproxy")]
         public ProxyDetail? Mobproxy { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class BatchLookupRequest
+    {
+
+        /// <summary>
+        /// The addresses to classify, 1 to 1000 per call, counted before
+        /// <br/>duplicates collapse. Each distinct string is one lookup.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("ips")]
+        public System.Collections.Generic.IReadOnlyList<string> Ips { get; set; } = new System.Collections.Generic.List<string>();
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class BatchLookupResponse
+    {
+
+        /// <summary>
+        /// One answer per input string that was classified, keyed by the string
+        /// <br/>as you sent it; the `ip` inside is the normalized form. Each value is
+        /// <br/>exactly what `GET /{ip}` answers for your plan.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("results")]
+        public System.Collections.Generic.IDictionary<string, LookupResponse> Results { get; set; } = new System.Collections.Generic.Dictionary<string, LookupResponse>();
+
+        /// <summary>
+        /// One entry per input string that could not be classified, keyed the
+        /// <br/>same way. Empty when every entry was answered.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("errors")]
+        public System.Collections.Generic.IDictionary<string, BatchLookupError> Errors { get; set; } = new System.Collections.Generic.Dictionary<string, BatchLookupError>();
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    /// <summary>
+    /// Why one entry of a batch was not answered, as the single lookup would have reported it.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class BatchLookupError
+    {
+
+        /// <summary>
+        /// The HTTP status `GET /{ip}` would have answered for this entry: `400`
+        /// <br/>for a string that is not an address, `429` for a spent allowance,
+        /// <br/>`500` when the VPN dataset could not be consulted. A `429` here is
+        /// <br/>never a throttle; the whole call is refused instead.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        public int Status { get; set; } = default!;
+
+        /// <summary>
+        /// The same message the single lookup carries for that status.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("error")]
+        public string Error { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
