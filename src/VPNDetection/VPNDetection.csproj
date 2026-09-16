@@ -17,7 +17,7 @@
 
   <PropertyGroup>
     <PackageId>VPNDetection</PackageId>
-    <Version>5.1.0</Version>
+    <Version>5.2.0</Version>
     <Authors>Mslm Dev</Authors>
     <Company>Mslm Dev</Company>
     <Product>VPNDetection</Product>
@@ -44,6 +44,10 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
+  </ItemGroup>
+  <!-- The suite replaces the device poll's wait and clock, which no caller should reach. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="VPNDetection.Tests" />
   </ItemGroup>
 
   <ItemGroup>

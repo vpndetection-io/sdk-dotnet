@@ -186,10 +186,13 @@ public class ConformanceTests
         Assert.Equal(c.GetProperty("expect").GetProperty("httpRequests").GetInt32(), handler.Calls.Count);
     }
 
-    [Fact]
-    public async Task ALargeBatchIsSentInChunksOfAThousand()
+    // The second case pins that no cap refuses a batch past the endpoint's thousand.
+    [Theory]
+    [InlineData("chunks-of-one-thousand")]
+    [InlineData("uncapped-input-is-chunked")]
+    public async Task ALargeBatchIsSentInChunksOfAThousand(string name)
     {
-        var c = Corpus.Case("batch", "chunks-of-one-thousand");
+        var c = Corpus.Case("batch", name);
         var routes = new Dictionary<string, Route>();
         foreach (var ip in Inputs(c))
         {
@@ -239,7 +242,7 @@ public class ConformanceTests
 
     // ErrorKind.BadRequest is `bad_request` in the corpus. Spelling the mapping out beats making
     // the enum's own name a wire contract nobody can see.
-    private static string Wire(ErrorKind kind) => kind switch
+    internal static string Wire(ErrorKind kind) => kind switch
     {
         ErrorKind.BadRequest => "bad_request",
         ErrorKind.Unauthorized => "unauthorized",

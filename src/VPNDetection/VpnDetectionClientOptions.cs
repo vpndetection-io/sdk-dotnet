@@ -38,9 +38,9 @@ public sealed class VpnDetectionClientOptions
     /// <remarks>
     /// Per ATTEMPT, so a retried call may take longer in total. It runs from connecting to the
     /// last byte of the answer, and overrides in either direction per call through
-    /// <see cref="LookupOptions.RequestTimeout"/> and <see cref="BatchOptions.RequestTimeout"/>. A
-    /// dataset transfer is bounded only up to its response head, so a download that takes minutes
-    /// is not abandoned for taking longer than a lookup would.
+    /// <see cref="LookupOptions.RequestTimeout"/>, <see cref="BatchOptions.RequestTimeout"/> and the
+    /// OAuth options. A dataset transfer is bounded only up to its response head, so a download
+    /// that takes minutes is not abandoned for taking longer than a lookup would.
     /// </remarks>
     public TimeSpan RequestTimeout { get; set; } = TimeSpan.FromSeconds(30);
 
@@ -91,5 +91,41 @@ public sealed class BatchOptions
     /// Replaces <see cref="VpnDetectionClientOptions.RequestTimeout"/> in either direction, and a
     /// chunk that runs out of it marks every address in it with a retryable network error.
     /// </remarks>
+    public TimeSpan? RequestTimeout { get; init; }
+}
+
+/// <summary>
+/// Per-call overrides for one <see cref="OauthApi"/> request. Anything left null falls back to the
+/// client's setting.
+/// </summary>
+public sealed class OauthOptions
+{
+    /// <summary>How long one attempt of THIS call may take before it is abandoned.</summary>
+    /// <remarks>
+    /// Bounded as <see cref="LookupOptions.RequestTimeout"/> is. On
+    /// <see cref="OauthApi.PollDeviceTokenAsync(string, DeviceAuthorization, OauthOptions?, CancellationToken)"/>
+    /// it bounds each poll, never the poll as a whole.
+    /// </remarks>
+    public TimeSpan? RequestTimeout { get; init; }
+}
+
+/// <summary>What to ask for when starting a device sign-in.</summary>
+/// <remarks>
+/// Deliberately NOT a subclass of <see cref="OauthOptions"/>, so it cannot be handed to a method that
+/// would silently ignore its scope.
+/// </remarks>
+public sealed class DeviceAuthorizationOptions
+{
+    /// <summary>
+    /// The scopes to request, space-delimited and sent verbatim, such as
+    /// <c>account.read apikeys.read apikeys.reveal</c>. The server narrows it to what the client
+    /// may ask for.
+    /// </summary>
+    public string? Scope { get; init; }
+
+    /// <summary>The RFC 8707 resource the token is meant for.</summary>
+    public string? Resource { get; init; }
+
+    /// <summary>How long one attempt of THIS call may take before it is abandoned.</summary>
     public TimeSpan? RequestTimeout { get; init; }
 }

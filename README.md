@@ -187,6 +187,27 @@ var url = await client.Database.DownloadUrlAsync(id, DatabaseFormat.Mmdb);
 
 `DownloadBytesAsync` holds the whole file in memory, and the catalog runs from `cdn_ip_v1` at 10 KB to `resproxy_ip_90d_v1` at 1.79 GB, so use `DownloadAsync` for anything you have not measured.
 
+### Sign in with OAuth (device flow)
+
+A program running on the person's own machine can let them sign in with a browser and pick one of their API keys, instead of asking them to paste it:
+
+```csharp
+using var client = new VpnDetectionClient();
+
+var device = await client.Oauth.DeviceAuthorizationAsync(
+    "your-client-id", new DeviceAuthorizationOptions { Scope = "account.read apikeys.read apikeys.reveal" });
+Console.WriteLine($"Open {device.VerificationUri} and enter {device.UserCode}");
+
+var token = await client.Oauth.PollDeviceTokenAsync("your-client-id", device);
+if (token.Apikey is null)
+{
+    throw new InvalidOperationException("no API key came back: none was picked, or it can't be shown again");
+}
+using var keyed = new VpnDetectionClient(new VpnDetectionClientOptions { ApiKey = token.Apikey });
+```
+
+A denied sign-in throws `OauthAccessDeniedException` and a code that ran out `OauthExpiredTokenException`. Client IDs are issued on request from support@vpndetection.io, and `client.Oauth.RevokeAsync("your-client-id", token.RefreshToken)` signs the machine out again.
+
 ### Dependency injection
 
 The client takes an `HttpClient`, so it registers as a typed client and picks up your handler pipeline, pooling and resilience policies:

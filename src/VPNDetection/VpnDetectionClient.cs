@@ -87,10 +87,17 @@ public sealed class VpnDetectionClient : IDisposable
         this.cacheTtl = o.CacheTtl;
         this.cache = o.CacheEnabled ? new MemoryCache(new MemoryCacheOptions { SizeLimit = o.CacheSize }) : null;
         this.Database = new DatabaseApi(this.wire, http, o.Retries, this.requestTimeout);
+        this.Oauth = new OauthApi(http, o.BaseUrl, o.Retries, this.requestTimeout);
     }
 
     /// <summary>The licensed dataset downloads, for keys that carry the <c>db.download</c> scope.</summary>
     public DatabaseApi Database { get; }
+
+    /// <summary>
+    /// Sign a person in with OAuth's device flow and receive one of their API keys. Its requests
+    /// never carry this client's key.
+    /// </summary>
+    public OauthApi Oauth { get; }
 
     /// <summary>
     /// Whether an address is private, loopback, link-local, documentation, multicast or otherwise
@@ -231,11 +238,20 @@ public sealed class VpnDetectionClient : IDisposable
     /// fails as a whole marks every address in it. Iteration order is the order the addresses were
     /// first seen in the input.
     /// </remarks>
+    /// <exception cref="VpnDetectionException">
+    /// <see cref="BatchOptions.Concurrency"/> is below 1, refused as
+    /// <see cref="ErrorKind.BadRequest"/> before any request.
+    /// </exception>
     public async Task<IReadOnlyDictionary<string, BatchResult>> LookupBatchAsync(
         IEnumerable<string> ips, BatchOptions? options, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(ips);
         var timeout = Wire.TimeoutFor(options?.RequestTimeout, requestTimeout);
+        if (options?.Concurrency is < 1)
+        {
+            throw new VpnDetectionException(
+                ErrorKind.BadRequest, $"concurrency must be at least 1, got {options.Concurrency}");
+        }
         var unique = new List<string>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (var ip in ips)

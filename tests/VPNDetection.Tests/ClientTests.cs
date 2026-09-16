@@ -95,6 +95,23 @@ public class ClientTests
         }
     }
 
+    // A limit of 0 admits nothing, and a batch waiting on it would never end.
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public async Task ABatchConcurrencyBelowOneIsRefusedBeforeAnyRequest(int concurrency)
+    {
+        var handler = StubHandler.Lookups(Stub.Route("9.9.9.9", Stub.LookupBody("9.9.9.9")));
+        using var client = Stub.Client(handler);
+
+        var error = await Assert.ThrowsAsync<VpnDetectionException>(() => client
+            .LookupBatchAsync(new[] { "9.9.9.9" }, new BatchOptions { Concurrency = concurrency })
+            .WaitAsync(TimeSpan.FromSeconds(10)));
+
+        Assert.Equal(ErrorKind.BadRequest, error.Kind);
+        Assert.Empty(handler.Calls);
+    }
+
     [Fact]
     public async Task RetriesAreConfigurablePerCall()
     {

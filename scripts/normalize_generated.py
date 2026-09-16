@@ -114,7 +114,7 @@ def pascal_case_properties(src):
     renamed = []
 
     def fix(m):
-        want = "".join(part[:1].upper() + part[1:] for part in m.group("wire").split("_"))
+        want = pascal_of(m.group("wire"))
         have = m.group("name")
         if want == have:
             return m.group(0)
@@ -122,6 +122,15 @@ def pascal_case_properties(src):
         return m.group(1) + want
 
     return PROPERTY.sub(fix, src), renamed
+
+
+def pascal_of(wire):
+    """The PascalCase of a wire name, without a vendor namespace.
+
+    `mslm:apikey_id` is `ApikeyId`, as every SDK surfaces it: NSwag keeps the colon, and
+    `Mslm:apikeyId` is not an identifier at all.
+    """
+    return "".join(part[:1].upper() + part[1:] for part in wire.split(":")[-1].split("_"))
 
 
 def rename_types(src):
@@ -207,7 +216,7 @@ def check(src) -> int:
     """Refuses to leave behind the two defects this script exists to remove."""
     bad = []
     for m in PROPERTY.finditer(src):
-        want = "".join(part[:1].upper() + part[1:] for part in m.group("wire").split("_"))
+        want = pascal_of(m.group("wire"))
         if m.group("name") != want:
             bad.append(f"property {m.group('name')} should be {want}, from the wire name")
     for m in re.finditer(r"^\s*public (?:partial class|enum) (Response\d?|Error|Format\d?)\b", src, re.M):

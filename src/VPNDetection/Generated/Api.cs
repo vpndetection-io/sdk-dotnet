@@ -1120,6 +1120,7 @@ namespace VPNDetection
         /// <remarks>
         /// Recent download attempts for this organization, newest first. Refusals are listed too, so a failed transfer can be accounted for.
         /// </remarks>
+        /// <param name="limit">How many attempts to return. Clamped to 1 through 200.</param>
         /// <returns>OK</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task<Response3> ListDownloadsAsync(int? limit)
@@ -1134,6 +1135,7 @@ namespace VPNDetection
         /// <remarks>
         /// Recent download attempts for this organization, newest first. Refusals are listed too, so a failed transfer can be accounted for.
         /// </remarks>
+        /// <param name="limit">How many attempts to return. Clamped to 1 through 200.</param>
         /// <returns>OK</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<Response3> ListDownloadsAsync(int? limit, System.Threading.CancellationToken cancellationToken)
@@ -2565,7 +2567,17 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<OauthError>("`invalid_request`, `invalid_client`, `unauthorized_client`, or\n`slow_down` when this address has started too many authorizations.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<OauthError>("`invalid_request`, `unauthorized_client` when the client may not use\nthe device flow, or `slow_down` when this address has started too\nmany authorizations.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 401)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<OauthError>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WireException<OauthError>("`invalid_client`: the `client_id` is not registered.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -2845,7 +2857,17 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<OauthError>("An RFC 6749 error. `authorization_pending` and `slow_down` are\nnormal answers while polling a device authorization, not failures.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<OauthError>("An RFC 6749 error. `authorization_pending` and `slow_down` are\nnormal answers while polling a device authorization, not failures.\n`access_denied` means the person refused, and `expired_token` that\nthe device code is no longer valid: it expired, or it was already\nexchanged or refused. `invalid_grant` means the code, device code or\nrefresh token is not valid for this `client_id`. `slow_down` also\nanswers any grant when this address sends too many requests.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 401)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<OauthError>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WireException<OauthError>("`invalid_client`: the `client_id` is not registered.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -4390,10 +4412,19 @@ namespace VPNDetection
         public System.Collections.Generic.IReadOnlyList<string>? CodeChallengeMethodsSupported { get; set; } = default!;
 
         /// <summary>
-        /// A client_id may be an https URL serving your client metadata.
+        /// Always `none`. Every client is public and has no secret.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("client_id_metadata_document_supported")]
-        public bool? ClientIdMetadataDocumentSupported { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("token_endpoint_auth_methods_supported")]
+        public System.Collections.Generic.IReadOnlyList<string>? TokenEndpointAuthMethodsSupported { get; set; } = default!;
+
+        /// <summary>
+        /// RFC 9207. A redirect back from the authorization endpoint carries `iss`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("authorization_response_iss_parameter_supported")]
+        public bool? AuthorizationResponseIssParameterSupported { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("service_documentation")]
+        public string? ServiceDocumentation { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -4461,6 +4492,9 @@ namespace VPNDetection
         [System.Text.Json.Serialization.JsonPropertyName("verification_uri_complete")]
         public string? VerificationUriComplete { get; set; } = default!;
 
+        /// <summary>
+        /// Seconds until both codes expire.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("expires_in")]
         public int ExpiresIn { get; set; } = default!;
 
@@ -4485,24 +4519,42 @@ namespace VPNDetection
     public partial class TokenRequest
     {
 
+        /// <summary>
+        /// `urn:ietf:params:oauth:grant-type:device_code`, `authorization_code` or `refresh_token`.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("grant_type")]
         public string GrantType { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("client_id")]
         public string ClientId { get; set; } = default!;
 
+        /// <summary>
+        /// Required by the device code grant.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("device_code")]
         public string? DeviceCode { get; set; } = default!;
 
+        /// <summary>
+        /// Required by the authorization code grant.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("code")]
         public string? Code { get; set; } = default!;
 
+        /// <summary>
+        /// Required by the authorization code grant.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("code_verifier")]
         public string? CodeVerifier { get; set; } = default!;
 
+        /// <summary>
+        /// Authorization code grant: the `redirect_uri` the code was issued against, exactly.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("redirect_uri")]
         public string? RedirectUri { get; set; } = default!;
 
+        /// <summary>
+        /// Required by the refresh token grant.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("refresh_token")]
         public string? RefreshToken { get; set; } = default!;
 
@@ -4524,12 +4576,21 @@ namespace VPNDetection
         [System.Text.Json.Serialization.JsonPropertyName("access_token")]
         public string AccessToken { get; set; } = default!;
 
+        /// <summary>
+        /// Always `Bearer`.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("token_type")]
         public string TokenType { get; set; } = default!;
 
+        /// <summary>
+        /// Seconds until the access token expires.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("expires_in")]
         public int ExpiresIn { get; set; } = default!;
 
+        /// <summary>
+        /// Always returned. A refresh consumes the token it presents, so keep this one.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("refresh_token")]
         public string? RefreshToken { get; set; } = default!;
 
@@ -4538,6 +4599,28 @@ namespace VPNDetection
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("scope")]
         public string? Scope { get; set; } = default!;
+
+        /// <summary>
+        /// Not part of OAuth. The ID of the API key the person picked when they
+        /// <br/>approved, returned by every grant while this authorization may still
+        /// <br/>read that key back. Absent when no key was picked, or when the
+        /// <br/>person's role no longer allows reading keys back.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("mslm:apikey_id")]
+        public string? ApikeyId { get; set; } = default!;
+
+        /// <summary>
+        /// Not part of OAuth. The API key itself, so a device ends up holding an
+        /// <br/>ordinary key. Returned by the device code and authorization code
+        /// <br/>grants only, never by a refresh, and only alongside
+        /// <br/>`mslm:apikey_id`. Absent when that key's secret cannot be read back,
+        /// <br/>which is the case for a key created before keys could be shown again
+        /// <br/>in the console; a rotated key can be.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("mslm:apikey")]
+        public string? Apikey { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -4554,9 +4637,15 @@ namespace VPNDetection
     public partial class RevokeRequest
     {
 
+        /// <summary>
+        /// An access token or a refresh token.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("token")]
         public string Token { get; set; } = default!;
 
+        /// <summary>
+        /// Accepted and not checked.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("client_id")]
         public string? ClientId { get; set; } = default!;
 
