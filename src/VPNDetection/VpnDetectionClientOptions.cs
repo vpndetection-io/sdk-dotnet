@@ -32,16 +32,23 @@ public sealed class VpnDetectionClientOptions
     public int Retries { get; set; } = 2;
 
     /// <summary>
-    /// How long one request may take before it is abandoned. Default 30 seconds. Ignored when you
+    /// How long one attempt may take before it is abandoned. Default 30 seconds. Ignored when you
     /// supply your own <see cref="HttpClient"/>, which carries its own timeout.
     /// </summary>
+    /// <remarks>
+    /// Per ATTEMPT, so a retried call may take longer in total. It runs from connecting to the
+    /// last byte of the answer, and overrides in either direction per call through
+    /// <see cref="LookupOptions.RequestTimeout"/> and <see cref="BatchOptions.RequestTimeout"/>. A
+    /// dataset transfer is bounded only up to its response head, so a download that takes minutes
+    /// is not abandoned for taking longer than a lookup would.
+    /// </remarks>
     public TimeSpan RequestTimeout { get; set; } = TimeSpan.FromSeconds(30);
 
     /// <summary>
     /// Use a specific <see cref="HttpClient"/>, for a proxy, a custom handler or a test double.
     /// </summary>
     /// <remarks>
-    /// It MUST NOT follow redirects, or <see cref="VPNDetection.Database.DownloadUrlAsync"/> would
+    /// It MUST NOT follow redirects, or <see cref="DatabaseApi.DownloadUrlAsync"/> would
     /// fetch the dataset instead of returning its link. A client supplied here is never disposed.
     /// </remarks>
     public HttpClient? HttpClient { get; set; }
@@ -54,6 +61,14 @@ public sealed class LookupOptions
 {
     /// <summary>Retry attempts for a transient failure.</summary>
     public int? Retries { get; init; }
+
+    /// <summary>How long one attempt of THIS call may take before it is abandoned.</summary>
+    /// <remarks>
+    /// Replaces <see cref="VpnDetectionClientOptions.RequestTimeout"/> in either direction. It also
+    /// bounds a call on a borrowed <see cref="HttpClient"/>, which cannot be made to outlast that
+    /// client's own timeout.
+    /// </remarks>
+    public TimeSpan? RequestTimeout { get; init; }
 }
 
 /// <summary>Per-call overrides for one batch. Anything left null falls back to the client's setting.</summary>
@@ -70,4 +85,11 @@ public sealed class BatchOptions
 
     /// <summary>Concurrent batch requests - chunks of up to 1000 addresses - for THIS batch only.</summary>
     public int? Concurrency { get; init; }
+
+    /// <summary>How long one attempt at one chunk of THIS batch may take before it is abandoned.</summary>
+    /// <remarks>
+    /// Replaces <see cref="VpnDetectionClientOptions.RequestTimeout"/> in either direction, and a
+    /// chunk that runs out of it marks every address in it with a retryable network error.
+    /// </remarks>
+    public TimeSpan? RequestTimeout { get; init; }
 }

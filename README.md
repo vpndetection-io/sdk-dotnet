@@ -85,10 +85,15 @@ foreach (var (ip, answer) in results)
 
 Results are keyed by address, in the order you first listed each one, so duplicates in your list collapse into a single entry and one address failing never loses the rest: it carries its error as its value, with the status the API would have given that address on its own.
 
-How many chunks are in flight at once, and how many times a failed chunk is retried, are configurable per call:
+How many chunks are in flight at once, how many times a failed chunk is retried, and how long each attempt at a chunk may take, are configurable per call:
 
 ```csharp
-var results = await client.LookupBatchAsync(manyIps, new BatchOptions { Concurrency = 4, Retries = 4 });
+var results = await client.LookupBatchAsync(manyIps, new BatchOptions
+{
+    Concurrency = 4,
+    Retries = 4,
+    RequestTimeout = TimeSpan.FromSeconds(10),
+});
 ```
 
 ### Caching
@@ -161,6 +166,12 @@ catch (VpnDetectionException e)
 
 Note that `RateLimited` and `QuotaExceeded` both arrive as HTTP 429 and are not the same thing. A rate limit is when the API faces extreme traffic bursts and so retrying later works; but a spent quota needs your allowance raised or the window to roll over. The library retries rate limits for you, but not if your quota is exceeded.
 
+Each attempt is abandoned after 30 seconds by default (`RequestTimeout` on the options), which fails as a retryable `Network` error. One call can set its own, longer or shorter:
+
+```csharp
+var result = await client.LookupAsync("45.83.91.1", new LookupOptions { RequestTimeout = TimeSpan.FromSeconds(5) });
+```
+
 ### Database downloads
 
 If your key carries the `db.download` scope, the licensed databases are available through `client.Database`. A licence covers a database FAMILY, so the ids below come from its versions. `DownloadAsync` fetches one to a path, streaming it straight to disk so that nothing bigger than a chunk is ever held in memory; or take the bytes, or the time-limited link to run the transfer yourself:
@@ -169,9 +180,9 @@ If your key carries the `db.download` scope, the licensed databases are availabl
 var databases = await client.Database.ListAsync();
 var id = databases[0].Versions[0].Id;                                            // "vpn_ip_extended_v1"
 
-var written = await client.Database.DownloadAsync(id, DatasetFormat.Mmdb, $"{id}.mmdb");
-var bytes = await client.Database.DownloadBytesAsync("cdn_ip_v1", DatasetFormat.Csvgz);
-var url = await client.Database.DownloadUrlAsync(id, DatasetFormat.Mmdb);
+var written = await client.Database.DownloadAsync(id, DatabaseFormat.Mmdb, $"{id}.mmdb");
+var bytes = await client.Database.DownloadBytesAsync("cdn_ip_v1", DatabaseFormat.Csvgz);
+var url = await client.Database.DownloadUrlAsync(id, DatabaseFormat.Mmdb);
 ```
 
 `DownloadBytesAsync` holds the whole file in memory, and the catalog runs from `cdn_ip_v1` at 10 KB to `resproxy_ip_90d_v1` at 1.79 GB, so use `DownloadAsync` for anything you have not measured.
@@ -187,6 +198,8 @@ services.AddHttpClient<VpnDetectionClient>()
 ```
 
 `AllowAutoRedirect = false` matters: the database download endpoint answers `302` with the link this library hands back, and .NET's default handler would follow it and fetch the whole database instead. A client that follows redirects is refused with a clear error rather than quietly downloading gigabytes.
+
+A borrowed `HttpClient` keeps its own `Timeout`, so `RequestTimeout` on the options does not apply to it; a per-call `RequestTimeout` still does.
 
 ### Absent is not false
 

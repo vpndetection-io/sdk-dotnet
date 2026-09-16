@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -187,6 +188,33 @@ public class DatabaseTests
         Assert.Null(origin.StorageAuthorization);
     }
 
+    // The request timeout ends with the response head of a transfer, because the transfer is read
+    // with ResponseHeadersRead: without that, the bound on a metadata call would abandon any dataset
+    // slower than it to move. Storage stalls mid-payload for four times the client's timeout here,
+    // and the transfer still has to finish.
+    [Fact]
+    public async Task ASlowTransferIsNotAbandonedByTheRequestTimeout()
+    {
+        var payload = Payload();
+        var stall = TimeSpan.FromMilliseconds(1200);
+        using var origin = new RedirectingServer(payload, truncate: false, stall: stall);
+        using var client = new VpnDetectionClient(new VpnDetectionClientOptions
+        {
+            BaseUrl = origin.BaseUrl,
+            ApiKey = "k",
+            Retries = 0,
+            RequestTimeout = TimeSpan.FromMilliseconds(300),
+        });
+
+        var started = Stopwatch.StartNew();
+        var bytes = await client.Database.DownloadBytesAsync("vpn_ip_extended_v1", DatabaseFormat.Mmdb);
+
+        Assert.Equal(payload, bytes);
+        Assert.True(
+            started.Elapsed >= stall,
+            $"the transfer finished in {started.ElapsedMilliseconds}ms, so it never stalled");
+    }
+
     // A transfer that ends short of its declared length must fail rather than leave a file that
     // reads as a whole dataset. HttpClient raises this for itself, which PHP's streams do not, so
     // what is pinned here is that the failure surfaces AND that nothing survives it.
@@ -268,6 +296,7 @@ internal sealed class RedirectingServer : IDisposable
     private readonly TcpListener storage;
     private readonly byte[]? payload;
     private readonly bool truncate;
+    private readonly TimeSpan stall;
     private readonly List<Socket> held = new();
 
     /// <summary>An origin whose storage stalls: a gigabyte promised, one byte sent, never closed.</summary>
@@ -281,10 +310,12 @@ internal sealed class RedirectingServer : IDisposable
     }
 
     /// <summary>An origin whose storage serves <paramref name="payload"/>, whole or cut short.</summary>
-    internal RedirectingServer(byte[]? payload, bool truncate)
+    /// <param name="stall">How long storage pauses part way through the body.</param>
+    internal RedirectingServer(byte[]? payload, bool truncate, TimeSpan stall = default)
     {
         this.payload = payload;
         this.truncate = truncate;
+        this.stall = stall;
         BaseUrl = $"http://127.0.0.1:{FreePort()}";
         storage = new TcpListener(IPAddress.Loopback, 0);
         storage.Start();
@@ -390,7 +421,17 @@ internal sealed class RedirectingServer : IDisposable
         }
         await WriteAsync(stream, Header(payload.Length));
         var sent = truncate ? payload.Length / 2 : payload.Length;
-        await stream.WriteAsync(payload.AsMemory(0, sent));
+        if (stall > TimeSpan.Zero && sent > 1)
+        {
+            await stream.WriteAsync(payload.AsMemory(0, 1));
+            await stream.FlushAsync();
+            await Task.Delay(stall);
+            await stream.WriteAsync(payload.AsMemory(1, sent - 1));
+        }
+        else
+        {
+            await stream.WriteAsync(payload.AsMemory(0, sent));
+        }
         await stream.FlushAsync();
         if (truncate)
         {

@@ -28,6 +28,7 @@ public sealed class VpnDetectionClient : IDisposable
     private readonly TimeSpan cacheTtl;
     private readonly int concurrency;
     private readonly int retries;
+    private readonly TimeSpan? requestTimeout;
 
     /// <summary>A client on the free tier, with every default.</summary>
     public VpnDetectionClient()
@@ -63,17 +64,21 @@ public sealed class VpnDetectionClient : IDisposable
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(o.Concurrency, 1, nameof(o.Concurrency));
         ArgumentOutOfRangeException.ThrowIfNegative(o.Retries, nameof(o.Retries));
+        Wire.CheckTimeout(o.RequestTimeout, nameof(o.RequestTimeout));
 
         var http = supplied ?? o.HttpClient;
         if (http is null)
         {
             // Redirects OFF: unlike the JDK's client, .NET's follows them by default, and the
-            // download endpoint answers 302 with the link this library exists to hand back.
+            // download endpoint answers 302 with the link this library exists to hand back. No
+            // HttpClient.Timeout either: the bound is this library's own, per attempt, so a
+            // per-call RequestTimeout can lengthen it as well as shorten it.
             http = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false })
             {
-                Timeout = o.RequestTimeout,
+                Timeout = Timeout.InfiniteTimeSpan,
             };
             this.ownedHttpClient = http;
+            this.requestTimeout = o.RequestTimeout;
         }
 
         this.wire = new WireClient(http) { BaseUrl = o.BaseUrl, ApiKey = o.ApiKey };
@@ -81,7 +86,7 @@ public sealed class VpnDetectionClient : IDisposable
         this.concurrency = o.Concurrency;
         this.cacheTtl = o.CacheTtl;
         this.cache = o.CacheEnabled ? new MemoryCache(new MemoryCacheOptions { SizeLimit = o.CacheSize }) : null;
-        this.Database = new DatabaseApi(this.wire, http, o.Retries);
+        this.Database = new DatabaseApi(this.wire, http, o.Retries, this.requestTimeout);
     }
 
     /// <summary>The licensed dataset downloads, for keys that carry the <c>db.download</c> scope.</summary>
@@ -118,6 +123,7 @@ public sealed class VpnDetectionClient : IDisposable
         string ip, LookupOptions? options, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(ip);
+        var timeout = Wire.TimeoutFor(options?.RequestTimeout, requestTimeout);
         if (Bogon.IsBogon(ip))
         {
             return Result.Bogon(ip);
@@ -129,6 +135,7 @@ public sealed class VpnDetectionClient : IDisposable
 
         var result = await Wire.ExecuteAsync(
             options?.Retries ?? retries,
+            timeout,
             async ct => Result.Of(await wire.LookupIpAsync(ip, ct).ConfigureAwait(false)),
             cancellationToken).ConfigureAwait(false);
 
@@ -166,6 +173,7 @@ public sealed class VpnDetectionClient : IDisposable
         LookupOptions? options, CancellationToken cancellationToken = default)
         => Wire.ExecuteAsync(
             options?.Retries ?? retries,
+            Wire.TimeoutFor(options?.RequestTimeout, requestTimeout),
             async ct => Result.Of(await wire.LookupMyIpAsync(ct).ConfigureAwait(false)),
             cancellationToken);
 
@@ -201,6 +209,7 @@ public sealed class VpnDetectionClient : IDisposable
         LookupOptions? options, CancellationToken cancellationToken = default)
         => Wire.ExecuteAsync(
             options?.Retries ?? retries,
+            Wire.TimeoutFor(options?.RequestTimeout, requestTimeout),
             ct => wire.MyEntitlementAsync(ct),
             cancellationToken);
 
@@ -226,6 +235,7 @@ public sealed class VpnDetectionClient : IDisposable
         IEnumerable<string> ips, BatchOptions? options, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(ips);
+        var timeout = Wire.TimeoutFor(options?.RequestTimeout, requestTimeout);
         var unique = new List<string>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (var ip in ips)
@@ -270,7 +280,8 @@ public sealed class VpnDetectionClient : IDisposable
             },
             async (chunk, ct) =>
             {
-                foreach (var (ip, answer) in await LookupChunkAsync(chunk, retries, ct).ConfigureAwait(false))
+                var answered = await LookupChunkAsync(chunk, retries, timeout, ct).ConfigureAwait(false);
+                foreach (var (ip, answer) in answered)
                 {
                     answers[ip] = answer;
                 }
@@ -283,7 +294,7 @@ public sealed class VpnDetectionClient : IDisposable
     // the call refused, the transport failing, the retries exhausted - becomes every address's
     // error, exactly as it would have been had each been looked up alone.
     private async Task<Dictionary<string, BatchResult>> LookupChunkAsync(
-        List<string> chunk, int retries, CancellationToken cancellationToken)
+        List<string> chunk, int retries, TimeSpan? timeout, CancellationToken cancellationToken)
     {
         var answers = new Dictionary<string, BatchResult>(StringComparer.Ordinal);
         BatchLookupResponse body;
@@ -291,6 +302,7 @@ public sealed class VpnDetectionClient : IDisposable
         {
             body = await Wire.ExecuteAsync(
                 retries,
+                timeout,
                 ct => wire.LookupBatchAsync(new BatchLookupRequest { Ips = chunk }, ct),
                 cancellationToken).ConfigureAwait(false);
         }

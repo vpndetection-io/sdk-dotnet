@@ -64,6 +64,37 @@ public class ClientTests
         Assert.True(handler.Peak <= 2, $"peak in flight was {handler.Peak}, expected at most 2");
     }
 
+    // No cap on what one call accepts: chunking to the endpoint's 1000 is this library's job, so
+    // 2,500 addresses is three requests rather than an error.
+    [Fact]
+    public async Task ABatchIsNeverCappedAndIsSentAsOnePostPerChunk()
+    {
+        var addresses = Enumerable.Range(0, 2500).Select(i => $"9.9.{i / 256}.{i % 256}").ToArray();
+        var requests = new List<string>();
+        var handler = new StubHandler(request =>
+        {
+            var ips = StubHandler.Ips(request);
+            lock (requests)
+            {
+                requests.Add($"{request.Method} {request.RequestUri!.AbsolutePath} {ips.Count}");
+            }
+            return StubHandler.Json(new Route(BatchAnswers.Of(ips)));
+        });
+        using var client = Stub.Client(handler, new VpnDetectionClientOptions { CacheEnabled = false });
+
+        var got = await client.LookupBatchAsync(addresses);
+
+        Assert.Equal(
+            new[] { "POST /batch 1000", "POST /batch 1000", "POST /batch 500" },
+            requests.Order(StringComparer.Ordinal).ToArray());
+        Assert.Equal(addresses, got.Keys.ToArray());
+        foreach (var ip in addresses)
+        {
+            Assert.True(got[ip].IsSuccess, $"{ip} was not answered");
+            Assert.Equal(ip, got[ip].Result!.Ip);
+        }
+    }
+
     [Fact]
     public async Task RetriesAreConfigurablePerCall()
     {
