@@ -145,10 +145,11 @@ public class LookupTests
                 new[] { Staging.Probe, "8.8.8.8", Staging.Probe, "10.0.0.1", "8.8.8.8" });
 
             Assert.Equal(3, answers.Count);
-            // Distinct paths rather than a call count, so a retry against a wobbling staging cannot
-            // read as a failure to deduplicate.
-            var asked = recorder.Seen.Select(fact => fact.Path).Distinct().Order().ToArray();
-            Assert.Equal(new[] { "/" + Staging.Probe, "/8.8.8.8" }, asked);
+            // The two routable addresses go out together as one POST /batch. Distinct paths rather
+            // than a call count, so a retry against a wobbling staging cannot read as a failure to
+            // deduplicate.
+            var asked = recorder.Seen.Select(fact => fact.Path).Distinct().ToArray();
+            Assert.Equal(new[] { "/batch" }, asked);
             Assert.True(answers["10.0.0.1"].Result?.IsBogon, "10.0.0.1 was not answered locally");
             foreach (var ip in new[] { Staging.Probe, "8.8.8.8" })
             {
