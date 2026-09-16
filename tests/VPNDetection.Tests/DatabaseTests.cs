@@ -218,18 +218,22 @@ public class DatabaseTests
     // A transfer that ends short of its declared length must fail rather than leave a file that
     // reads as a whole dataset. HttpClient raises this for itself, which PHP's streams do not, so
     // what is pinned here is that the failure surfaces AND that nothing survives it.
+    //
+    // Never fetched again, retries or not: a second copy would append to the bytes already written.
     [Fact]
     public async Task ATruncatedTransferFailsAndLeavesNothingBehind()
     {
         var payload = Payload();
         using var origin = new RedirectingServer(payload, truncate: true);
         using var client = new VpnDetectionClient(
-            new VpnDetectionClientOptions { BaseUrl = origin.BaseUrl, ApiKey = "k" });
+            new VpnDetectionClientOptions { BaseUrl = origin.BaseUrl, ApiKey = "k", Retries = 2 });
         var path = Path.Combine(TempDir(), "dataset.mmdb");
 
-        await Assert.ThrowsAnyAsync<IOException>(
+        var failure = await Record.ExceptionAsync(
             () => client.Database.DownloadAsync("vpn_ip_extended_v1", DatabaseFormat.Mmdb, path));
 
+        Assert.Equal(1, origin.StorageRequests);
+        Assert.IsAssignableFrom<IOException>(failure);
         Assert.False(File.Exists(path), "a short transfer left a file that reads as a whole dataset");
         Assert.False(File.Exists(path + ".part"), "the .part file outlived a failed transfer");
     }
@@ -240,10 +244,49 @@ public class DatabaseTests
         var payload = Payload();
         using var origin = new RedirectingServer(payload, truncate: true);
         using var client = new VpnDetectionClient(
-            new VpnDetectionClientOptions { BaseUrl = origin.BaseUrl, ApiKey = "k" });
+            new VpnDetectionClientOptions { BaseUrl = origin.BaseUrl, ApiKey = "k", Retries = 2 });
 
-        await Assert.ThrowsAnyAsync<IOException>(
+        var failure = await Record.ExceptionAsync(
             () => client.Database.DownloadBytesAsync("vpn_ip_extended_v1", DatabaseFormat.Mmdb));
+
+        Assert.Equal(1, origin.StorageRequests);
+        Assert.IsAssignableFrom<IOException>(failure);
+    }
+
+    // The other half: a 5xx on the response HEAD is as transient as the API's, and nothing has been
+    // written yet, so it is retried by the same policy. The count comes first, so a failure that
+    // was never retried fails here rather than on the exception.
+    [Fact]
+    public async Task AStorage5xxBeforeTheBodyIsRetried()
+    {
+        var payload = Payload();
+        using var origin = new RedirectingServer(payload, truncate: false, refusals: 1);
+        using var client = new VpnDetectionClient(
+            new VpnDetectionClientOptions { BaseUrl = origin.BaseUrl, ApiKey = "k", Retries = 2 });
+        var path = Path.Combine(TempDir(), "dataset.mmdb");
+
+        var failure = await Record.ExceptionAsync(
+            () => client.Database.DownloadAsync("vpn_ip_extended_v1", DatabaseFormat.Mmdb, path));
+
+        Assert.Equal(2, origin.StorageRequests);
+        Assert.Null(failure);
+        Assert.Equal(payload, await File.ReadAllBytesAsync(path));
+    }
+
+    [Fact]
+    public async Task AStorage5xxIsNotRetriedPastTheRetryBudget()
+    {
+        using var origin = new RedirectingServer(Payload(), truncate: false, refusals: 5);
+        using var client = new VpnDetectionClient(
+            new VpnDetectionClientOptions { BaseUrl = origin.BaseUrl, ApiKey = "k", Retries = 1 });
+
+        var failure = await Record.ExceptionAsync(
+            () => client.Database.DownloadBytesAsync("vpn_ip_extended_v1", DatabaseFormat.Mmdb));
+
+        Assert.Equal(2, origin.StorageRequests);
+        var error = Assert.IsType<VpnDetectionException>(failure);
+        Assert.Equal(ErrorKind.ServerError, error.Kind);
+        Assert.Equal(503, error.StatusCode);
     }
 
     // A dataset the organization does not license is refused by the API before any transfer starts,
@@ -297,6 +340,7 @@ internal sealed class RedirectingServer : IDisposable
     private readonly byte[]? payload;
     private readonly bool truncate;
     private readonly TimeSpan stall;
+    private readonly int refusals;
     private readonly List<Socket> held = new();
 
     /// <summary>An origin whose storage stalls: a gigabyte promised, one byte sent, never closed.</summary>
@@ -311,11 +355,13 @@ internal sealed class RedirectingServer : IDisposable
 
     /// <summary>An origin whose storage serves <paramref name="payload"/>, whole or cut short.</summary>
     /// <param name="stall">How long storage pauses part way through the body.</param>
-    internal RedirectingServer(byte[]? payload, bool truncate, TimeSpan stall = default)
+    /// <param name="refusals">How many requests storage answers 503 before it serves the file.</param>
+    internal RedirectingServer(byte[]? payload, bool truncate, TimeSpan stall = default, int refusals = 0)
     {
         this.payload = payload;
         this.truncate = truncate;
         this.stall = stall;
+        this.refusals = refusals;
         BaseUrl = $"http://127.0.0.1:{FreePort()}";
         storage = new TcpListener(IPAddress.Loopback, 0);
         storage.Start();
@@ -411,6 +457,14 @@ internal sealed class RedirectingServer : IDisposable
         }
         StorageRequests++;
 
+        if (StorageRequests <= refusals)
+        {
+            await WriteAsync(
+                stream, "HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+            await stream.FlushAsync();
+            socket.Close();
+            return;
+        }
         if (payload is null)
         {
             // A gigabyte promised, one byte sent, and the socket held open: a reader hangs.
