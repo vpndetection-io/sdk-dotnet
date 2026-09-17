@@ -174,7 +174,7 @@ var result = await client.LookupAsync("45.83.91.1", new LookupOptions { RequestT
 
 ### Database downloads
 
-If your key carries the `db.download` scope, the licensed databases are available through `client.Database`. A licence covers a database FAMILY, so the ids below come from its versions. `DownloadAsync` fetches one to a path, streaming it straight to disk so that nothing bigger than a chunk is ever held in memory; or take the bytes, or the time-limited link to run the transfer yourself:
+If your key carries the `db.download` scope, the licensed databases are available through `client.Database`. A license covers a database FAMILY, so the ids below come from its versions. `DownloadAsync` fetches one to a path, streaming it straight to disk so that nothing bigger than a chunk is ever held in memory; or take the bytes, or the time-limited link to run the transfer yourself:
 
 ```csharp
 var databases = await client.Database.ListAsync();

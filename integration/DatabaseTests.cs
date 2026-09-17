@@ -5,7 +5,7 @@ using Xunit;
 namespace VPNDetection.Integration;
 
 // The licensed-download half, which only the max key can reach: it is the tier holding dataset
-// licences, and db.download is a scope the other three keys do not carry.
+// licenses, and db.download is a scope the other three keys do not carry.
 //
 // The transfer is budgeted before it starts. Metadata publishes a size per format, and that size is
 // checked against the ceiling below FIRST, so a mistaken dataset id can never quietly pull one of
@@ -22,7 +22,7 @@ public class DatabaseTests
     // the suite is pointed somewhere unintended, which is exactly when a transfer must not proceed.
     private const long Ceiling = 8 << 20;
 
-    /// <summary>A real catalogue id the max organization holds no licence for.</summary>
+    /// <summary>A real catalogue id the max organization holds no license for.</summary>
     private const string UnlicensedId = "hosting_ip_v1";
 
     private static readonly SemaphoreSlim TransferLock = new(1, 1);
@@ -64,7 +64,7 @@ public class DatabaseTests
                 Assert.True(
                     Enum.IsDefined(family.Standing), $"{family.Base} carries an undocumented standing");
                 // `list` answers the WHOLE catalogue, so an unlicensed family is a normal row with
-                // no licence type at all. Asserting one either way is what tells a null apart from
+                // no license type at all. Asserting one either way is what tells a null apart from
                 // an enum value the client does not know.
                 if (family.Standing == Standing.Unlicensed)
                 {
@@ -105,7 +105,7 @@ public class DatabaseTests
 
             Assert.Equal(ErrorKind.Forbidden, error.Kind);
             Assert.Equal(403, error.StatusCode);
-            Assert.False(error.Retryable, "a licence refusal is not worth retrying");
+            Assert.False(error.Retryable, "a license refusal is not worth retrying");
             // The API says WHICH refusal this is (`{"rc":"NOT_LICENSED"}`). Falling back to the
             // status means the client never read the envelope.
             Assert.False(

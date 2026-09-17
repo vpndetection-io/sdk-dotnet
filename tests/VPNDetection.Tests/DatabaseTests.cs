@@ -48,7 +48,7 @@ public class DatabaseTests
         Assert.Equal("s256", sums.Sha256);
         Assert.Equal("s512", sums.Sha512);
 
-        // A licence is held against the FAMILY, and the ids the download and checksum calls take
+        // A license is held against the FAMILY, and the ids the download and checksum calls take
         // hang off its versions. The spec used to claim `{id, formats}` here, which decoded into a
         // dataset whose every field was empty and left ListAsync unable to say what to download.
         var databases = await client.Database.ListAsync();
@@ -290,7 +290,7 @@ public class DatabaseTests
     }
 
     // A dataset the organization does not license is refused by the API before any transfer starts,
-    // and `rc` is what says WHICH refusal it is. Not retryable: retrying a licence decision two
+    // and `rc` is what says WHICH refusal it is. Not retryable: retrying a license decision two
     // more times helps nobody.
     [Fact]
     public async Task AnUnlicensedDatasetIsRefusedOnceAndCarriesTheApiReasonCode()
