@@ -558,7 +558,7 @@ namespace VPNDetection
         /// List
         /// </summary>
         /// <remarks>
-        /// Every database this organization may SEE, with where its licence stands.
+        /// Every database this organization may SEE, with where its license stands.
         /// <br/>Not just the ones you hold: a customer with one grant should be able to
         /// <br/>tell what else is published without asking. `standing` is the
         /// <br/>difference - `licensed`, `expired`, or `unlicensed` for one never
@@ -576,7 +576,7 @@ namespace VPNDetection
         /// List
         /// </summary>
         /// <remarks>
-        /// Every database this organization may SEE, with where its licence stands.
+        /// Every database this organization may SEE, with where its license stands.
         /// <br/>Not just the ones you hold: a customer with one grant should be able to
         /// <br/>tell what else is published without asking. `standing` is the
         /// <br/>difference - `licensed`, `expired`, or `unlicensed` for one never
