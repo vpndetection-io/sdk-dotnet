@@ -3607,7 +3607,7 @@ namespace VPNDetection
     }
 
     /// <summary>
-    /// One database FAMILY your organization is licensed for. A license covers
+    /// One database FAMILY, with your organization's license beside it. A license covers
     /// <br/>the family, while a download names a specific version, so the ids you
     /// <br/>pass to the download and checksum endpoints come from `versions`.
     /// <br/>
