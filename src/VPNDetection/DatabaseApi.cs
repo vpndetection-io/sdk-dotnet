@@ -64,6 +64,7 @@ public sealed class DatabaseApi
         string id, DatabaseFormat format, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(id);
+        CheckFormat(format);
         return Wire.ExecuteAsync(
             retries,
             timeout,
@@ -92,6 +93,7 @@ public sealed class DatabaseApi
         string id, DatabaseFormat format, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(id);
+        CheckFormat(format);
         return Wire.ExecuteAsync(retries, timeout, async ct =>
         {
             try
@@ -246,6 +248,17 @@ public sealed class DatabaseApi
             written += read;
         }
         return written;
+    }
+
+    // A C# enum takes any integer by a cast, and the generated client sends an undefined one as its
+    // number, `format=99`, for the API to refuse a round trip later. Refused here, before any
+    // request; both downloads reach this through DownloadUrlAsync.
+    private static void CheckFormat(DatabaseFormat format)
+    {
+        if (!Enum.IsDefined(format))
+        {
+            throw new ArgumentOutOfRangeException(nameof(format), format, "not a published database format");
+        }
     }
 
     private static string? LocationOf(WireException e)

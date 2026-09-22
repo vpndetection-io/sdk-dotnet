@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 using Xunit;
 
 namespace VPNDetection.Tests;
@@ -295,6 +297,53 @@ public class ClientTests
         using var client = Stub.Client(handler, new VpnDetectionClientOptions { Retries = 0 });
 
         await Assert.ThrowsAsync<VpnDetectionException>(() => client.MyEntitlementAsync());
+    }
+
+    // `Retry-After` is the server's number, and Task.Delay throws past ~49.7 days: through 5.2.2
+    // each of these failed the call with a raw ArgumentOutOfRangeException after one request. Too
+    // long to count, it is waited out on the client's own backoff, and the 429 is still a throttle
+    // carrying the server's value.
+    [Theory]
+    [InlineData("4294968")]
+    [InlineData("2147483647")]
+    [InlineData("Fri, 31 Dec 9999 23:59:59 GMT")]
+    public async Task ARetryAfterTooLongToCountIsWaitedOutOnTheBackoff(string header)
+    {
+        var handler = new StubHandler(_ => StubHandler.Json(new Route(
+            """{"rc":"RATE_LIMITED"}""", 429, new Dictionary<string, string> { ["Retry-After"] = header })));
+        using var client = Stub.Client(handler, new VpnDetectionClientOptions { Retries = 1 });
+
+        var started = Stopwatch.StartNew();
+        var failure = await Record.ExceptionAsync(
+            () => client.Database.ListAsync().WaitAsync(TimeSpan.FromSeconds(20)));
+
+        Assert.Equal(2, handler.Calls.Count);
+        var error = Assert.IsType<VpnDetectionException>(failure);
+        Assert.Equal(ErrorKind.RateLimited, error.Kind);
+        Assert.True(error.RetryAfter > Wire.LongestWait, $"kept {error.RetryAfter}");
+        Assert.True(started.Elapsed < TimeSpan.FromSeconds(5), $"took {started.ElapsedMilliseconds}ms");
+    }
+
+    // Every path is appended after a `/`, so a doubled one is another path: prod answers
+    // `https://api.vpndetection.io//api/v1/database/list` with a 301, which failed every call. Through
+    // 5.2.2 one trailing slash was dropped and a second doubled, for OAuth as for the database.
+    [Theory]
+    [InlineData("https://api.test/")]
+    [InlineData("https://api.test//")]
+    [InlineData("https://api.test///")]
+    public async Task EveryTrailingSlashOnTheBaseUrlIsDropped(string baseUrl)
+    {
+        // Routed on a substring, so a doubled path still gets the body it asked for and the
+        // assertion on the paths is what fails.
+        var handler = new StubHandler(request => request.RequestUri!.AbsolutePath.Contains(".well-known")
+            ? StubHandler.Json(new Route("""{"issuer":"i","authorization_endpoint":"a","token_endpoint":"t"}"""))
+            : StubHandler.Json(new Route("""{"databases":[]}""")));
+        using var client = Stub.Client(handler, new VpnDetectionClientOptions { BaseUrl = baseUrl });
+
+        await client.Database.ListAsync();
+        await client.Oauth.MetadataAsync();
+
+        Assert.Equal(new[] { "/api/v1/database/list", "/.well-known/oauth-authorization-server" }, handler.Calls);
     }
 }
 

@@ -310,6 +310,55 @@ public class DatabaseTests
         Assert.False(File.Exists(path + ".part"), "a refused download still created a file");
     }
 
+    // Storage's own Retry-After on a head 5xx goes through the same wait, so one too long to count
+    // is waited out on the backoff there too rather than failing the transfer with a raw
+    // ArgumentOutOfRangeException, which is what 5.2.2 did.
+    [Fact]
+    public async Task AStorageRetryAfterTooLongToCountIsWaitedOutOnTheBackoff()
+    {
+        var handler = new StubHandler(request => request.RequestUri!.Host == "storage.test"
+            ? StubHandler.Json(new Route("", 503, new Dictionary<string, string> { ["Retry-After"] = "2147483647" }))
+            : StubHandler.Json(new Route(
+                "", 302, new Dictionary<string, string> { ["Location"] = "https://storage.test/blob" })));
+        using var client = Stub.Client(handler, new VpnDetectionClientOptions { Retries = 1 });
+
+        var started = Stopwatch.StartNew();
+        var failure = await Record.ExceptionAsync(() => client.Database
+            .DownloadBytesAsync("vpn_ip_extended_v1", DatabaseFormat.Mmdb)
+            .WaitAsync(TimeSpan.FromSeconds(20)));
+
+        Assert.Equal(2, handler.Calls.Count(call => call == "/blob"));
+        var error = Assert.IsType<VpnDetectionException>(failure);
+        Assert.Equal(ErrorKind.ServerError, error.Kind);
+        Assert.Equal(503, error.StatusCode);
+        Assert.True(started.Elapsed < TimeSpan.FromSeconds(5), $"took {started.ElapsedMilliseconds}ms");
+    }
+
+    // A C# enum takes any integer by a cast, and 5.2.2 sent `(DatabaseFormat)99` as `format=99`
+    // for the API to refuse a round trip later. Refused before any request, and before a download
+    // creates anything on disk.
+    [Fact]
+    public async Task AnUndefinedFormatIsRefusedBeforeAnyRequest()
+    {
+        var handler = new StubHandler(_ => StubHandler.Json(new Route("""{"rc":"BAD_REQUEST"}""", 400)));
+        using var client = Stub.Client(handler);
+        var undefined = (DatabaseFormat)99;
+        var path = Path.Combine(TempDir(), "dataset.mmdb");
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => client.Database.ChecksumsAsync("vpn_ip_extended_v1", undefined));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => client.Database.DownloadUrlAsync("vpn_ip_extended_v1", undefined));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => client.Database.DownloadBytesAsync("vpn_ip_extended_v1", undefined));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => client.Database.DownloadAsync("vpn_ip_extended_v1", undefined, path));
+
+        Assert.Empty(handler.Calls);
+        Assert.False(File.Exists(path));
+        Assert.False(File.Exists(path + ".part"));
+    }
+
     // Recognisable bytes rather than zeroes, so a copy that dropped or reordered a chunk shows up
     // as a mismatch instead of matching by accident. Two chunks and a bit, to cross the buffer.
     private static byte[] Payload()

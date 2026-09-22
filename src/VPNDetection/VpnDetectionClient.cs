@@ -65,6 +65,10 @@ public sealed class VpnDetectionClient : IDisposable
         ArgumentOutOfRangeException.ThrowIfLessThan(o.Concurrency, 1, nameof(o.Concurrency));
         ArgumentOutOfRangeException.ThrowIfNegative(o.Retries, nameof(o.Retries));
         Wire.CheckTimeout(o.RequestTimeout, nameof(o.RequestTimeout));
+        // Every path is appended after a `/`, so a second trailing slash doubled into it, and
+        // `//api/...` is another path, which prod answers with a 301. All of them are dropped here,
+        // once, for the generated calls and OAuth alike.
+        var baseUrl = o.BaseUrl.TrimEnd('/');
 
         var http = supplied ?? o.HttpClient;
         if (http is null)
@@ -81,13 +85,13 @@ public sealed class VpnDetectionClient : IDisposable
             this.requestTimeout = o.RequestTimeout;
         }
 
-        this.wire = new WireClient(http) { BaseUrl = o.BaseUrl, ApiKey = o.ApiKey };
+        this.wire = new WireClient(http) { BaseUrl = baseUrl, ApiKey = o.ApiKey };
         this.retries = o.Retries;
         this.concurrency = o.Concurrency;
         this.cacheTtl = o.CacheTtl;
         this.cache = o.CacheEnabled ? new MemoryCache(new MemoryCacheOptions { SizeLimit = o.CacheSize }) : null;
         this.Database = new DatabaseApi(this.wire, http, o.Retries, this.requestTimeout);
-        this.Oauth = new OauthApi(http, o.BaseUrl, o.Retries, this.requestTimeout);
+        this.Oauth = new OauthApi(http, baseUrl, o.Retries, this.requestTimeout);
     }
 
     /// <summary>The licensed dataset downloads, for keys that carry the <c>db.download</c> scope.</summary>
