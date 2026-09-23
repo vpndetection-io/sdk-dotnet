@@ -3,6 +3,7 @@ using System.Net;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
 using Xunit;
@@ -164,6 +165,40 @@ public class OauthTests
         Assert.Equal(200, error.StatusCode);
     }
 
+    // No corpus case: every response there decodes. One member left out per case, since a body
+    // missing two at once let a defaulting decoder survive elsewhere.
+    [Theory]
+    [InlineData("metadata", "issuer")]
+    [InlineData("metadata", "authorization_endpoint")]
+    [InlineData("metadata", "token_endpoint")]
+    [InlineData("deviceAuthorization", "device_code")]
+    [InlineData("deviceAuthorization", "user_code")]
+    [InlineData("deviceAuthorization", "verification_uri")]
+    [InlineData("deviceAuthorization", "expires_in")]
+    [InlineData("deviceAuthorization", "interval")]
+    [InlineData("exchangeDeviceCode", "access_token")]
+    [InlineData("exchangeDeviceCode", "token_type")]
+    [InlineData("exchangeDeviceCode", "expires_in")]
+    public async Task AnAnswerMissingAnyOneRequiredMemberIsTheOrdinaryError(string operation, string member)
+    {
+        var args = JsonDocument.Parse("""{"clientId":"vpndetection-cli","deviceCode":"mo_dc_x"}""").RootElement;
+        var whole = new OauthStub(new Reply(200, EveryRequiredMember));
+        using var decodes = Client(whole, retries: 0);
+        await Settle(() => Call(decodes, operation, args), whole);
+
+        var body = JsonNode.Parse(EveryRequiredMember)!.AsObject();
+        Assert.True(body.Remove(member), $"{member} is not in the body");
+        var stub = new OauthStub(new Reply(200, body.ToJsonString()));
+        using var client = Client(stub, retries: 0);
+
+        var error = await Failure(() => Call(client, operation, args), stub);
+
+        Assert.Single(stub.Requests);
+        Assert.False(error is OauthException, $"a 2xx without {member} surfaced as {error.GetType().Name}");
+        Assert.Equal(ErrorKind.ServerError, error.Kind);
+        Assert.Equal(200, error.StatusCode);
+    }
+
     [Fact]
     public async Task AFailedAnswerIsAnOauthRefusalOnlyWhenItIsOne()
     {
@@ -269,6 +304,68 @@ public class OauthTests
         Assert.Empty(stub.Requests);
     }
 
+    // No corpus case: past Task.Delay's ceiling of about 49.7 days a single sleep throws, so a wait
+    // bounded only by an expires_in of 60 days is slept in parts no longer than LongestWait.
+    [Fact]
+    public async Task APollWaitPastTaskDelaysCeilingIsSleptInParts()
+    {
+        var stub = new OauthStub(new Reply(400, """{"error":"authorization_pending"}"""));
+        using var client = Client(stub);
+        var waits = FakeClock(client.Oauth, stub);
+        var device = new DeviceAuthorization
+        {
+            DeviceCode = "mo_dc_poll", UserCode = "BCDF-GHJK", VerificationUri = "https://app.vpndetection.io/device",
+            ExpiresIn = 60 * 86400, Interval = int.MaxValue,
+        };
+
+        var error = await Outcome(() => client.Oauth.PollDeviceTokenAsync("vpndetection-cli", device), stub);
+
+        Assert.IsType<OauthExpiredTokenException>(error);
+        Assert.Empty(stub.Requests);
+        Assert.Equal(3, waits.Count);
+        Assert.All(waits, w => Assert.True(w <= Wire.LongestWait.TotalSeconds, $"slept {w} s at once"));
+        Assert.Equal(60 * 86400, waits.Sum(), 6);
+    }
+
+    // No corpus case: a deadline already behind the clock leaves a negative remainder, which
+    // Task.Delay refuses, so the wait is zero.
+    [Fact]
+    public async Task APollPastItsDeadlineWaitsNothingNeverANegativeTime()
+    {
+        var stub = new OauthStub(new Reply(400, """{"error":"authorization_pending"}"""));
+        using var client = Client(stub);
+        var waits = FakeClock(client.Oauth, stub);
+        var device = new DeviceAuthorization
+        {
+            DeviceCode = "mo_dc_poll", UserCode = "BCDF-GHJK", VerificationUri = "https://app.vpndetection.io/device",
+            ExpiresIn = -3, Interval = 1,
+        };
+
+        var error = await Outcome(() => client.Oauth.PollDeviceTokenAsync("vpndetection-cli", device), stub);
+
+        Assert.IsType<OauthExpiredTokenException>(error);
+        Assert.Empty(stub.Requests);
+        Assert.Equal(new[] { 0.0 }, waits);
+    }
+
+    // The same wait on the real Task.Delay, which threw ArgumentOutOfRangeException before any poll.
+    [Fact]
+    public async Task APollWaitPastTaskDelaysCeilingIsCancellableOnTheRealClock()
+    {
+        var stub = new OauthStub(1, new Reply(400, """{"error":"authorization_pending"}"""));
+        using var client = Client(stub);
+        using var cancel = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+        var device = new DeviceAuthorization
+        {
+            DeviceCode = "mo_dc_poll", UserCode = "BCDF-GHJK", VerificationUri = "https://app.vpndetection.io/device",
+            ExpiresIn = int.MaxValue, Interval = int.MaxValue,
+        };
+
+        var call = client.Oauth.PollDeviceTokenAsync("vpndetection-cli", device, cancel.Token);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => call.WaitAsync(TimeSpan.FromSeconds(3)));
+        Assert.Empty(stub.Requests);
+    }
+
     // Against a body that stalls after its head, so the bound is shown to cover the body. Revoke
     // reads no body, so its origin never answers at all.
     [Theory]
@@ -321,8 +418,8 @@ public class OauthTests
         Assert.Equal("the request timed out", error.Message);
     }
 
-    private static VpnDetectionClient Client(OauthStub stub, string? apiKey = null)
-        => Stub.Client(stub, new VpnDetectionClientOptions { BaseUrl = BaseUrl, ApiKey = apiKey });
+    private static VpnDetectionClient Client(OauthStub stub, string? apiKey = null, int retries = 2)
+        => Stub.Client(stub, new VpnDetectionClientOptions { BaseUrl = BaseUrl, ApiKey = apiKey, Retries = retries });
 
     // Replaces the poll's wait and clock together. Past the bound the wait never completes, and the
     // clock reads far past any deadline, so a loop that does not end fails its test instead of
