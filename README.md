@@ -1,4 +1,4 @@
-# [<img src="https://s3.vpndetection.io/vpndetection-public/brand/mark.svg" alt="VPNDetection" width="24"/>](https://vpndetection.io/) VPNDetection .NET Client Library
+# [<img src="https://s3.vpndetection.io/vpndetection-public/brand/mark.svg" alt="VPNDetection" height="28"/>](https://vpndetection.io/) VPNDetection .NET Client Library
 
 [![NuGet](https://img.shields.io/nuget/v/VPNDetection.svg)](https://www.nuget.org/packages/VPNDetection)
 [![license](https://img.shields.io/nuget/l/VPNDetection.svg)](LICENSE)
