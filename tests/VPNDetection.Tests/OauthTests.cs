@@ -123,11 +123,6 @@ public class OauthTests
                 var expect = c.GetProperty("expect");
                 foreach (var member in expect.GetProperty("present").EnumerateObject())
                 {
-                    // The corpus still lists a member the server stopped advertising.
-                    if (member.Name == "client_id_metadata_document_supported")
-                    {
-                        continue;
-                    }
                     Corpus.AssertWire(member.Value, MemberOf(decoded, member.Name), $"{label}: {member.Name}");
                 }
                 foreach (var member in expect.GetProperty("absent").EnumerateArray())
