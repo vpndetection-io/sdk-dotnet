@@ -27,9 +27,9 @@ public static class Bogon
         {
             return false;
         }
-        // Routing on the colon rather than on the parsed family is deliberate: it puts the
-        // 4-in-6 forms (::ffff:10.0.0.1) against the v6 table, which is where the canonical
-        // ranges cover them, and is what every other VPNDetection SDK does.
+        ip = Unmapped(ip);
+        // Routing on the colon rather than on the parsed family: what is left with one is IPv6,
+        // the IPv4-compatible ::a.b.c.d included, which stays inside ::/96.
         if (ip.Contains(':', StringComparison.Ordinal))
         {
             if (!IPAddress.TryParse(ip, out var v6) || v6.AddressFamily != AddressFamily.InterNetworkV6)
@@ -61,6 +61,22 @@ public static class Bogon
         }
         return false;
     }
+
+    /// <summary>
+    /// The IPv4 address an IPv4-mapped IPv6 address (<c>::ffff:a.b.c.d</c>, in any spelling)
+    /// carries, and any other string as given.
+    /// </summary>
+    /// <remarks>
+    /// A server listening on <c>::</c> sees every IPv4 visitor in that form, which read whole is
+    /// inside <c>::ffff:0:0/96</c>, so judging it whole would answer every such visitor locally as a
+    /// bogon. <c>::a.b.c.d</c> is IPv4-compatible rather than mapped, and stays IPv6.
+    /// </remarks>
+    internal static string Unmapped(string ip)
+        => ip.Contains(':', StringComparison.Ordinal)
+            && IPAddress.TryParse(ip, out var addr)
+            && addr.IsIPv4MappedToIPv6
+                ? addr.MapToIPv4().ToString()
+                : ip;
 
     // Parsed on first use rather than at load: a consumer that never looks up an address should
     // not pay for the table.

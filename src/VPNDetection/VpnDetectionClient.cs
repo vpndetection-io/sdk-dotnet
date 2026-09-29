@@ -135,6 +135,8 @@ public sealed class VpnDetectionClient : IDisposable
     {
         ArgumentNullException.ThrowIfNull(ip);
         var timeout = Wire.TimeoutFor(options?.RequestTimeout, requestTimeout);
+        // Judged, cached and sent as the IPv4 address it carries, if it is mapped.
+        ip = Bogon.Unmapped(ip);
         if (Bogon.IsBogon(ip))
         {
             return Result.Bogon(ip);
@@ -256,13 +258,23 @@ public sealed class VpnDetectionClient : IDisposable
             throw new VpnDetectionException(
                 ErrorKind.BadRequest, $"concurrency must be at least 1, got {options.Concurrency}");
         }
+        // An IPv4-mapped address is sent as the address it carries, once however many of its
+        // spellings were asked, and answered under each one asked.
+        var asked = new List<string>();
+        var seenAsked = new HashSet<string>(StringComparer.Ordinal);
         var unique = new List<string>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (var ip in ips)
         {
-            if (ip is not null && seen.Add(ip))
+            if (ip is null || !seenAsked.Add(ip))
             {
-                unique.Add(ip);
+                continue;
+            }
+            asked.Add(ip);
+            var carried = Bogon.Unmapped(ip);
+            if (seen.Add(carried))
+            {
+                unique.Add(carried);
             }
         }
 
@@ -307,7 +319,12 @@ public sealed class VpnDetectionClient : IDisposable
                 }
             }).ConfigureAwait(false);
 
-        return new OrderedResults(unique, answers);
+        var byAsked = new Dictionary<string, BatchResult>(StringComparer.Ordinal);
+        foreach (var ip in asked)
+        {
+            byAsked[ip] = answers[Bogon.Unmapped(ip)];
+        }
+        return new OrderedResults(asked, byAsked);
     }
 
     // One POST /batch, mapped back onto the addresses it was asked about. A chunk-level failure -

@@ -23,6 +23,56 @@ public class ConformanceTests
         }
     }
 
+    // A server listening on :: sees every IPv4 visitor as ::ffff:a.b.c.d. Read whole that is inside
+    // ::ffff:0:0/96, so an SDK that did not unmap answered each one locally as a bogon.
+    [Fact]
+    public async Task AnIpv4MappedAddressIsTheIpv4AddressItCarries()
+    {
+        foreach (var c in Corpus.Data.GetProperty("ipv4Mapped").EnumerateArray())
+        {
+            var ip = c.GetProperty("ip").GetString()!;
+            var carries = c.GetProperty("carries").GetString()!;
+            var expect = c.GetProperty("expect").GetBoolean();
+            Assert.True(Bogon.IsBogon(ip) == expect, $"{ip}: IsBogon ({c.GetProperty("why").GetString()})");
+
+            var handler = StubHandler.Lookups(Stub.Route(carries, Stub.LookupBody(carries)));
+            using var client = Stub.Client(handler);
+            var result = await client.LookupAsync(ip);
+            Assert.Equal(carries, result.Ip);
+            if (expect)
+            {
+                Assert.True(result.IsBogon, $"{ip}: answered locally");
+                Assert.Empty(handler.Calls);
+                continue;
+            }
+            Assert.Equal(new[] { "/" + carries }, handler.Calls);
+            await client.LookupAsync(carries);
+            Assert.Single(handler.Calls);
+
+            // The mapped form alone: asked beside its plain form, a batch that sent the address as
+            // given would still have been answered for the plain one.
+            var sent = new List<string>();
+            var batch = new StubHandler(request =>
+            {
+                var ips = StubHandler.Ips(request);
+                lock (sent)
+                {
+                    sent.AddRange(ips);
+                }
+                var results = ips.Where(x => x == carries)
+                    .ToDictionary(x => x, x => JsonDocument.Parse(Stub.LookupBody(x)).RootElement.Clone());
+                var errors = ips.Where(x => x != carries)
+                    .ToDictionary(x => x, _ => (object)new { status = 400, error = "not a valid IP address" });
+                return StubHandler.Json(new Route(JsonSerializer.Serialize(new { results, errors })));
+            });
+            using var batchClient = Stub.Client(batch, new VpnDetectionClientOptions { Retries = 0 });
+            var got = await batchClient.LookupBatchAsync(new[] { ip });
+            Assert.Equal(new[] { ip }, got.Keys.ToArray());
+            Assert.Equal(carries, got[ip].Result?.Ip);
+            Assert.Equal(new[] { carries }, sent);
+        }
+    }
+
     [Fact]
     public async Task ABogonIsAnsweredLocallyInTheFullMaxShape()
     {
