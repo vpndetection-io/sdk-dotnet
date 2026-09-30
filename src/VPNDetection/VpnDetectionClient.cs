@@ -25,6 +25,10 @@ public sealed class VpnDetectionClient : IDisposable
     private readonly WireClient wire;
     private readonly HttpClient? ownedHttpClient;
     private readonly MemoryCache? cache;
+    // The requests in the air, by address, so concurrent misses for one address share one request:
+    // a lookup's, or the batch chunk carrying it. Only kept with a cache on, since without one every
+    // lookup is served. Guarded by locking the dictionary itself.
+    private readonly Dictionary<string, TaskCompletionSource<Result>> flights = new(StringComparer.Ordinal);
     private readonly TimeSpan cacheTtl;
     private readonly int concurrency;
     private readonly int retries;
@@ -141,25 +145,103 @@ public sealed class VpnDetectionClient : IDisposable
         {
             return Result.Bogon(ip);
         }
-        if (cache is not null && cache.TryGetValue(ip, out Result? hit) && hit is not null)
+        if (cache is null)
         {
-            return hit;
+            return await FetchAsync(ip, options, timeout, cancellationToken).ConfigureAwait(false);
+        }
+        TaskCompletionSource<Result> led;
+        while (true)
+        {
+            TaskCompletionSource<Result>? flight;
+            lock (flights)
+            {
+                // Checked under the lock: a request that lands caches its answer before it leaves
+                // the board, so a miss here with nothing on the board means nobody is asking.
+                if (cache.TryGetValue(ip, out Result? hit) && hit is not null)
+                {
+                    return hit;
+                }
+                if (!flights.TryGetValue(ip, out flight))
+                {
+                    flights[ip] = led = NewFlight();
+                    break;
+                }
+            }
+            try
+            {
+                return await flight.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                // The call that led it was cancelled, which is no answer for this one: ask again.
+            }
         }
 
+        try
+        {
+            var result = await FetchAsync(ip, options, timeout, cancellationToken).ConfigureAwait(false);
+            Land(ip, led, result, null);
+            return result;
+        }
+        catch (Exception e)
+        {
+            Land(ip, led, null, e);
+            throw;
+        }
+    }
+
+    // One GET for one address, cached once it answers.
+    private async Task<Result> FetchAsync(
+        string ip, LookupOptions? options, TimeSpan? timeout, CancellationToken cancellationToken)
+    {
         var result = await Wire.ExecuteAsync(
             options?.Retries ?? retries,
             timeout,
             async ct => Result.Of(await wire.LookupIpAsync(ip, ct).ConfigureAwait(false)),
             cancellationToken).ConfigureAwait(false);
+        Remember(ip, result);
+        return result;
+    }
 
-        // Size 1 per entry, so MemoryCache's SizeLimit counts addresses rather than bytes and
-        // CacheSize means what every other SDK's cache size means.
-        cache?.Set(ip, result, new MemoryCacheEntryOptions
+    // Size 1 per entry, so MemoryCache's SizeLimit counts addresses rather than bytes and CacheSize
+    // means what every other SDK's cache size means.
+    private void Remember(string ip, Result result)
+        => cache?.Set(ip, result, new MemoryCacheEntryOptions
         {
             Size = 1,
             AbsoluteExpirationRelativeToNow = cacheTtl,
         });
-        return result;
+
+    private static TaskCompletionSource<Result> NewFlight()
+        => new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    // Takes a request off the board and hands its outcome to everyone waiting on it. A failure is
+    // passed on and never cached; a cancelled leader cancels the flight, which sends each waiter
+    // to ask again rather than fail with it. Called after the answer is cached, so nobody finds
+    // the board empty and the cache empty for an address that has just been answered.
+    private void Land(string ip, TaskCompletionSource<Result> flight, Result? result, Exception? error)
+    {
+        lock (flights)
+        {
+            if (flights.TryGetValue(ip, out var current) && current == flight)
+            {
+                flights.Remove(ip);
+            }
+        }
+        if (result is not null)
+        {
+            flight.TrySetResult(result);
+        }
+        else if (error is OperationCanceledException || error is null)
+        {
+            flight.TrySetCanceled();
+        }
+        else
+        {
+            flight.TrySetException(error);
+            // Observed here, so a failure nobody else was waiting for is not reported as unobserved.
+            _ = flight.Task.Exception;
+        }
     }
 
     /// <summary>Classify the address this client is calling from, with the client's defaults.</summary>
@@ -280,6 +362,11 @@ public sealed class VpnDetectionClient : IDisposable
 
         var answers = new ConcurrentDictionary<string, BatchResult>(StringComparer.Ordinal);
         var pending = new List<string>();
+        // An address already in the air is awaited rather than sent again, and every address this
+        // batch sends is boarded before a chunk is built, so a lookup arriving meanwhile awaits the
+        // batch's answer.
+        var joined = new List<(string Ip, TaskCompletionSource<Result> Flight)>();
+        var boarded = new Dictionary<string, TaskCompletionSource<Result>>(StringComparer.Ordinal);
         foreach (var ip in unique)
         {
             if (Bogon.IsBogon(ip))
@@ -287,10 +374,22 @@ public sealed class VpnDetectionClient : IDisposable
                 answers[ip] = BatchResult.Found(Result.Bogon(ip));
                 continue;
             }
-            if (cache is not null && cache.TryGetValue(ip, out Result? hit) && hit is not null)
+            if (cache is not null)
             {
-                answers[ip] = BatchResult.Found(hit);
-                continue;
+                lock (flights)
+                {
+                    if (cache.TryGetValue(ip, out Result? hit) && hit is not null)
+                    {
+                        answers[ip] = BatchResult.Found(hit);
+                        continue;
+                    }
+                    if (flights.TryGetValue(ip, out var inAir))
+                    {
+                        joined.Add((ip, inAir));
+                        continue;
+                    }
+                    flights[ip] = boarded[ip] = NewFlight();
+                }
             }
             pending.Add(ip);
         }
@@ -301,23 +400,45 @@ public sealed class VpnDetectionClient : IDisposable
             chunks.Add(pending.GetRange(from, Math.Min(BatchMax, pending.Count - from)));
         }
         var retries = options?.Retries ?? this.retries;
-        // Parallel.ForEachAsync bounds itself, so a per-call concurrency cannot be capped by the
-        // client's the way a shared limiter would cap it.
-        await Parallel.ForEachAsync(
-            chunks,
-            new ParallelOptions
-            {
-                MaxDegreeOfParallelism = options?.Concurrency ?? concurrency,
-                CancellationToken = cancellationToken,
-            },
-            async (chunk, ct) =>
-            {
-                var answered = await LookupChunkAsync(chunk, retries, timeout, ct).ConfigureAwait(false);
-                foreach (var (ip, answer) in answered)
+        try
+        {
+            // Parallel.ForEachAsync bounds itself, so a per-call concurrency cannot be capped by
+            // the client's the way a shared limiter would cap it.
+            await Parallel.ForEachAsync(
+                chunks,
+                new ParallelOptions
                 {
-                    answers[ip] = answer;
-                }
-            }).ConfigureAwait(false);
+                    MaxDegreeOfParallelism = options?.Concurrency ?? concurrency,
+                    CancellationToken = cancellationToken,
+                },
+                async (chunk, ct) =>
+                {
+                    var answered = await LookupChunkAsync(chunk, retries, timeout, ct).ConfigureAwait(false);
+                    foreach (var (ip, answer) in answered)
+                    {
+                        answers[ip] = answer;
+                        if (boarded.TryGetValue(ip, out var flight))
+                        {
+                            Land(ip, flight, answer.Result, answer.Error);
+                        }
+                    }
+                }).ConfigureAwait(false);
+        }
+        catch (Exception e)
+        {
+            // A chunk that never answered, cancelled or not started, still releases whoever waits
+            // on its addresses. Landing twice is harmless: a flight takes its first outcome only.
+            foreach (var (ip, flight) in boarded)
+            {
+                Land(ip, flight, null, e);
+            }
+            throw;
+        }
+
+        foreach (var (ip, flight) in joined)
+        {
+            answers[ip] = await AwaitFlightAsync(ip, flight, options, timeout, cancellationToken).ConfigureAwait(false);
+        }
 
         var byAsked = new Dictionary<string, BatchResult>(StringComparer.Ordinal);
         foreach (var ip in asked)
@@ -325,6 +446,30 @@ public sealed class VpnDetectionClient : IDisposable
             byAsked[ip] = answers[Bogon.Unmapped(ip)];
         }
         return new OrderedResults(asked, byAsked);
+    }
+
+    // A batch's answer for an address a lookup was already fetching. Should that lookup be
+    // cancelled, the address is asked again, as a lookup of its own under this batch's options.
+    private async Task<BatchResult> AwaitFlightAsync(
+        string ip, TaskCompletionSource<Result> flight, BatchOptions? options, TimeSpan? timeout,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            try
+            {
+                return BatchResult.Found(await flight.Task.WaitAsync(cancellationToken).ConfigureAwait(false));
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                var again = new LookupOptions { Retries = options?.Retries, RequestTimeout = timeout };
+                return BatchResult.Found(await LookupAsync(ip, again, cancellationToken).ConfigureAwait(false));
+            }
+        }
+        catch (VpnDetectionException e)
+        {
+            return BatchResult.Failed(e);
+        }
     }
 
     // One POST /batch, mapped back onto the addresses it was asked about. A chunk-level failure -
@@ -356,13 +501,7 @@ public sealed class VpnDetectionClient : IDisposable
             if (body.Results.TryGetValue(ip, out var served))
             {
                 var result = Result.Of(served);
-                // Size 1 per entry, so MemoryCache's SizeLimit counts addresses rather than bytes
-                // and CacheSize means what every other SDK's cache size means.
-                cache?.Set(ip, result, new MemoryCacheEntryOptions
-                {
-                    Size = 1,
-                    AbsoluteExpirationRelativeToNow = cacheTtl,
-                });
+                Remember(ip, result);
                 answers[ip] = BatchResult.Found(result);
                 continue;
             }
