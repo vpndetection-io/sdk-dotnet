@@ -2,6 +2,13 @@
 
 What each release changed for you, newest first. Each line is a commit's summary, linked to its full description and diff. Releases before 5.2.4 are described by their release commits.
 
+## 5.3.2 - 2026-09-30
+
+### Fixes
+
+- Share one request per address among concurrent lookups and batches ([`ce16e52`](https://github.com/vpndetection-io/sdk-dotnet/commit/ce16e52214d5e273db534fcaae5fd2d8acda96b5))
+- Reserve DownloadBytesAsync's array as the bytes arrive ([`5ca028a`](https://github.com/vpndetection-io/sdk-dotnet/commit/5ca028a06651cde190e5ad11ec2610999a92d91b))
+
 ## 5.3.1 - 2026-09-29
 
 ### Fixes
