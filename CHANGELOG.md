@@ -2,6 +2,12 @@
 
 What each release changed for you, newest first. Each line is a commit's summary, linked to its full description and diff. Releases before 5.2.4 are described by their release commits.
 
+## 5.3.3 - 2026-10-04
+
+### Fixes
+
+- Re-pin the spec to 2026.10.03: metadata needs no license ([`d9b2173`](https://github.com/vpndetection-io/sdk-dotnet/commit/d9b217393e9c7761692488694ba871cba6c19a7b))
+
 ## 5.3.2 - 2026-09-30
 
 ### Fixes
