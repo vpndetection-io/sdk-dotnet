@@ -222,6 +222,23 @@ services.AddHttpClient<VpnDetectionClient>()
 
 A borrowed `HttpClient` keeps its own `Timeout`, so `RequestTimeout` on the options does not apply to it; a per-call `RequestTimeout` still does.
 
+### Sign in with OAuth (authorization code)
+
+An app that can take a browser redirect signs the person in there instead, with a PKCE pair made for that one sign-in:
+
+```csharp
+using var client = new VpnDetectionClient();
+var redirectUri = "http://127.0.0.1:8765/callback";
+var pkce = client.Oauth.CreatePkce();
+
+var url = client.Oauth.AuthorizationUrl("your-client-id", redirectUri, pkce.Challenge,
+    new AuthorizationUrlOptions { Scope = "apikeys.use", State = "your-state" });
+// Open url in the browser. Its redirect to redirectUri carries code and state.
+var token = await client.Oauth.ExchangeAuthorizationCodeAsync("your-client-id", code, pkce.Verifier, redirectUri);
+```
+
+Check that `state` came back as you sent it before you exchange `code`, which works once. The client ID can also be the https URL of a client metadata document your app serves, and such an app is never handed a key, so `token.Apikey` stays `null`.
+
 ### Absent is not false
 
 Only `Ip` and `IsVpn` come back on every plan. The rest are `bool?`, where `null` means "not in your plan" rather than "checked, and no".
