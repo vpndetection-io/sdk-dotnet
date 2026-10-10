@@ -1964,7 +1964,9 @@ namespace VPNDetection
         /// </summary>
         /// <remarks>
         /// Replaces the secret behind a key, keeping its id, name and settings.
-        /// <br/>The previous secret stops working immediately.
+        /// <br/>The previous secret stops working immediately. The new secret comes
+        /// <br/>back in the answer, so this needs `apikeys.reveal` as well as
+        /// <br/>`apikeys.manage`.
         /// </remarks>
         /// <param name="id">The key's id, as returned by the list endpoint. Never the key itself.</param>
         /// <returns>The key, with its new secret.</returns>
@@ -1980,7 +1982,9 @@ namespace VPNDetection
         /// </summary>
         /// <remarks>
         /// Replaces the secret behind a key, keeping its id, name and settings.
-        /// <br/>The previous secret stops working immediately.
+        /// <br/>The previous secret stops working immediately. The new secret comes
+        /// <br/>back in the answer, so this needs `apikeys.reveal` as well as
+        /// <br/>`apikeys.manage`.
         /// </remarks>
         /// <param name="id">The key's id, as returned by the list endpoint. Never the key itself.</param>
         /// <returns>The key, with its new secret.</returns>
