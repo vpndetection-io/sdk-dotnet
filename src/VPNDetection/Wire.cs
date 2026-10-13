@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using System.Text.RegularExpressions;
 
 namespace VPNDetection;
@@ -72,6 +73,12 @@ internal static class Wire
             }
             catch (HttpRequestException e)
             {
+                failure = new VpnDetectionException(ErrorKind.Network, e.Message, null, null, e);
+            }
+            catch (HttpIOException e)
+            {
+                // A body that ended short of its Content-Length, raised while the generated layer
+                // read it.
                 failure = new VpnDetectionException(ErrorKind.Network, e.Message, null, null, e);
             }
             catch (Exception e) when (e is TimeoutException
@@ -161,8 +168,11 @@ internal static class Wire
     internal static VpnDetectionException Translate(WireException e)
     {
         var retryAfter = RetryAfterOf(e.Headers);
-        return new VpnDetectionException(
-            KindOf(e.StatusCode, retryAfter), MessageOf(e), e.StatusCode, retryAfter, e);
+        // A 2xx reaches here only when the generated layer could not read it - a proxy's HTML page,
+        // a cut-off, empty or `null` body, an answer without a member it must carry - which is the
+        // server's fault, retried like a 5xx.
+        var kind = e.StatusCode is >= 200 and < 300 ? ErrorKind.ServerError : KindOf(e.StatusCode, retryAfter);
+        return new VpnDetectionException(kind, MessageOf(e), e.StatusCode, retryAfter, e);
     }
 
     /// <summary>
@@ -380,8 +390,45 @@ internal partial class WireClient
     // throws on a perfectly healthy answer unless the converter is registered for the document.
     // Registered for the one enum that appears in a list rather than for all of them;
     // scripts/normalize_generated.py refuses to emit a client where a SECOND enum needs it.
+    //
+    // NSwag also starts every member at a default, so `{}` read as an answer: a lookup of nulls, an
+    // empty plan, an empty catalog (5.4.1, measured 2026-10-13). The members each answer exists to
+    // carry are required on the wire instead, which a body without one fails as an answer this
+    // client cannot read.
     static partial void UpdateJsonSerializerSettings(JsonSerializerOptions settings)
-        => settings.Converters.Add(new JsonStringEnumConverter<DatabaseFormat>());
+    {
+        settings.Converters.Add(new JsonStringEnumConverter<DatabaseFormat>());
+        settings.TypeInfoResolver = new DefaultJsonTypeInfoResolver { Modifiers = { RequireAnswerMembers } };
+    }
+
+    // By the generated type that carries them, from each answer's `required` list in the spec; the
+    // three envelopes are matched by their one member, since NSwag names them Response, Response2
+    // and Response3.
+    internal static readonly IReadOnlyDictionary<Type, string[]> AnswerMembers = new Dictionary<Type, string[]>
+    {
+        [typeof(LookupResponse)] = ["ip", "is_vpn"],
+        [typeof(BatchLookupResponse)] = ["results", "errors"],
+        [typeof(Entitlement)] = ["org_id", "apikey", "plan", "usage"],
+        [typeof(DatabaseMetadata)] = ["id"],
+    };
+
+    internal static readonly HashSet<string> EnvelopeMembers = ["databases", "downloads", "checksums"];
+
+    private static void RequireAnswerMembers(JsonTypeInfo info)
+    {
+        if (info.Kind != JsonTypeInfoKind.Object || info.Type.Assembly != typeof(WireClient).Assembly)
+        {
+            return;
+        }
+        var members = AnswerMembers.TryGetValue(info.Type, out var named) ? named : [];
+        foreach (var property in info.Properties)
+        {
+            if (members.Contains(property.Name) || EnvelopeMembers.Contains(property.Name))
+            {
+                property.IsRequired = true;
+            }
+        }
+    }
 
     partial void PrepareRequest(HttpClient client, HttpRequestMessage request, string url)
     {
@@ -413,6 +460,14 @@ internal partial class WireClient
                 $"the API redirected to {final.Authority} and the HttpClient followed it; "
                 + "set AllowAutoRedirect = false on its handler so a dataset download returns a "
                 + "link instead of gigabytes of data");
+        }
+        // The download link answers 302 and nothing else, so a 2xx from it is no link: the
+        // server's fault, retried with its status like any answer this client cannot read.
+        if (final.AbsolutePath.EndsWith("/api/v1/database/download", StringComparison.Ordinal))
+        {
+            throw new WireException(
+                "expected a redirect to object storage", (int)response.StatusCode, null,
+                new Dictionary<string, IEnumerable<string>>(), null);
         }
     }
 

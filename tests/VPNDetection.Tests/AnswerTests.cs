@@ -11,6 +11,52 @@ namespace VPNDetection.Tests;
 /// </summary>
 public class AnswerTests
 {
+    // 5.4.1 read a 200 it could not parse as a BadRequest, sent once, and `{}` as an answer: a
+    // lookup of nulls, an empty plan, an empty catalog. The link's 200 was a ServerError with no
+    // status, sent once.
+    [Theory]
+    [MemberData(nameof(Unreadable))]
+    public async Task A200TheCallCannotReadIsARetriedServerErrorWithItsStatus(string call, string body)
+    {
+        var handler = new StubHandler(_ => StubHandler.Json(new Route(body)));
+        using var client = Stub.Client(handler, new VpnDetectionClientOptions { Retries = 1, CacheEnabled = false });
+
+        var failure = await Failure(client, call);
+
+        Assert.Equal(ErrorKind.ServerError, failure.Kind);
+        Assert.Equal(200, failure.StatusCode);
+        Assert.Equal(2, handler.Calls.Count);
+    }
+
+    public static TheoryData<string, string> Unreadable()
+    {
+        var data = new TheoryData<string, string>();
+        foreach (var call in new[] { "lookup", "myIp", "myEntitlement", "batch", "list", "metadata", "checksums", "downloads", "downloadUrl" })
+        {
+            foreach (var body in new[] { "<html>gateway</html>", "", "null", "[]", "{}" })
+            {
+                data.Add(call, body);
+            }
+        }
+        data.Add("batch", """{"results":{}}""");
+        data.Add("myEntitlement", """{"org_id":"o","apikey":{"id":"a","expires":null,"allowed_cidrs":[]},"plan":{"key":"k","tier":"t"}}""");
+        data.Add("checksums", """{"id":"vpn_ip_v1","format":"mmdb"}""");
+        return data;
+    }
+
+    // A body that ends short of its Content-Length raised a raw HttpIOException out of the call.
+    [Fact]
+    public async Task ABodyCutOffIsARetriedNetworkError()
+    {
+        var handler = new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new CutOffContent() });
+        using var client = Stub.Client(handler, new VpnDetectionClientOptions { Retries = 1, CacheEnabled = false });
+
+        var failure = await Assert.ThrowsAsync<VpnDetectionException>(() => client.LookupAsync("45.83.91.1"));
+
+        Assert.Equal(ErrorKind.Network, failure.Kind);
+        Assert.Equal(2, handler.Calls.Count);
+    }
+
     // Seconds are digits alone and a date is one of RFC 9110's three forms, in GMT. 5.4.1 read `+1`
     // as a second, `1.5`, `Jan 1 2099` and an ISO 8601 time as dates, and a zone-less ISO time in
     // the machine's zone.
@@ -57,5 +103,42 @@ public class AnswerTests
 
         Assert.NotNull(wait);
         Assert.InRange(wait!.Value, TimeSpan.FromMinutes(59), TimeSpan.FromMinutes(61));
+    }
+
+    private static async Task<VpnDetectionException> Failure(VpnDetectionClient client, string call)
+    {
+        if (call == "batch")
+        {
+            var answers = await client.LookupBatchAsync(new[] { "45.83.91.1", "45.83.91.2" });
+            Assert.All(answers.Values, a => Assert.False(a.IsSuccess));
+            return answers["45.83.91.2"].Error!;
+        }
+        return await Assert.ThrowsAsync<VpnDetectionException>(() => call switch
+        {
+            "lookup" => client.LookupAsync("45.83.91.1"),
+            "myIp" => client.MyIpAsync(),
+            "myEntitlement" => client.MyEntitlementAsync(),
+            "list" => client.Database.ListAsync(),
+            "metadata" => client.Database.MetadataAsync("vpn_ip_v1"),
+            "checksums" => client.Database.ChecksumsAsync("vpn_ip_v1", DatabaseFormat.Mmdb),
+            "downloads" => client.Database.DownloadsAsync(),
+            _ => (Task)client.Database.DownloadUrlAsync("vpn_ip_v1", DatabaseFormat.Mmdb),
+        });
+    }
+
+    // Ten bytes of a body that promised more, then the end of the connection.
+    private sealed class CutOffContent : HttpContent
+    {
+        protected override async Task SerializeToStreamAsync(Stream stream, TransportContext? context)
+        {
+            await stream.WriteAsync("{\"ip\":\"45."u8.ToArray());
+            throw new HttpIOException(HttpRequestError.ResponseEnded, "The response ended prematurely.");
+        }
+
+        protected override bool TryComputeLength(out long length)
+        {
+            length = 400;
+            return true;
+        }
     }
 }
