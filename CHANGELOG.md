@@ -2,6 +2,14 @@
 
 What each release changed for you, newest first. Each line is a commit's summary, linked to its full description and diff. Releases before 5.2.4 are described by their release commits.
 
+## 5.4.2 - 2026-10-13
+
+### Fixes
+
+- Read Retry-After as digits or an RFC 9110 date in GMT ([`5fbeb44`](https://github.com/vpndetection-io/sdk-dotnet/commit/5fbeb441081506740830ef026b933037b31bc8b0))
+- Retry an answer the call cannot read, carrying its status ([`95fbc76`](https://github.com/vpndetection-io/sdk-dotnet/commit/95fbc76b6d26df32760785bf3bd39c9d7fbafd7b))
+- Trim the API key, and refuse one holding a control character ([`103f87d`](https://github.com/vpndetection-io/sdk-dotnet/commit/103f87d67d95d3d7798e7afee5d0fae82961f609))
+
 ## 5.4.1 - 2026-10-10
 
 ### Fixes
