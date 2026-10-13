@@ -2,6 +2,12 @@
 
 What each release changed for you, newest first. Each line is a commit's summary, linked to its full description and diff. Releases before 5.2.4 are described by their release commits.
 
+## 5.4.3 - 2026-10-13
+
+### Fixes
+
+- Retry an OAuth answer the call cannot read where retries apply ([`933941f`](https://github.com/vpndetection-io/sdk-dotnet/commit/933941f0deb193f71919d45196de4084371c4377))
+
 ## 5.4.2 - 2026-10-13
 
 ### Fixes
