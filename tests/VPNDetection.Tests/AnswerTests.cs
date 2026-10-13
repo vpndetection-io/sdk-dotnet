@@ -105,6 +105,43 @@ public class AnswerTests
         Assert.InRange(wait!.Value, TimeSpan.FromMinutes(59), TimeSpan.FromMinutes(61));
     }
 
+    // 5.4.1 sent a blank key as `Bearer` and the blank, a padded one padded, and put a key's CR LF
+    // on the wire, where it wrote a header of its own.
+    [Theory]
+    [InlineData(" ", null)]
+    [InlineData("\t", null)]
+    [InlineData("  k  ", "Bearer k")]
+    [InlineData("k\n", "Bearer k")]
+    public async Task TheKeyIsTrimmedAndABlankOneIsNoKey(string key, string? expected)
+    {
+        HttpRequestMessage? sent = null;
+        var handler = new StubHandler(request =>
+        {
+            sent = request;
+            return StubHandler.Json(new Route(Stub.LookupBody("45.83.91.1")));
+        });
+        using var client = Stub.Client(handler, new VpnDetectionClientOptions { ApiKey = key });
+
+        await client.LookupAsync("45.83.91.1");
+
+        Assert.Equal(expected, sent!.Headers.TryGetValues("Authorization", out var values) ? values.Single() : null);
+    }
+
+    [Theory]
+    [InlineData("secret\r\nX-Injected: 1")]
+    [InlineData("secret\0")]
+    [InlineData("secret\u007f")]
+    [InlineData("sec\tret")]
+    public void AKeyHoldingAControlCharacterIsRefusedWhereItIsSet(string key)
+    {
+        var handler = new StubHandler(_ => StubHandler.Json(new Route("{}")));
+
+        var refused = Assert.Throws<ArgumentException>(() => Stub.Client(handler, new VpnDetectionClientOptions { ApiKey = key }));
+
+        Assert.DoesNotContain("sec", refused.Message, StringComparison.Ordinal);
+        Assert.Empty(handler.Calls);
+    }
+
     private static async Task<VpnDetectionException> Failure(VpnDetectionClient client, string call)
     {
         if (call == "batch")
