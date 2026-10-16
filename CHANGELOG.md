@@ -2,6 +2,13 @@
 
 What each release changed for you, newest first. Each line is a commit's summary, linked to its full description and diff. Releases before 5.2.4 are described by their release commits.
 
+## 5.4.4 - 2026-10-16
+
+### Fixes
+
+- Re-pin the spec to 2026.10.15: descriptions in US spelling ([`a001729`](https://github.com/vpndetection-io/sdk-dotnet/commit/a00172967d44ee22ab5c284c502259ecbd29e70f))
+- Refuse an API key holding a character outside ASCII where it is set ([`9cd26b2`](https://github.com/vpndetection-io/sdk-dotnet/commit/9cd26b27ba53f55fc67eeb3dbb4df3c38e1bcda4))
+
 ## 5.4.3 - 2026-10-13
 
 ### Fixes
