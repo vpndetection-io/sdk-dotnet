@@ -132,12 +132,18 @@ public class AnswerTests
     [InlineData("secret\0")]
     [InlineData("secret\u007f")]
     [InlineData("sec\tret")]
-    public void AKeyHoldingAControlCharacterIsRefusedWhereItIsSet(string key)
+    [InlineData("sec\u0085ret")]
+    // Accepted through 5.4.3, and every call failed as a retried Network error with nothing sent:
+    // SocketsHttpHandler sends a header value as ASCII alone.
+    [InlineData("sec\u00e9ret")]
+    [InlineData("sec\u4e2dret")]
+    public void AKeyHoldingAControlCharacterOrOneOutsideAsciiIsRefusedWhereItIsSet(string key)
     {
         var handler = new StubHandler(_ => StubHandler.Json(new Route("{}")));
 
         var refused = Assert.Throws<ArgumentException>(() => Stub.Client(handler, new VpnDetectionClientOptions { ApiKey = key }));
 
+        Assert.Contains("control character or one outside ASCII", refused.Message, StringComparison.Ordinal);
         Assert.DoesNotContain("sec", refused.Message, StringComparison.Ordinal);
         Assert.Empty(handler.Calls);
     }

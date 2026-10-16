@@ -66,8 +66,10 @@ public sealed class VpnDetectionClient : IDisposable
 
     // Trimmed, so a key read from a file loses its newline, and blanks alone are no key. A control
     // character left inside would fail every call, or go out on the wire through a handler that
-    // passes it, as a CR LF did, writing a header of its own; so it is refused here, naming the cause
-    // and not the key.
+    // passes it, as a CR LF did, writing a header of its own; and SocketsHttpHandler sends a header
+    // value as ASCII alone, so a key holding `é` failed every call as a retried Network error with
+    // nothing sent (5.4.3, measured 2026-10-16). Either is refused here, naming the cause and not
+    // the key.
     private static string? ApiKeyOf(string? key)
     {
         var trimmed = key?.Trim();
@@ -75,9 +77,10 @@ public sealed class VpnDetectionClient : IDisposable
         {
             return null;
         }
-        if (trimmed.Any(char.IsControl))
+        if (trimmed.Any(c => c < '\u0020' || c >= '\u007f'))
         {
-            throw new ArgumentException("the API key holds a control character", nameof(VpnDetectionClientOptions.ApiKey));
+            throw new ArgumentException(
+                "the API key holds a control character or one outside ASCII", nameof(VpnDetectionClientOptions.ApiKey));
         }
         return trimmed;
     }
