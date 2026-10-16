@@ -670,7 +670,7 @@ namespace VPNDetection
         /// </remarks>
         /// <param name="id">Dataset id, e.g. vpn_ip_extended_v1</param>
         /// <param name="format">Not every database is built in every format. The `_provider`
-        /// <br/>catalogues are keyed by provider id rather than by IP range, so no
+        /// <br/>catalogs are keyed by provider id rather than by IP range, so no
         /// <br/>MMDB exists for them.</param>
         /// <exception cref="WireException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task DownloadDatabaseAsync(string id, DatabaseFormat format)
@@ -687,7 +687,7 @@ namespace VPNDetection
         /// </remarks>
         /// <param name="id">Dataset id, e.g. vpn_ip_extended_v1</param>
         /// <param name="format">Not every database is built in every format. The `_provider`
-        /// <br/>catalogues are keyed by provider id rather than by IP range, so no
+        /// <br/>catalogs are keyed by provider id rather than by IP range, so no
         /// <br/>MMDB exists for them.</param>
         /// <exception cref="WireException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task DownloadDatabaseAsync(string id, DatabaseFormat format, System.Threading.CancellationToken cancellationToken)
@@ -1593,7 +1593,7 @@ namespace VPNDetection
         /// </summary>
         /// <remarks>
         /// Read-only. Adding or removing a member is an invitation flow with email
-        /// <br/>in the middle rather than a POST, and modelling it as one here would
+        /// <br/>in the middle rather than a POST, and modeling it as one here would
         /// <br/>promise something this API does not do.
         /// </remarks>
         /// <returns>The members.</returns>
@@ -1609,7 +1609,7 @@ namespace VPNDetection
         /// </summary>
         /// <remarks>
         /// Read-only. Adding or removing a member is an invitation flow with email
-        /// <br/>in the middle rather than a POST, and modelling it as one here would
+        /// <br/>in the middle rather than a POST, and modeling it as one here would
         /// <br/>promise something this API does not do.
         /// </remarks>
         /// <returns>The members.</returns>
@@ -3414,7 +3414,7 @@ namespace VPNDetection
         /// <br/>valid server response. `scrape` - the operator published the address
         /// <br/>through its own API, client or configuration. `registry` - public
         /// <br/>registration or naming records attribute it to the operator.
-        /// <br/>`infer` - the address was extrapolated from confirmed neighbours in
+        /// <br/>`infer` - the address was extrapolated from confirmed neighbors in
         /// <br/>the same block.
         /// <br/>
         /// </summary>
@@ -3620,7 +3620,7 @@ namespace VPNDetection
         /// <summary>
         /// Size of the published file, or null when it has not been published
         /// <br/>yet. int64 because it is not hypothetical: resproxy_ip_14d's MMDB is
-        /// <br/>4.58 GB, so a 32-bit field cannot carry the catalogue and `list`
+        /// <br/>4.58 GB, so a 32-bit field cannot carry the catalog and `list`
         /// <br/>throws for every caller rather than for that one entry.
         /// <br/>
         /// </summary>
@@ -4279,7 +4279,7 @@ namespace VPNDetection
         public string Name { get; set; } = default!;
 
         /// <summary>
-        /// The leading, non-secret part, so a key is recognisable without storing it.
+        /// The leading, non-secret part, so a key is recognizable without storing it.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key_prefix")]
         public string KeyPrefix { get; set; } = default!;
@@ -4327,7 +4327,7 @@ namespace VPNDetection
     {
 
         /// <summary>
-        /// A label you will recognise later. Shown wherever the key is listed.
+        /// A label you will recognize later. Shown wherever the key is listed.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         public string Name { get; set; } = default!;
