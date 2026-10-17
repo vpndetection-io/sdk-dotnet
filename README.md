@@ -40,7 +40,7 @@ using var client = new VpnDetectionClient(new VpnDetectionClientOptions
 
 var result = await client.LookupAsync("45.83.91.1");
 Console.WriteLine(result.IsVpn);            // True
-Console.WriteLine(result.Vpn?.Provider);    // mullvad
+Console.WriteLine(result.Vpn?.Provider);    // nordvpn
 Console.WriteLine(result.IsHosting);        // True
 Console.WriteLine(result.Hosting?.Provider);
 ```
@@ -210,17 +210,28 @@ A denied sign-in throws `OauthAccessDeniedException` and a code that ran out `Oa
 
 ### Dependency injection
 
-The client takes an `HttpClient`, so it registers as a typed client and picks up your handler pipeline, pooling and resilience policies:
+Register one shared client. The answer cache lives in the client, so one built per request scope starts empty every time and pays for a lookup the last scope already made. In a web app, bound each lookup tightly too, so an unreachable API costs a request seconds rather than minutes:
+
+```csharp
+services.AddSingleton(new VpnDetectionClient(new VpnDetectionClientOptions
+{
+    ApiKey = builder.Configuration["VpnDetection:ApiKey"],
+    RequestTimeout = TimeSpan.FromSeconds(2),
+    Retries = 0,
+}));
+```
+
+The client also takes an `HttpClient`, so it can register as a typed client and pick up your handler pipeline, pooling and resilience policies:
 
 ```csharp
 services.AddSingleton(new VpnDetectionClientOptions { ApiKey = builder.Configuration["VpnDetection:ApiKey"] });
-services.AddHttpClient<VpnDetectionClient>()
+services.AddHttpClient<VpnDetectionClient>(http => http.Timeout = TimeSpan.FromSeconds(2))
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 ```
 
-`AllowAutoRedirect = false` matters: the database download endpoint answers `302` with the link this library hands back, and .NET's default handler would follow it and fetch the whole database instead. A client that follows redirects is refused with a clear error rather than quietly downloading gigabytes.
+A typed client is transient, so each scope gets a new `VpnDetectionClient` with a cache of its own. `AllowAutoRedirect = false` matters: the database download endpoint answers `302` with the link this library hands back, and .NET's default handler would follow it and fetch the whole database instead. A client that follows redirects is refused with a clear error rather than quietly downloading gigabytes.
 
-A borrowed `HttpClient` keeps its own `Timeout`, so `RequestTimeout` on the options does not apply to it; a per-call `RequestTimeout` still does.
+A borrowed `HttpClient` keeps its own `Timeout`, 100 seconds unless you set one, so `RequestTimeout` on the options does not apply to it; a per-call `RequestTimeout` still does.
 
 ### Sign in with OAuth (authorization code)
 
