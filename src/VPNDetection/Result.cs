@@ -76,13 +76,13 @@ public sealed class Result
     /// <summary>Whether the address belongs to a CDN. Starter and above.</summary>
     public bool? IsCdn => raw.IsCdn;
 
-    /// <summary>Whether the address was seen in a residential proxy pool. Max only.</summary>
+    /// <summary>Whether the address was seen in a residential proxy pool. Scale and above.</summary>
     public bool? IsResproxy => raw.IsResproxy;
 
-    /// <summary>Whether the address was seen in a datacenter proxy pool. Max only.</summary>
+    /// <summary>Whether the address was seen in a datacenter proxy pool. Scale and above.</summary>
     public bool? IsDcproxy => raw.IsDcproxy;
 
-    /// <summary>Whether the address was seen in a mobile proxy pool. Max only.</summary>
+    /// <summary>Whether the address was seen in a mobile proxy pool. Scale and above.</summary>
     public bool? IsMobproxy => raw.IsMobproxy;
 
     /// <summary>Detail behind <see cref="IsVpn"/>. Empty when it is false. Starter and above.</summary>
