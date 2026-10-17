@@ -2,6 +2,16 @@
 
 What each release changed for you, newest first. Each line is a commit's summary, linked to its full description and diff. Releases before 5.2.4 are described by their release commits.
 
+## 5.5.0 - 2026-10-17
+
+### Features
+
+- Re-pin the spec to 2026.10.16: dynamic client registration ([`8fdb3ab`](https://github.com/vpndetection-io/sdk-dotnet/commit/8fdb3ab06195f376ed2e13fdc26dabae5ca30820))
+
+### Fixes
+
+- Say the three proxy flags are Scale and above ([`e5850dd`](https://github.com/vpndetection-io/sdk-dotnet/commit/e5850dde37b8f149a78f9241e81bcfe11a1bb81f))
+
 ## 5.4.4 - 2026-10-16
 
 ### Fixes
