@@ -3344,7 +3344,7 @@ namespace VPNDetection
         public bool? IsHosting { get; set; } = default!;
 
         /// <summary>
-        /// Whether the address is a privacy relay egress. Starter and above.
+        /// Whether the address is privacy relay or enterprise web gateway egress, such as iCloud Private Relay or Zscaler. Starter and above.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_relay")]
         public bool? IsRelay { get; set; } = default!;
@@ -3378,6 +3378,12 @@ namespace VPNDetection
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_mobproxy")]
         public bool? IsMobproxy { get; set; } = default!;
+
+        /// <summary>
+        /// Whether a public proxy, one anyone can connect through, listens on the address or sends its traffic out from it. Scale and above.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("is_pubproxy")]
+        public bool? IsPubproxy { get; set; } = default!;
 
         /// <summary>
         /// Detail for `is_vpn`. Empty when `is_vpn` is false. Starter and above.
@@ -3429,6 +3435,12 @@ namespace VPNDetection
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("mobproxy")]
         public ProxyDetail? Mobproxy { get; set; } = default!;
+
+        /// <summary>
+        /// Detail for `is_pubproxy`. Empty when false. Max only.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("pubproxy")]
+        public PubproxyDetail? Pubproxy { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -3672,6 +3684,65 @@ namespace VPNDetection
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("providers_num")]
         public int? ProvidersNum { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    /// <summary>
+    /// The address in Public Proxy IP, open proxies anyone can connect
+    /// <br/>through, over a rolling 90 day window. It covers both ends of a proxy:
+    /// <br/>the address it listens on and the address its traffic leaves from.
+    /// <br/>Every key is present when the object is populated; the object is `{}`
+    /// <br/>when `is_pubproxy` is false.
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class PubproxyDetail
+    {
+
+        /// <summary>
+        /// Whether a public proxy listens on this address.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("entry")]
+        public bool? Entry { get; set; } = default!;
+
+        /// <summary>
+        /// Whether a public proxy's traffic leaves from this address.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("exit")]
+        public bool? Exit { get; set; } = default!;
+
+        /// <summary>
+        /// The protocols of the proxies listening on or leaving from this
+        /// <br/>address: `http`, `https` (an HTTP proxy that also tunnels HTTPS),
+        /// <br/>`socks4` or `socks5`. Empty where only the address is known.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("protocols")]
+        public System.Collections.Generic.IReadOnlyList<string>? Protocols { get; set; } = default!;
+
+        /// <summary>
+        /// The most recent date within the window a proxy on this address was seen.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("last_seen")]
+        public System.DateOnly? LastSeen { get; set; } = default!;
+
+        /// <summary>
+        /// The most recent date within the window a request through a proxy on
+        /// <br/>this address was answered, as YYYY-MM-DD, or an empty string when
+        /// <br/>none was.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("last_usable")]
+        public string? LastUsable { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 

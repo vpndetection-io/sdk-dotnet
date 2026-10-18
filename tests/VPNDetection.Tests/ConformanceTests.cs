@@ -134,7 +134,7 @@ public class ConformanceTests
             {
                 Assert.Equal("{}", Corpus.AsWire(Corpus.Member(result, field)));
             }
-            foreach (var detail in new[] { "vpn", "hosting", "dcproxy" })
+            foreach (var detail in new[] { "vpn", "hosting", "dcproxy", "pubproxy" })
             {
                 if (expect.TryGetProperty(detail, out var want))
                 {

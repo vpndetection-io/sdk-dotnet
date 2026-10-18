@@ -44,6 +44,7 @@ public sealed class Result
             IsResproxy = false,
             IsDcproxy = false,
             IsMobproxy = false,
+            IsPubproxy = false,
             Vpn = new VpnDetail(),
             Hosting = new ClassDetail(),
             Relay = new ClassDetail(),
@@ -52,6 +53,7 @@ public sealed class Result
             Resproxy = new ProxyDetail(),
             Dcproxy = new ProxyDetail(),
             Mobproxy = new ProxyDetail(),
+            Pubproxy = new PubproxyDetail(),
         },
         true);
 
@@ -85,6 +87,12 @@ public sealed class Result
     /// <summary>Whether the address was seen in a mobile proxy pool. Scale and above.</summary>
     public bool? IsMobproxy => raw.IsMobproxy;
 
+    /// <summary>
+    /// Whether a public proxy, one anyone can connect through, listens on the address or sends its
+    /// traffic out from it. Scale and above.
+    /// </summary>
+    public bool? IsPubproxy => raw.IsPubproxy;
+
     /// <summary>Detail behind <see cref="IsVpn"/>. Empty when it is false. Starter and above.</summary>
     public VpnDetail? Vpn => raw.Vpn;
 
@@ -108,6 +116,9 @@ public sealed class Result
 
     /// <summary>Detail behind <see cref="IsMobproxy"/>. Empty when it is false. Max only.</summary>
     public ProxyDetail? Mobproxy => raw.Mobproxy;
+
+    /// <summary>Detail behind <see cref="IsPubproxy"/>. Empty when it is false. Max only.</summary>
+    public PubproxyDetail? Pubproxy => raw.Pubproxy;
 
     /// <summary>The response exactly as it came off the wire.</summary>
     /// <remarks>

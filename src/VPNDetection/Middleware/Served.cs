@@ -30,6 +30,7 @@ internal static class Served
         Put(served, "is_resproxy", result.IsResproxy);
         Put(served, "is_dcproxy", result.IsDcproxy);
         Put(served, "is_mobproxy", result.IsMobproxy);
+        Put(served, "is_pubproxy", result.IsPubproxy);
         PutDetail(served, "vpn", result.Vpn);
         PutDetail(served, "hosting", result.Hosting);
         PutDetail(served, "relay", result.Relay);
@@ -38,6 +39,7 @@ internal static class Served
         PutDetail(served, "resproxy", result.Resproxy);
         PutDetail(served, "dcproxy", result.Dcproxy);
         PutDetail(served, "mobproxy", result.Mobproxy);
+        PutDetail(served, "pubproxy", result.Pubproxy);
         return served;
     }
 
@@ -50,8 +52,9 @@ internal static class Served
     }
 
     // The detail models carry their wire names on JsonPropertyName, so System.Text.Json is what
-    // turns one into the shape a condition is written against. Their fields are flat scalars, so
-    // nothing here depends on how nulls are written: a null simply matches nothing.
+    // turns one into the shape a condition is written against. Their fields are scalars, bar
+    // pubproxy's list of protocols, so nothing here depends on how nulls are written: a null
+    // simply matches nothing.
     private static void PutDetail(Dictionary<string, object?> served, string key, object? value)
     {
         if (value is null)
