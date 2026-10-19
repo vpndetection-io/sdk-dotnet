@@ -3698,10 +3698,10 @@ namespace VPNDetection
 
     /// <summary>
     /// The address in Public Proxy IP, open proxies anyone can connect
-    /// <br/>through, over a rolling 90 day window. It covers both ends of a proxy:
-    /// <br/>the address it listens on and the address its traffic leaves from.
-    /// <br/>Every key is present when the object is populated; the object is `{}`
-    /// <br/>when `is_pubproxy` is false.
+    /// <br/>through, measured over a rolling 90 day window. An address is either
+    /// <br/>end of a proxy, or both: where it listens, and where its traffic
+    /// <br/>leaves from. Every key is present when the object is populated; the
+    /// <br/>object is `{}` when `is_pubproxy` is false.
     /// <br/>
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -3728,6 +3728,22 @@ namespace VPNDetection
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("protocols")]
         public System.Collections.Generic.IReadOnlyList<string>? Protocols { get; set; } = default!;
+
+        /// <summary>
+        /// How many distinct ports a public proxy listens on at this address;
+        /// <br/>0 when it is only an exit, or its port is not known.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("num_ports")]
+        public int? NumPorts { get; set; } = default!;
+
+        /// <summary>
+        /// How many distinct public proxies' traffic left from this address;
+        /// <br/>0 when it is only an entry.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("num_proxies")]
+        public int? NumProxies { get; set; } = default!;
 
         /// <summary>
         /// The most recent date within the window a proxy on this address was seen.
