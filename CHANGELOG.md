@@ -2,6 +2,12 @@
 
 What each release changed for you, newest first. Each line is a commit's summary, linked to its full description and diff. Releases before 5.2.4 are described by their release commits.
 
+## 5.7.0 - 2026-10-19
+
+### Features
+
+- Re-pin the spec to 2026.10.18: num_ports and num_proxies in the pubproxy detail ([`e3ad914`](https://github.com/vpndetection-io/sdk-dotnet/commit/e3ad9142b6c9b4e8539e0635582dbfa3af67196f))
+
 ## 5.6.0 - 2026-10-18
 
 ### Features
