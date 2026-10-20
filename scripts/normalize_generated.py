@@ -112,9 +112,10 @@ def pascal_case_properties(src):
     starts mangling names differently cannot quietly satisfy this.
     """
     renamed = []
+    classes = class_starts(src)
 
     def fix(m):
-        want = pascal_of(m.group("wire"))
+        want = wanted_name(m, classes)
         have = m.group("name")
         if want == have:
             return m.group(0)
@@ -122,6 +123,24 @@ def pascal_case_properties(src):
         return m.group(1) + want
 
     return PROPERTY.sub(fix, src), renamed
+
+
+# C# forbids a member named like the type that holds it (CS0542), so the one wire name the PascalCase
+# rule would turn into its own type's name takes the name here: asn.asn, the AS number.
+SELF_NAMED = {("Asn", "asn"): "Number"}
+
+
+def class_starts(src):
+    """Where each generated class begins, by name. The DTOs are never nested, so the last class
+    declared before a property is the one holding it."""
+    return [(m.start(), m.group(1)) for m in re.finditer(r"^\s*(?:public|internal) partial class (\w+)", src, re.M)]
+
+
+def wanted_name(m, classes):
+    """The name a property should carry: the PascalCase of its wire name, unless that is its own
+    type's name."""
+    owner = next((name for start, name in reversed(classes) if start < m.start()), None)
+    return SELF_NAMED.get((owner, m.group("wire")), pascal_of(m.group("wire")))
 
 
 def pascal_of(wire):
@@ -215,8 +234,9 @@ def hide_wire_types(src):
 def check(src) -> int:
     """Refuses to leave behind the two defects this script exists to remove."""
     bad = []
+    classes = class_starts(src)
     for m in PROPERTY.finditer(src):
-        want = pascal_of(m.group("wire"))
+        want = wanted_name(m, classes)
         if m.group("name") != want:
             bad.append(f"property {m.group('name')} should be {want}, from the wire name")
     for m in re.finditer(r"^\s*public (?:partial class|enum) (Response\d?|Error|Format\d?)\b", src, re.M):

@@ -79,8 +79,8 @@ namespace VPNDetection
         /// </summary>
         /// <remarks>
         /// Answers what is known about a single IPv4 or IPv6 address. Which fields
-        /// <br/>come back is decided by the plan behind the presented key; with no key
-        /// <br/>the answer is `ip` and `is_vpn`.
+        /// <br/>come back is decided by the presented key; with no key the answer is
+        /// <br/>`ip` and `is_vpn`.
         /// </remarks>
         /// <param name="ip">The IPv4 or IPv6 address to classify.</param>
         /// <returns>The classification. Present fields are those your plan includes; see
@@ -97,8 +97,8 @@ namespace VPNDetection
         /// </summary>
         /// <remarks>
         /// Answers what is known about a single IPv4 or IPv6 address. Which fields
-        /// <br/>come back is decided by the plan behind the presented key; with no key
-        /// <br/>the answer is `ip` and `is_vpn`.
+        /// <br/>come back is decided by the presented key; with no key the answer is
+        /// <br/>`ip` and `is_vpn`.
         /// </remarks>
         /// <param name="ip">The IPv4 or IPv6 address to classify.</param>
         /// <returns>The classification. Present fields are those your plan includes; see
@@ -230,9 +230,9 @@ namespace VPNDetection
         /// </summary>
         /// <remarks>
         /// Answers what is known about the address this request came from, which is
-        /// <br/>the same answer `GET /{ip}` gives for that address: the plan behind the
-        /// <br/>presented key decides which fields come back, and the request counts
-        /// <br/>against the same allowance.
+        /// <br/>the same answer `GET /{ip}` gives for that address: the presented key
+        /// <br/>decides which fields come back, and the request counts against the same
+        /// <br/>allowance.
         /// <br/>
         /// <br/>The address is the one our edge observed, so a request through a proxy
         /// <br/>or a VPN reports the exit it left through rather than the machine that
@@ -252,9 +252,9 @@ namespace VPNDetection
         /// </summary>
         /// <remarks>
         /// Answers what is known about the address this request came from, which is
-        /// <br/>the same answer `GET /{ip}` gives for that address: the plan behind the
-        /// <br/>presented key decides which fields come back, and the request counts
-        /// <br/>against the same allowance.
+        /// <br/>the same answer `GET /{ip}` gives for that address: the presented key
+        /// <br/>decides which fields come back, and the request counts against the same
+        /// <br/>allowance.
         /// <br/>
         /// <br/>The address is the one our edge observed, so a request through a proxy
         /// <br/>or a VPN reports the exit it left through rather than the machine that
@@ -3338,74 +3338,74 @@ namespace VPNDetection
         public bool IsVpn { get; set; } = default!;
 
         /// <summary>
-        /// Whether the address belongs to a hosting or cloud provider. Starter and above.
+        /// Whether the address belongs to a hosting or cloud provider. Paid plans.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_hosting")]
         public bool? IsHosting { get; set; } = default!;
 
         /// <summary>
-        /// Whether the address is privacy relay or enterprise web gateway egress, such as iCloud Private Relay or Zscaler. Starter and above.
+        /// Whether the address is privacy relay or enterprise web gateway egress, such as iCloud Private Relay or Zscaler. Free and paid plans.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_relay")]
         public bool? IsRelay { get; set; } = default!;
 
         /// <summary>
-        /// Whether the address is a Tor node. Starter and above.
+        /// Whether the address is a Tor node. Free and paid plans.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_tor")]
         public bool? IsTor { get; set; } = default!;
 
         /// <summary>
-        /// Whether the address belongs to a CDN. Starter and above.
+        /// Whether the address belongs to a CDN. Paid plans.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_cdn")]
         public bool? IsCdn { get; set; } = default!;
 
         /// <summary>
-        /// Whether the address was seen in a residential proxy pool. Scale and above.
+        /// Whether the address was seen in a residential proxy pool. Paid plans.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_resproxy")]
         public bool? IsResproxy { get; set; } = default!;
 
         /// <summary>
-        /// Whether the address was seen in a datacenter proxy pool. Scale and above.
+        /// Whether the address was seen in a datacenter proxy pool. Paid plans.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_dcproxy")]
         public bool? IsDcproxy { get; set; } = default!;
 
         /// <summary>
-        /// Whether the address was seen in a mobile proxy pool. Scale and above.
+        /// Whether the address was seen in a mobile proxy pool. Paid plans.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_mobproxy")]
         public bool? IsMobproxy { get; set; } = default!;
 
         /// <summary>
-        /// Whether a public proxy, one anyone can connect through, listens on the address or sends its traffic out from it. Scale and above.
+        /// Whether a public proxy, one anyone can connect through, listens on the address or sends its traffic out from it. Paid plans.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_pubproxy")]
         public bool? IsPubproxy { get; set; } = default!;
 
         /// <summary>
-        /// Detail for `is_vpn`. Empty when `is_vpn` is false. Starter and above.
+        /// Detail for `is_vpn`. Empty when `is_vpn` is false. Paid plans.
         /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("vpn")]
         public VpnDetail? Vpn { get; set; } = default!;
 
         /// <summary>
-        /// Detail for `is_hosting`. Empty when false. Scale and above.
+        /// Detail for `is_hosting`. Empty when false. Paid plans.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("hosting")]
         public ClassDetail? Hosting { get; set; } = default!;
 
         /// <summary>
-        /// Detail for `is_relay`. Empty when false. Scale and above.
+        /// Detail for `is_relay`. Empty when false. Free and paid plans.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("relay")]
         public ClassDetail? Relay { get; set; } = default!;
 
         /// <summary>
-        /// Detail for `is_tor`. Empty when false. Scale and above. The tor
+        /// Detail for `is_tor`. Empty when false. Free and paid plans. The tor
         /// <br/>dataset carries no provider, so `provider` is always an empty string.
         /// <br/>
         /// </summary>
@@ -3413,34 +3413,40 @@ namespace VPNDetection
         public ClassDetail? Tor { get; set; } = default!;
 
         /// <summary>
-        /// Detail for `is_cdn`. Empty when false. Scale and above.
+        /// Detail for `is_cdn`. Empty when false. Paid plans.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("cdn")]
         public ClassDetail? Cdn { get; set; } = default!;
 
         /// <summary>
-        /// Detail for `is_resproxy`. Empty when false. Max only.
+        /// Detail for `is_resproxy`. Empty when false. Paid plans.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("resproxy")]
         public ProxyDetail? Resproxy { get; set; } = default!;
 
         /// <summary>
-        /// Detail for `is_dcproxy`. Empty when false. Max only.
+        /// Detail for `is_dcproxy`. Empty when false. Paid plans.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("dcproxy")]
         public ProxyDetail? Dcproxy { get; set; } = default!;
 
         /// <summary>
-        /// Detail for `is_mobproxy`. Empty when false. Max only.
+        /// Detail for `is_mobproxy`. Empty when false. Paid plans.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("mobproxy")]
         public ProxyDetail? Mobproxy { get; set; } = default!;
 
         /// <summary>
-        /// Detail for `is_pubproxy`. Empty when false. Max only.
+        /// Detail for `is_pubproxy`. Empty when false. Paid plans.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("pubproxy")]
         public PubproxyDetail? Pubproxy { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("location")]
+        public Location? Location { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("asn")]
+        public Asn? Asn { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -3545,8 +3551,7 @@ namespace VPNDetection
     /// <summary>
     /// What is known about the VPN attribution. Every key is present when the
     /// <br/>object is populated, empty values included; the object is `{}` when
-    /// <br/>`is_vpn` is false. `confidence` and `method` are max only, so on a lower
-    /// <br/>plan they are absent from a populated object rather than empty.
+    /// <br/>`is_vpn` is false.
     /// <br/>
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -3566,24 +3571,19 @@ namespace VPNDetection
         public System.DateOnly? LastSeen { get; set; } = default!;
 
         /// <summary>
-        /// How strongly the attribution is supported. Max only.
+        /// How strongly the attribution is supported.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("confidence")]
         public string? Confidence { get; set; } = default!;
 
         /// <summary>
-        /// The class of evidence the attribution rests on, one of four values.
-        /// <br/>Max only.
-        /// <br/>
-        /// <br/>`scan` - we spoke the VPN protocol to the address ourselves and got a
-        /// <br/>valid server response. `scrape` - the operator published the address
-        /// <br/>through its own API, client or configuration. `registry` - public
-        /// <br/>registration or naming records attribute it to the operator.
-        /// <br/>`infer` - the address was extrapolated from confirmed neighbors in
-        /// <br/>the same block.
+        /// Never returned since 2026-10-20: no plan is answered with the class of
+        /// <br/>evidence an attribution rests on. Declared so that a client typed
+        /// <br/>against it keeps compiling; read `confidence` instead.
         /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("method")]
+        [System.Obsolete]
         public string? Method { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
@@ -3772,6 +3772,139 @@ namespace VPNDetection
     }
 
     /// <summary>
+    /// Where the address is, to the country: the fields of our IP Country
+    /// <br/>database. Free and paid plans. Each field is present whenever the
+    /// <br/>object is, so an address in no country, or a private one, answers
+    /// <br/>empty strings.
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class Location
+    {
+
+        /// <summary>
+        /// Continent code: AF, AN (Antarctica), AS, EU, NA, OC or SA.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("continent")]
+        public string Continent { get; set; } = default!;
+
+        /// <summary>
+        /// Continent name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("continent_name")]
+        public string ContinentName { get; set; } = default!;
+
+        /// <summary>
+        /// ISO 3166-1 alpha-2 country code.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("country")]
+        public string Country { get; set; } = default!;
+
+        /// <summary>
+        /// Country name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("country_name")]
+        public string CountryName { get; set; } = default!;
+
+        /// <summary>
+        /// IANA timezone of the address.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("timezone")]
+        public string Timezone { get; set; } = default!;
+
+        /// <summary>
+        /// ISO 4217 code of the country's currency, where there is one.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("currency_code")]
+        public string CurrencyCode { get; set; } = default!;
+
+        /// <summary>
+        /// Name of the country's currency, where there is one.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("currency_name")]
+        public string CurrencyName { get; set; } = default!;
+
+        /// <summary>
+        /// Symbol of the country's currency, where known.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("currency_symbol")]
+        public string CurrencySymbol { get; set; } = default!;
+
+        /// <summary>
+        /// The country's flag, as an emoji.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("flag_emoji")]
+        public string FlagEmoji { get; set; } = default!;
+
+        /// <summary>
+        /// The Unicode code points of the flag emoji.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("flag_unicode")]
+        public string FlagUnicode { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    /// <summary>
+    /// The autonomous system that announces the address. Free and paid plans.
+    /// <br/>Each field is present whenever the object is: `asn` is 0 and the rest
+    /// <br/>empty where no announcement covers the address.
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class Asn
+    {
+
+        /// <summary>
+        /// The AS number, 0 when no announcement covers the address.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("asn")]
+        public int Number { get; set; } = default!;
+
+        /// <summary>
+        /// Name of the organization that operates the AS.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        public string Name { get; set; } = default!;
+
+        /// <summary>
+        /// The AS operator's own registrable domain.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("domain")]
+        public string Domain { get; set; } = default!;
+
+        /// <summary>
+        /// The kind of network the AS runs: isp, hosting, education, government or business.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        public string Type { get; set; } = default!;
+
+        /// <summary>
+        /// The announced BGP prefix that covers the address, the most specific when several do.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("prefix")]
+        public string Prefix { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    /// <summary>
     /// Every non-2xx response carries this shape.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -3942,6 +4075,17 @@ namespace VPNDetection
         public Standing Standing { get; set; } = default!;
 
         /// <summary>
+        /// An Open database: free under CC BY-SA 4.0 (credit VPNDetection,
+        /// <br/>https://vpndetection.io, and share what you build from it under the
+        /// <br/>same license). Every organization holds a `standard` license to it
+        /// <br/>from the start, which `standing` and `license_type` report like any
+        /// <br/>other.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("open")]
+        public bool Open { get; set; } = default!;
+
+        /// <summary>
         /// Every published version of this family. The `id` here is what the
         /// <br/>download and checksum endpoints take.
         /// <br/>
@@ -4021,6 +4165,12 @@ namespace VPNDetection
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sample")]
         public bool Sample { get; set; } = default!;
+
+        /// <summary>
+        /// A download of an Open database.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("open")]
+        public bool Open { get; set; } = default!;
 
         /// <summary>
         /// Object size at redirect time, NOT bytes delivered: the transfer is a
