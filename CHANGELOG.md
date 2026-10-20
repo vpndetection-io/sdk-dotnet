@@ -2,6 +2,13 @@
 
 What each release changed for you, newest first. Each line is a commit's summary, linked to its full description and diff. Releases before 5.2.4 are described by their release commits.
 
+## 5.9.0 - 2026-10-20
+
+### Features
+
+- Add Location and Asn to lookup results, a bogon's included ([`f0f4bb3`](https://github.com/vpndetection-io/sdk-dotnet/commit/f0f4bb3217127df756dacf15842991b62e0594a3))
+- Read Open on databases and downloads, and mark vpn.method deprecated ([`84d1060`](https://github.com/vpndetection-io/sdk-dotnet/commit/84d10602a669025b48c722bd0591667b5877be7e))
+
 ## 5.8.0 - 2026-10-20
 
 ### Fixes
