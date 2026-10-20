@@ -95,6 +95,10 @@ public class ConformanceTests
             var name = detail.GetString()!;
             Assert.Equal("{}", Corpus.AsWire(Corpus.Member(result, name)));
         }
+        foreach (var name in new[] { "location", "asn" })
+        {
+            Corpus.AssertWire(shape.GetProperty(name), Corpus.Member(result, name), $"{name} must carry every field, empty");
+        }
         Assert.Empty(handler.Calls);
     }
 
@@ -134,7 +138,7 @@ public class ConformanceTests
             {
                 Assert.Equal("{}", Corpus.AsWire(Corpus.Member(result, field)));
             }
-            foreach (var detail in new[] { "vpn", "hosting", "dcproxy", "pubproxy" })
+            foreach (var detail in new[] { "vpn", "hosting", "dcproxy", "pubproxy", "location", "asn" })
             {
                 if (expect.TryGetProperty(detail, out var want))
                 {

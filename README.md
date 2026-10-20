@@ -17,7 +17,7 @@ Targets .NET 8 and newer.
 
 ## Usage
 
-**No API key needed to start.** The free tier answers `ip` and `is_vpn`, and allows 1000 requests per day per source address.
+**No API key needed to start.** Without a key, a lookup answers `ip` and `is_vpn`, up to 1000 a day per source address.
 
 ```csharp
 using VPNDetection;
@@ -30,7 +30,7 @@ Console.WriteLine(result.IsVpn);   // True
 
 ### With an API key
 
-An API key raises your quota, and raises your features on a paid plan. Create one in the [console](https://app.vpndetection.io), then pass it in:
+A free key adds Tor and relay detection, where the address is and the AS that announces it. Every paid plan answers every field, the same on each, and the plans differ only in how many lookups they include. Create a key in the [console](https://app.vpndetection.io), then pass it in:
 
 ```csharp
 using var client = new VpnDetectionClient(new VpnDetectionClientOptions
@@ -39,10 +39,11 @@ using var client = new VpnDetectionClient(new VpnDetectionClientOptions
 });
 
 var result = await client.LookupAsync("45.83.91.1");
-Console.WriteLine(result.IsVpn);            // True
-Console.WriteLine(result.Vpn?.Provider);    // nordvpn
-Console.WriteLine(result.IsHosting);        // True
-Console.WriteLine(result.Hosting?.Provider);
+Console.WriteLine(result.IsVpn);              // True
+Console.WriteLine(result.Location?.Country);  // the ISO 3166 country code
+Console.WriteLine(result.Asn?.Name);          // who runs the announcing network
+Console.WriteLine(result.Vpn?.Provider);      // nordvpn, on a paid plan
+Console.WriteLine(result.IsHosting);          // True, on a paid plan
 ```
 
 ### Your own address
@@ -252,7 +253,7 @@ Check that `state` came back as you sent it before you exchange `code`, which wo
 
 ### Absent is not false
 
-Only `Ip` and `IsVpn` come back on every plan. The rest are `bool?`, where `null` means "not in your plan" rather than "checked, and no".
+Without a key only `Ip` and `IsVpn` come back, and a free key adds Tor, relay, `Location` and `Asn`. The flags are `bool?`, where `null` means "not in your plan" rather than "checked, and no".
 
 ```csharp
 result.IsHosting ?? false   // when you only want the flag

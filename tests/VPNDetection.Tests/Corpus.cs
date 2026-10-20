@@ -68,6 +68,10 @@ internal static class Corpus
                     && aProps.All(p => bProps.TryGetValue(p.Key, out var other) && Same(p.Value, other));
             case JsonValueKind.Array:
                 return a.EnumerateArray().SequenceEqual(b.EnumerateArray(), new SameComparer());
+            // By value: the serializer escapes a non-ASCII character (`€` is written `\u20AC`),
+            // which is the same string as the corpus's literal one.
+            case JsonValueKind.String:
+                return a.GetString() == b.GetString();
             default:
                 return a.GetRawText() == b.GetRawText();
         }
