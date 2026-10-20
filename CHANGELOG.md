@@ -2,6 +2,12 @@
 
 What each release changed for you, newest first. Each line is a commit's summary, linked to its full description and diff. Releases before 5.2.4 are described by their release commits.
 
+## 5.8.0 - 2026-10-20
+
+### Fixes
+
+- Re-pin the spec to 2026.10.19: client_id_issued_at is 64-bit ([`4d0ebba`](https://github.com/vpndetection-io/sdk-dotnet/commit/4d0ebba3aa82e4d3c2d5fd48cd6100a3323818dc))
+
 ## 5.7.0 - 2026-10-19
 
 ### Features
