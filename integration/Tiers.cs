@@ -15,8 +15,9 @@ internal sealed record Rung(string Tier, string? Secret, bool Widens)
 {
     /// <summary>
     /// Ascending, one rung per plan tier. <see cref="Widens"/> is what a rung promises against
-    /// whichever observable rung sits below it: a paid tier serves strictly more, while a free key
-    /// and no key at all are one entitlement reached two ways.
+    /// whichever observable rung sits below it: the first paid tier serves strictly more than a
+    /// free key; every paid plan answers the same fields, so a higher paid tier only keeps what
+    /// the one under it serves, and a free key keeps what no key does.
     /// </summary>
     /// <remarks>
     /// Field COUNTS are deliberately absent. Pinning "starter answers seven fields" turns a pricing
@@ -27,8 +28,8 @@ internal sealed record Rung(string Tier, string? Secret, bool Widens)
         new Rung("unauth", null, false),
         new Rung("free", "VPNDETECTION_STAGING_KEY_FREE", false),
         new Rung("starter", "VPNDETECTION_STAGING_KEY_STARTER", true),
-        new Rung("scale", "VPNDETECTION_STAGING_KEY_SCALE", true),
-        new Rung("max", "VPNDETECTION_STAGING_KEY_MAX", true),
+        new Rung("scale", "VPNDETECTION_STAGING_KEY_SCALE", false),
+        new Rung("max", "VPNDETECTION_STAGING_KEY_MAX", false),
     };
 
     internal static Rung Unauth => All[0];
