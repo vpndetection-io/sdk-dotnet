@@ -2,6 +2,17 @@
 
 What each release changed for you, newest first. Each line is a commit's summary, linked to its full description and diff. Releases before 5.2.4 are described by their release commits.
 
+## 5.10.0 - 2026-10-25
+
+### Features
+
+- Add Oauth.RegisterAsync, dynamic client registration ([`5d494a8`](https://github.com/vpndetection-io/sdk-dotnet/commit/5d494a8e0de8fa1ecaa86998313f7a5a8bdb87e2))
+
+### Fixes
+
+- Match a block condition on Location and Asn ([`462e731`](https://github.com/vpndetection-io/sdk-dotnet/commit/462e731864c71205cff961ff09fada269a18555a))
+- Refuse dates outside RFC 3339, forbidden nulls and negative retries ([`8713574`](https://github.com/vpndetection-io/sdk-dotnet/commit/8713574e537396479a370a38695161b386487e71))
+
 ## 5.9.0 - 2026-10-20
 
 ### Features
