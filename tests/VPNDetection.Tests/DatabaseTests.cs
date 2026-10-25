@@ -16,7 +16,7 @@ public class DatabaseTests
     {
         ["/api/v1/database/list"] = """
             {"databases":[{"base":"vpn_ip_extended","name":"VPN IP Extended","summary":"vpn_ip rows","starts":"2026-01-01T00:00:00.000Z","expires":null,"renews_at":null,"notice_due_at":null,"license_type":"standard",
-            "in_term":true,"standing":"licensed","versions":[{"id":"vpn_ip_extended_v1","version":1,
+            "in_term":true,"open":false,"standing":"licensed","versions":[{"id":"vpn_ip_extended_v1","version":1,
             "formats":[{"format":"mmdb","bytes":1234},{"format":"csvgz","bytes":null}],
             "sample_formats":["csvgz","mmdb"]}]}]}
             """,
@@ -25,7 +25,7 @@ public class DatabaseTests
             "checksums":{"md5":"m","sha1":"s1","sha256":"s256","sha512":"s512"}}
             """,
         ["/api/v1/database/downloads"] = """
-            {"downloads":[{"dataset_id":"vpn_ip_extended_v1","format":"mmdb","outcome":"ok",
+            {"downloads":[{"dataset_id":"vpn_ip_extended_v1","format":"mmdb","outcome":"ok","sample":false,"open":false,
             "bytes":1234,"created":"2026-09-02T10:00:00Z"}]}
             """,
         ["/api/v1/database/metadata"] = """

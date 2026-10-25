@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
@@ -112,6 +113,20 @@ internal static class Wire
             CheckTimeout(value, nameof(LookupOptions.RequestTimeout));
         }
         return perCall ?? client;
+    }
+
+    /// <summary>
+    /// A per-call retry count, refused when negative as the client's is, and before anything can
+    /// answer locally: 5.9.0 read -1 as no retries, and a bogon or a cache hit answered it.
+    /// </summary>
+    internal static int? CheckRetries(int? perCall)
+    {
+        if (perCall is < 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(LookupOptions.Retries), perCall, "a retry count must not be negative");
+        }
+        return perCall;
     }
 
     /// <summary>The rule <see cref="HttpClient.Timeout"/> applies, which this bound replaces.</summary>
@@ -392,24 +407,48 @@ internal partial class WireClient
     // scripts/normalize_generated.py refuses to emit a client where a SECOND enum needs it.
     //
     // NSwag also starts every member at a default, so `{}` read as an answer: a lookup of nulls, an
-    // empty plan, an empty catalog (5.4.1, measured 2026-10-13). The members each answer exists to
-    // carry are required on the wire instead, which a body without one fails as an answer this
+    // empty plan, an empty catalog (5.4.1, measured 2026-10-13). And System.Text.Json sets a null
+    // into a reference-typed member, or into a list or map, without a word, so a database's `name`,
+    // a version's `id`, `formats: [null]`, a location's `country` and the plan's `key` came back as
+    // null (5.9.0, measured 2026-10-25). Every member the spec requires and never sends as null is
+    // required on the wire instead and refused as null at any depth, and a list or map the spec
+    // allows to be absent still holds no null, which a body breaking either fails as an answer this
     // client cannot read.
+    //
+    // System.Text.Json reads a DateTimeOffset in more forms than the spec's `date-time`: 5.9.0 took
+    // a date alone as midnight, a time with no offset in the machine's own zone, `+05` and a time
+    // without seconds (measured 2026-10-25). Its DateOnly reader takes `full-date` alone.
     static partial void UpdateJsonSerializerSettings(JsonSerializerOptions settings)
     {
         settings.Converters.Add(new JsonStringEnumConverter<DatabaseFormat>());
+        settings.Converters.Add(new Rfc3339DateTimeConverter());
         settings.TypeInfoResolver = new DefaultJsonTypeInfoResolver { Modifiers = { RequireAnswerMembers } };
     }
 
-    // By the generated type that carries them, from each answer's `required` list in the spec; the
-    // three envelopes are matched by their one member, since NSwag names them Response, Response2
-    // and Response3.
+    // By the generated type that carries them, from each schema's `required` list less the members
+    // it marks nullable; a test holds this to the generated types' own nullability. The three
+    // envelopes are matched by their one member, since NSwag names them Response, Response2 and
+    // Response3, and the checksum answer's other two by its type, which that test also checks.
     internal static readonly IReadOnlyDictionary<Type, string[]> AnswerMembers = new Dictionary<Type, string[]>
     {
         [typeof(LookupResponse)] = ["ip", "is_vpn"],
+        [typeof(Location)] = ["continent", "continent_name", "country", "country_name", "timezone",
+            "currency_code", "currency_name", "currency_symbol", "flag_emoji", "flag_unicode"],
+        [typeof(Asn)] = ["asn", "name", "domain", "type", "prefix"],
         [typeof(BatchLookupResponse)] = ["results", "errors"],
+        [typeof(BatchLookupError)] = ["status", "error"],
         [typeof(Entitlement)] = ["org_id", "apikey", "plan", "usage"],
-        [typeof(DatabaseMetadata)] = ["id"],
+        [typeof(EntitlementApikey)] = ["id", "allowed_cidrs"],
+        [typeof(EntitlementPlan)] = ["key", "tier"],
+        [typeof(EntitlementUsage)] = ["requests", "quota", "window_start", "window_end"],
+        [typeof(Database)] = ["base", "name", "summary", "in_term", "standing", "open", "versions"],
+        [typeof(DatabaseVersion)] = ["id", "version", "formats"],
+        [typeof(DatabaseFormatSize)] = ["format"],
+        [typeof(DatabaseMetadata)] = ["id", "updated", "entries", "schema"],
+        [typeof(DatabaseMetadataColumn)] = ["name", "type"],
+        [typeof(DbChecksums)] = ["md5", "sha1", "sha256", "sha512"],
+        [typeof(Download)] = ["dataset_id", "format", "outcome", "sample", "open", "created"],
+        [typeof(Response2)] = ["id", "format", "checksums"],
     };
 
     internal static readonly HashSet<string> EnvelopeMembers = ["databases", "downloads", "checksums"];
@@ -421,13 +460,65 @@ internal partial class WireClient
             return;
         }
         var members = AnswerMembers.TryGetValue(info.Type, out var named) ? named : [];
+        var nullability = new NullabilityInfoContext();
         foreach (var property in info.Properties)
         {
-            if (members.Contains(property.Name) || EnvelopeMembers.Contains(property.Name))
+            if (property.Set is not { } set || property.PropertyType.IsValueType)
+            {
+                property.IsRequired |= members.Contains(property.Name);
+                continue;
+            }
+            var name = property.Name;
+            if (members.Contains(name) || EnvelopeMembers.Contains(name))
             {
                 property.IsRequired = true;
+                property.Set = (target, value) => set(target, NotNull(value, name));
+            }
+            else if (property.AttributeProvider is PropertyInfo declared
+                && nullability.Create(declared).GenericTypeArguments is { Length: > 0 } entries
+                && entries.All(entry => entry.ReadState == NullabilityState.NotNull || entry.Type.IsValueType))
+            {
+                // Absent is allowed, a null inside it is not: `protocols: [null]` came back as served.
+                property.Set = (target, value) => set(target, value is null ? null : Entries(value, name));
             }
         }
+    }
+
+    // IsRequired asks only that a member be there, and System.Text.Json sets a null into a
+    // reference-typed member, or into a list or map, without a word.
+    private static object NotNull(object? value, string name)
+    {
+        switch (value)
+        {
+            case null:
+                throw new JsonException($"`{name}` is null, or holds a null");
+            case System.Collections.IDictionary map:
+                foreach (var entry in map.Values)
+                {
+                    NotNull(entry, name);
+                }
+                break;
+            case System.Collections.IEnumerable list and not string:
+                foreach (var entry in list)
+                {
+                    NotNull(entry, name);
+                }
+                break;
+        }
+        return value;
+    }
+
+    private static object Entries(object value, string name)
+    {
+        var entries = value is System.Collections.IDictionary map ? map.Values : value as System.Collections.IEnumerable;
+        foreach (var entry in entries ?? Array.Empty<object>())
+        {
+            if (entry is null)
+            {
+                throw new JsonException($"`{name}` holds a null");
+            }
+        }
+        return value;
     }
 
     partial void PrepareRequest(HttpClient client, HttpRequestMessage request, string url)
@@ -475,4 +566,56 @@ internal partial class WireClient
         => apiAuthority ??= Uri.TryCreate(BaseUrl, UriKind.Absolute, out var parsed)
             ? parsed.Authority
             : string.Empty;
+}
+
+/// <summary>
+/// RFC 3339's <c>date-time</c> and nothing else: seconds and an offset required, an offset hour of
+/// at most 23, and a day, hour or second that does not exist refused by the constructor.
+/// </summary>
+internal sealed partial class Rfc3339DateTimeConverter : JsonConverter<DateTimeOffset>
+{
+    [GeneratedRegex(@"^(\d{4})-(\d{2})-(\d{2})[Tt](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?(?:([Zz])|([+-])(\d{2}):(\d{2}))$")]
+    private static partial Regex Form();
+
+    public override DateTimeOffset Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        var text = reader.TokenType == JsonTokenType.String ? reader.GetString() : null;
+        return text is not null && Parse(text) is { } value
+            ? value
+            : throw new JsonException($"not an RFC 3339 date-time: {text ?? reader.TokenType.ToString()}");
+    }
+
+    public override void Write(Utf8JsonWriter writer, DateTimeOffset value, JsonSerializerOptions options)
+        => writer.WriteStringValue(value.ToString("yyyy-MM-dd'T'HH:mm:ss.FFFFFFFzzz", CultureInfo.InvariantCulture));
+
+    internal static DateTimeOffset? Parse(string text)
+    {
+        var m = Form().Match(text);
+        if (!m.Success)
+        {
+            return null;
+        }
+        int At(int group) => int.Parse(m.Groups[group].Value, CultureInfo.InvariantCulture);
+        var offset = TimeSpan.Zero;
+        if (!m.Groups[8].Success)
+        {
+            if (At(10) > 23 || At(11) > 59)
+            {
+                return null;
+            }
+            offset = new TimeSpan(At(10), At(11), 0) * (m.Groups[9].Value == "-" ? -1 : 1);
+        }
+        try
+        {
+            var value = new DateTimeOffset(At(1), At(2), At(3), At(4), At(5), At(6), offset);
+            var fraction = m.Groups[7].Value;
+            return fraction.Length == 0
+                ? value
+                : value.AddTicks(long.Parse(fraction.PadRight(7, '0')[..7], CultureInfo.InvariantCulture));
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            return null;
+        }
+    }
 }

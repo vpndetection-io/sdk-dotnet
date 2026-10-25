@@ -159,6 +159,7 @@ public sealed class VpnDetectionClient : IDisposable
         string ip, LookupOptions? options, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(ip);
+        Wire.CheckRetries(options?.Retries);
         var timeout = Wire.TimeoutFor(options?.RequestTimeout, requestTimeout);
         // Judged, cached and sent as the IPv4 address it carries, if it is mapped.
         ip = Bogon.Unmapped(ip);
@@ -288,7 +289,7 @@ public sealed class VpnDetectionClient : IDisposable
     public Task<Result> MyIpAsync(
         LookupOptions? options, CancellationToken cancellationToken = default)
         => Wire.ExecuteAsync(
-            options?.Retries ?? retries,
+            Wire.CheckRetries(options?.Retries) ?? retries,
             Wire.TimeoutFor(options?.RequestTimeout, requestTimeout),
             async ct => Result.Of(await wire.LookupMyIpAsync(ct).ConfigureAwait(false)),
             cancellationToken);
@@ -324,7 +325,7 @@ public sealed class VpnDetectionClient : IDisposable
     public Task<Entitlement> MyEntitlementAsync(
         LookupOptions? options, CancellationToken cancellationToken = default)
         => Wire.ExecuteAsync(
-            options?.Retries ?? retries,
+            Wire.CheckRetries(options?.Retries) ?? retries,
             Wire.TimeoutFor(options?.RequestTimeout, requestTimeout),
             ct => wire.MyEntitlementAsync(ct),
             cancellationToken);
@@ -355,6 +356,7 @@ public sealed class VpnDetectionClient : IDisposable
         IEnumerable<string> ips, BatchOptions? options, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(ips);
+        Wire.CheckRetries(options?.Retries);
         var timeout = Wire.TimeoutFor(options?.RequestTimeout, requestTimeout);
         if (options?.Concurrency is < 1)
         {
