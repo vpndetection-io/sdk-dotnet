@@ -339,7 +339,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<LookupError>("Either the request rate was too high, or an allowance is spent.\nThe two are told apart by the message, not the status.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<LookupError>("Either a transient rate limit or a spent allowance. `Retry-After` is\npresent for the former and absent for the latter, and is the only\nway to tell them apart.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 500)
