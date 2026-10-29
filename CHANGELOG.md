@@ -2,6 +2,12 @@
 
 What each release changed for you, newest first. Each line is a commit's summary, linked to its full description and diff. Releases before 5.2.4 are described by their release commits.
 
+## 5.10.2 - 2026-10-29
+
+### Fixes
+
+- Read enums by name and dates in ASCII digits alone ([`bc015ca`](https://github.com/vpndetection-io/sdk-dotnet/commit/bc015ca1c8d260300c23c6557cf55fb6bade66c7))
+
 ## 5.10.1 - 2026-10-26
 
 ### Fixes
