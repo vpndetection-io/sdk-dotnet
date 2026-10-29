@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Reflection;
+using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
@@ -418,9 +419,14 @@ internal partial class WireClient
     // System.Text.Json reads a DateTimeOffset in more forms than the spec's `date-time`: 5.9.0 took
     // a date alone as midnight, a time with no offset in the machine's own zone, `+05` and a time
     // without seconds (measured 2026-10-25). Its DateOnly reader takes `full-date` alone.
+    //
+    // NSwag's JsonStringEnumConverter reads a NUMBER, a numeric string and any case as an enum too,
+    // so 5.10.1 read `"standing": 0` and `"LICENSED"` as `Licensed` and `"outcome": 1` as
+    // `Unauthorized` (measured 2026-10-29). Every enum is read by its wire name alone
+    // (WireEnumConverter), the one in a list included.
     static partial void UpdateJsonSerializerSettings(JsonSerializerOptions settings)
     {
-        settings.Converters.Add(new JsonStringEnumConverter<DatabaseFormat>());
+        settings.Converters.Add(new WireEnumConverter<DatabaseFormat>());
         settings.Converters.Add(new Rfc3339DateTimeConverter());
         settings.TypeInfoResolver = new DefaultJsonTypeInfoResolver { Modifiers = { RequireAnswerMembers } };
     }
@@ -463,6 +469,16 @@ internal partial class WireClient
         var nullability = new NullabilityInfoContext();
         foreach (var property in info.Properties)
         {
+            var type = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
+            if (type.IsEnum)
+            {
+                var converter = type == property.PropertyType ? typeof(WireEnumConverter<>) : typeof(NullableWireEnumConverter<>);
+                property.CustomConverter = (JsonConverter)Activator.CreateInstance(converter.MakeGenericType(type))!;
+            }
+            if (info.Type == typeof(DatabaseMetadata) && property.Name == "sample" && property.Set is { } setSample)
+            {
+                property.Set = (target, value) => setSample(target, SampleRows(value));
+            }
             if (property.Set is not { } set || property.PropertyType.IsValueType)
             {
                 property.IsRequired |= members.Contains(property.Name);
@@ -504,6 +520,23 @@ internal partial class WireClient
                     NotNull(entry, name);
                 }
                 break;
+        }
+        return value;
+    }
+
+    // A sample row is an object whatever its columns, and the generated type holds it as `object`,
+    // so 5.10.1 handed a row of null, 1, "x" or [] back as served (measured 2026-10-29).
+    private static object? SampleRows(object? value)
+    {
+        foreach (var rows in (value as System.Collections.IDictionary)?.Values ?? Array.Empty<object>())
+        {
+            foreach (var row in rows as System.Collections.IEnumerable ?? Array.Empty<object>())
+            {
+                if (row is not JsonElement { ValueKind: JsonValueKind.Object })
+                {
+                    throw new JsonException("`sample` holds a row that is not an object");
+                }
+            }
         }
         return value;
     }
@@ -570,11 +603,14 @@ internal partial class WireClient
 
 /// <summary>
 /// RFC 3339's <c>date-time</c> and nothing else: seconds and an offset required, an offset hour of
-/// at most 23, and a day, hour or second that does not exist refused by the constructor.
+/// at most 23, and a day, hour or second that does not exist refused by the constructor. ASCII
+/// digits and <c>\z</c>, since .NET's <c>\d</c> takes any script's digits and <c>$</c> a trailing
+/// newline: 5.10.1 read a date-time ending in one, and failed with a raw FormatException on an
+/// Arabic-Indic digit (measured 2026-10-29).
 /// </summary>
 internal sealed partial class Rfc3339DateTimeConverter : JsonConverter<DateTimeOffset>
 {
-    [GeneratedRegex(@"^(\d{4})-(\d{2})-(\d{2})[Tt](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?(?:([Zz])|([+-])(\d{2}):(\d{2}))$")]
+    [GeneratedRegex(@"\A([0-9]{4})-([0-9]{2})-([0-9]{2})[Tt]([0-9]{2}):([0-9]{2}):([0-9]{2})(?:\.([0-9]+))?(?:([Zz])|([+-])([0-9]{2}):([0-9]{2}))\z")]
     private static partial Regex Form();
 
     public override DateTimeOffset Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -595,7 +631,7 @@ internal sealed partial class Rfc3339DateTimeConverter : JsonConverter<DateTimeO
         {
             return null;
         }
-        int At(int group) => int.Parse(m.Groups[group].Value, CultureInfo.InvariantCulture);
+        int At(int group) => int.Parse(m.Groups[group].Value, NumberStyles.None, CultureInfo.InvariantCulture);
         var offset = TimeSpan.Zero;
         if (!m.Groups[8].Success)
         {
@@ -607,15 +643,69 @@ internal sealed partial class Rfc3339DateTimeConverter : JsonConverter<DateTimeO
         }
         try
         {
-            var value = new DateTimeOffset(At(1), At(2), At(3), At(4), At(5), At(6), offset);
+            // DateTimeOffset holds an offset of at most 14 hours, and RFC 3339 allows 23:59, so one
+            // past it is read as the same instant at UTC.
+            var local = new DateTime(At(1), At(2), At(3), At(4), At(5), At(6));
+            var value = offset.Duration() <= TimeSpan.FromHours(14)
+                ? new DateTimeOffset(local, offset)
+                : new DateTimeOffset(local - offset, TimeSpan.Zero);
             var fraction = m.Groups[7].Value;
             return fraction.Length == 0
                 ? value
-                : value.AddTicks(long.Parse(fraction.PadRight(7, '0')[..7], CultureInfo.InvariantCulture));
+                : value.AddTicks(long.Parse(fraction.PadRight(7, '0')[..7], NumberStyles.None, CultureInfo.InvariantCulture));
         }
         catch (ArgumentOutOfRangeException)
         {
             return null;
+        }
+    }
+}
+
+/// <summary>
+/// An enum read by the spec's wire name alone, exactly as the spec spells it, where
+/// <see cref="JsonStringEnumConverter"/> also takes a number, a numeric string and any case.
+/// </summary>
+internal sealed class WireEnumConverter<T> : JsonConverter<T>
+    where T : struct, Enum
+{
+    private static readonly Dictionary<string, T> ByName = typeof(T)
+        .GetFields(BindingFlags.Public | BindingFlags.Static)
+        .ToDictionary(field => field.GetCustomAttribute<EnumMemberAttribute>()?.Value ?? field.Name,
+            field => (T)field.GetValue(null)!, StringComparer.Ordinal);
+
+    private static readonly Dictionary<T, string> ByValue = ByName.ToDictionary(entry => entry.Value, entry => entry.Key);
+
+    public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        => reader.TokenType == JsonTokenType.String && ByName.TryGetValue(reader.GetString()!, out var value)
+            ? value
+            : throw new JsonException($"not one of {typeof(T).Name}'s values");
+
+    public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
+        => writer.WriteStringValue(ByValue.TryGetValue(value, out var name)
+            ? name
+            : throw new JsonException($"{value} is not one of {typeof(T).Name}'s values"));
+}
+
+/// <summary><see cref="WireEnumConverter{T}"/> for a member the spec allows to be null.</summary>
+internal sealed class NullableWireEnumConverter<T> : JsonConverter<T?>
+    where T : struct, Enum
+{
+    private static readonly WireEnumConverter<T> Inner = new();
+
+    public override bool HandleNull => true;
+
+    public override T? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        => reader.TokenType == JsonTokenType.Null ? null : Inner.Read(ref reader, typeof(T), options);
+
+    public override void Write(Utf8JsonWriter writer, T? value, JsonSerializerOptions options)
+    {
+        if (value is { } present)
+        {
+            Inner.Write(writer, present, options);
+        }
+        else
+        {
+            writer.WriteNullValue();
         }
     }
 }
