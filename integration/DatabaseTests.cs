@@ -8,7 +8,7 @@ namespace VPNDetection.Integration;
 // licenses, and db.download is a scope the other three keys do not carry.
 //
 // The transfer is budgeted before it starts. Metadata publishes a size per format, and that size is
-// checked against the ceiling below FIRST, so a mistaken dataset id can never quietly pull one of
+// checked against the ceiling below FIRST, so a mistaken dataset ID can never quietly pull one of
 // the gigabyte datasets through CI.
 public class DatabaseTests
 {
@@ -22,7 +22,7 @@ public class DatabaseTests
     // the suite is pointed somewhere unintended, which is exactly when a transfer must not proceed.
     private const long Ceiling = 8 << 20;
 
-    /// <summary>A real catalogue id the max organization holds no license for.</summary>
+    /// <summary>A real catalogue ID the max organization holds no license for.</summary>
     private const string UnlicensedId = "hosting_ip_v1";
 
     private static readonly SemaphoreSlim TransferLock = new(1, 1);
@@ -77,7 +77,7 @@ public class DatabaseTests
                         $"{family.Base} is {family.Standing} and carries an undocumented right");
                     licensed.Add(family.Base);
                 }
-                // The point of the family shape: a license covers the family, and these are the ids
+                // The point of the family shape: a license covers the family, and these are the IDs
                 // the download and checksum calls take. Before the spec was corrected this list did
                 // not exist, so ListAsync could not tell a caller what to download.
                 Assert.True(family.Versions.Count > 0, $"{family.Base} carries no versions");

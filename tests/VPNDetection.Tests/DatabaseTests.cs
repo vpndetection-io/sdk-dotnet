@@ -48,7 +48,7 @@ public class DatabaseTests
         Assert.Equal("s256", sums.Sha256);
         Assert.Equal("s512", sums.Sha512);
 
-        // A license is held against the FAMILY, and the ids the download and checksum calls take
+        // A license is held against the FAMILY, and the IDs the download and checksum calls take
         // hang off its versions. The spec used to claim `{id, formats}` here, which decoded into a
         // dataset whose every field was empty and left ListAsync unable to say what to download.
         var databases = await client.Database.ListAsync();
