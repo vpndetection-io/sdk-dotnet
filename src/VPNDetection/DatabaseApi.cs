@@ -31,7 +31,7 @@ public sealed class DatabaseApi
 
     /// <summary>The dataset families your organization is licensed to download.</summary>
     /// <remarks>
-    /// A license covers a FAMILY while a download names one of its versions, so the ids
+    /// A license covers a FAMILY while a download names one of its versions, so the IDs
     /// <see cref="DownloadAsync"/> and <see cref="ChecksumsAsync"/> take come from
     /// <see cref="Database.Versions"/>.
     /// </remarks>
