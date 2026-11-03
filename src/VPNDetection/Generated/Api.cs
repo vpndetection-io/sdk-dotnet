@@ -668,9 +668,9 @@ namespace VPNDetection
         /// <remarks>
         /// Answers `302` with a time-limited URL pointing straight at object storage. Follow the redirect; the link authorizes the START of a transfer, so one already running is not interrupted when it lapses.
         /// </remarks>
-        /// <param name="id">Dataset id, e.g. vpn_ip_extended_v1</param>
+        /// <param name="id">Dataset ID, e.g. vpn_ip_extended_v1</param>
         /// <param name="format">Not every database is built in every format. The `_provider`
-        /// <br/>catalogs are keyed by provider id rather than by IP range, so no
+        /// <br/>catalogs are keyed by provider ID rather than by IP range, so no
         /// <br/>MMDB exists for them.</param>
         /// <exception cref="WireException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task DownloadDatabaseAsync(string id, DatabaseFormat format)
@@ -685,9 +685,9 @@ namespace VPNDetection
         /// <remarks>
         /// Answers `302` with a time-limited URL pointing straight at object storage. Follow the redirect; the link authorizes the START of a transfer, so one already running is not interrupted when it lapses.
         /// </remarks>
-        /// <param name="id">Dataset id, e.g. vpn_ip_extended_v1</param>
+        /// <param name="id">Dataset ID, e.g. vpn_ip_extended_v1</param>
         /// <param name="format">Not every database is built in every format. The `_provider`
-        /// <br/>catalogs are keyed by provider id rather than by IP range, so no
+        /// <br/>catalogs are keyed by provider ID rather than by IP range, so no
         /// <br/>MMDB exists for them.</param>
         /// <exception cref="WireException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task DownloadDatabaseAsync(string id, DatabaseFormat format, System.Threading.CancellationToken cancellationToken)
@@ -1963,12 +1963,12 @@ namespace VPNDetection
         /// Rotate
         /// </summary>
         /// <remarks>
-        /// Replaces the secret behind a key, keeping its id, name and settings.
+        /// Replaces the secret behind a key, keeping its ID, name and settings.
         /// <br/>The previous secret stops working immediately. The new secret comes
         /// <br/>back in the answer, so this needs `apikeys.reveal` as well as
         /// <br/>`apikeys.manage`.
         /// </remarks>
-        /// <param name="id">The key's id, as returned by the list endpoint. Never the key itself.</param>
+        /// <param name="id">The key's ID, as returned by the list endpoint. Never the key itself.</param>
         /// <returns>The key, with its new secret.</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task<AccountCreatedApikey> AccountRotateApikeyAsync(System.Guid id)
@@ -1981,12 +1981,12 @@ namespace VPNDetection
         /// Rotate
         /// </summary>
         /// <remarks>
-        /// Replaces the secret behind a key, keeping its id, name and settings.
+        /// Replaces the secret behind a key, keeping its ID, name and settings.
         /// <br/>The previous secret stops working immediately. The new secret comes
         /// <br/>back in the answer, so this needs `apikeys.reveal` as well as
         /// <br/>`apikeys.manage`.
         /// </remarks>
-        /// <param name="id">The key's id, as returned by the list endpoint. Never the key itself.</param>
+        /// <param name="id">The key's ID, as returned by the list endpoint. Never the key itself.</param>
         /// <returns>The key, with its new secret.</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<AccountCreatedApikey> AccountRotateApikeyAsync(System.Guid id, System.Threading.CancellationToken cancellationToken)
@@ -2101,7 +2101,7 @@ namespace VPNDetection
         /// <br/>`revoked_at`, because the organization still owns whatever it did while
         /// <br/>it was alive.
         /// </remarks>
-        /// <param name="id">The key's id, as returned by the list endpoint. Never the key itself.</param>
+        /// <param name="id">The key's ID, as returned by the list endpoint. Never the key itself.</param>
         /// <returns>Revoked.</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task<AccountRc> AccountRevokeApikeyAsync(System.Guid id)
@@ -2118,7 +2118,7 @@ namespace VPNDetection
         /// <br/>`revoked_at`, because the organization still owns whatever it did while
         /// <br/>it was alive.
         /// </remarks>
-        /// <param name="id">The key's id, as returned by the list endpoint. Never the key itself.</param>
+        /// <param name="id">The key's ID, as returned by the list endpoint. Never the key itself.</param>
         /// <returns>Revoked.</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<AccountRc> AccountRevokeApikeyAsync(System.Guid id, System.Threading.CancellationToken cancellationToken)
@@ -2239,7 +2239,7 @@ namespace VPNDetection
         /// <br/>stored secrets recoverably - that secret was never kept, so no retry
         /// <br/>will ever produce it. Rotate the key instead.
         /// </remarks>
-        /// <param name="id">The key's id, as returned by the list endpoint. Never the key itself.</param>
+        /// <param name="id">The key's ID, as returned by the list endpoint. Never the key itself.</param>
         /// <returns>The key's secret.</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
         public virtual System.Threading.Tasks.Task<AccountRevealedApikey> AccountRevealApikeyAsync(System.Guid id)
@@ -2262,7 +2262,7 @@ namespace VPNDetection
         /// <br/>stored secrets recoverably - that secret was never kept, so no retry
         /// <br/>will ever produce it. Rotate the key instead.
         /// </remarks>
-        /// <param name="id">The key's id, as returned by the list endpoint. Never the key itself.</param>
+        /// <param name="id">The key's ID, as returned by the list endpoint. Never the key itself.</param>
         /// <returns>The key's secret.</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<AccountRevealedApikey> AccountRevealApikeyAsync(System.Guid id, System.Threading.CancellationToken cancellationToken)
@@ -4013,7 +4013,7 @@ namespace VPNDetection
 
     /// <summary>
     /// One database FAMILY, with your organization's license beside it. A license covers
-    /// <br/>the family, while a download names a specific version, so the ids you
+    /// <br/>the family, while a download names a specific version, so the IDs you
     /// <br/>pass to the download and checksum endpoints come from `versions`.
     /// <br/>
     /// </summary>
@@ -4109,7 +4109,7 @@ namespace VPNDetection
     {
 
         /// <summary>
-        /// The versioned database id, e.g. `vpn_ip_v1`. Pass this to download.
+        /// The versioned database ID, e.g. `vpn_ip_v1`. Pass this to download.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         public string Id { get; set; } = default!;
@@ -4361,7 +4361,7 @@ namespace VPNDetection
     }
 
     /// <summary>
-    /// The credential itself. The key is never echoed - only its id, which is
+    /// The credential itself. The key is never echoed - only its ID, which is
     /// <br/>what the console shows and what you can act on.
     /// <br/>
     /// </summary>
