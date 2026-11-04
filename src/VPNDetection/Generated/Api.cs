@@ -3638,8 +3638,10 @@ namespace VPNDetection
 
     /// <summary>
     /// The shared detail shape for the residential, datacenter and mobile proxy
-    /// <br/>families, measured over a rolling 90 day window. Every key is present
-    /// <br/>when the object is populated; the object is `{}` when its flag is false.
+    /// <br/>families, measured over a rolling 90 day window. An address that leaves
+    /// <br/>the window keeps its flag and the values of its last day in it, so
+    /// <br/>`last_seen` is what says how recent they are. Every key is present when
+    /// <br/>the object is populated; the object is `{}` when its flag is false.
     /// <br/>
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -3698,7 +3700,9 @@ namespace VPNDetection
 
     /// <summary>
     /// The address in Public Proxy IP, open proxies anyone can connect
-    /// <br/>through, measured over a rolling 90 day window. An address is either
+    /// <br/>through, measured over a rolling 90 day window. An address that leaves
+    /// <br/>the window keeps its flag and the values of its last day in it, so
+    /// <br/>`last_seen` is what says how recent they are. An address is either
     /// <br/>end of a proxy, or both: where it listens, and where its traffic
     /// <br/>leaves from. Every key is present when the object is populated; the
     /// <br/>object is `{}` when `is_pubproxy` is false.
