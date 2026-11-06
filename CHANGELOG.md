@@ -2,6 +2,12 @@
 
 What each release changed for you, newest first. Each line is a commit's summary, linked to its full description and diff. Releases before 5.2.4 are described by their release commits.
 
+## 5.10.3 - 2026-11-06
+
+### Fixes
+
+- End the device poll at its deadline without asking again ([`617e91c`](https://github.com/vpndetection-io/sdk-dotnet/commit/617e91ca80dfc06375ecd35257aae95dc1a3eb23))
+
 ## 5.10.2 - 2026-10-29
 
 ### Fixes
