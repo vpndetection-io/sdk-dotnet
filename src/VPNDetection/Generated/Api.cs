@@ -183,7 +183,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<LookupError>("The key restricts which source addresses may use it, and this\nrequest did not come from one of them.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<LookupError>("The key restricts which source addresses may use it and this\nrequest came from none of them, or the key was sent over plain\nHTTP, where anyone on the network path could read it. Rotate a key\nthat was.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 429)
@@ -329,7 +329,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<LookupError>("The key restricts which source addresses may use it, and this\nrequest did not come from one of them.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<LookupError>("The key restricts which source addresses may use it and this\nrequest came from none of them, or the key was sent over plain\nHTTP, where anyone on the network path could read it. Rotate a key\nthat was.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 429)
@@ -512,7 +512,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<LookupError>("The key restricts which source addresses may use it, and this\nrequest did not come from one of them.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<LookupError>("The key restricts which source addresses may use it and this\nrequest came from none of them, or the key was sent over plain\nHTTP, where anyone on the network path could read it. Rotate a key\nthat was.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 413)
@@ -672,10 +672,13 @@ namespace VPNDetection
         /// <param name="format">Not every database is built in every format. The `_provider`
         /// <br/>catalogs are keyed by provider ID rather than by IP range, so no
         /// <br/>MMDB exists for them.</param>
+        /// <param name="build">One build of the database, by the name a `database.updated` webhook
+        /// <br/>gives it, so the file is the one whose `sha256` the webhook carries.
+        /// <br/>Without it, the build that is live.</param>
         /// <exception cref="WireException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task DownloadDatabaseAsync(string id, DatabaseFormat format)
+        public virtual System.Threading.Tasks.Task DownloadDatabaseAsync(string id, DatabaseFormat format, string? build)
         {
-            return DownloadDatabaseAsync(id, format, System.Threading.CancellationToken.None);
+            return DownloadDatabaseAsync(id, format, build, System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
@@ -689,8 +692,11 @@ namespace VPNDetection
         /// <param name="format">Not every database is built in every format. The `_provider`
         /// <br/>catalogs are keyed by provider ID rather than by IP range, so no
         /// <br/>MMDB exists for them.</param>
+        /// <param name="build">One build of the database, by the name a `database.updated` webhook
+        /// <br/>gives it, so the file is the one whose `sha256` the webhook carries.
+        /// <br/>Without it, the build that is live.</param>
         /// <exception cref="WireException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task DownloadDatabaseAsync(string id, DatabaseFormat format, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task DownloadDatabaseAsync(string id, DatabaseFormat format, string? build, System.Threading.CancellationToken cancellationToken)
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -713,6 +719,10 @@ namespace VPNDetection
                     urlBuilder_.Append('?');
                     urlBuilder_.Append(System.Uri.EscapeDataString("id")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     urlBuilder_.Append(System.Uri.EscapeDataString("format")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(format, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    if (build != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("build")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(build, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
                     urlBuilder_.Length--;
 
                     PrepareRequest(client_, request_, urlBuilder_);
@@ -751,7 +761,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<Error>("The database is not built in the requested format", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<Error>("The database is not built in the requested format (`INVALID_FORMAT`), or `build` is not a build\'s name (`INVALID_BUILD`)", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 401)
@@ -782,6 +792,16 @@ namespace VPNDetection
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WireException<Error>("No such database", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 410)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<Error>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WireException<Error>("The build named in `build` is no longer kept (`BUILD_GONE`); builds are kept 7 days. Download without `build` for the live one", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 503)
@@ -3655,27 +3675,34 @@ namespace VPNDetection
         public string? Provider { get; set; } = default!;
 
         /// <summary>
-        /// The earliest date within the window this address was seen in the pool.
+        /// The earliest date within the window this address was seen in the
+        /// <br/>pool, as of its last day in the window once it has left.
+        /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("first_seen")]
         public System.DateOnly? FirstSeen { get; set; } = default!;
 
         /// <summary>
-        /// The most recent date within the window this address was seen in the pool.
+        /// The most recent date this address was seen in the pool. An address
+        /// <br/>that leaves the window keeps its flag, so this date is what says how
+        /// <br/>recent the sighting is.
+        /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("last_seen")]
         public System.DateOnly? LastSeen { get; set; } = default!;
 
         /// <summary>
-        /// How many times the address was observed in the pool during the window.
+        /// How many times the address was observed in the pool during the
+        /// <br/>window, as of its last day in it once it has left.
+        /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("hits")]
         public int? Hits { get; set; } = default!;
 
         /// <summary>
-        /// The share of days in the window on which the address was seen, as a
-        /// <br/>percentage. A high value means a stable pool member rather than a
-        /// <br/>one-off sighting.
+        /// The percentage of days in the window on which the address was seen,
+        /// <br/>as of its last day in it once it has left. A high value means a
+        /// <br/>stable pool member rather than a one-off sighting.
         /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("hits_days_pct")]
@@ -3750,7 +3777,10 @@ namespace VPNDetection
         public int? NumProxies { get; set; } = default!;
 
         /// <summary>
-        /// The most recent date within the window a proxy on this address was seen.
+        /// The most recent date a proxy on this address was seen. An address
+        /// <br/>that leaves the window keeps its flag, so this date is what says how
+        /// <br/>recent the sighting is.
+        /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("last_seen")]
         public System.DateOnly? LastSeen { get; set; } = default!;
@@ -3758,7 +3788,7 @@ namespace VPNDetection
         /// <summary>
         /// The most recent date within the window a request through a proxy on
         /// <br/>this address was answered, as YYYY-MM-DD, or an empty string when
-        /// <br/>none was.
+        /// <br/>none was, as of its last day in the window once it has left.
         /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("last_usable")]

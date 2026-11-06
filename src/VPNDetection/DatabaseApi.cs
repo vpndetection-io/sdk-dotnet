@@ -101,7 +101,7 @@ public sealed class DatabaseApi
         {
             try
             {
-                await wire.DownloadDatabaseAsync(id, format, ct).ConfigureAwait(false);
+                await wire.DownloadDatabaseAsync(id, format, null, ct).ConfigureAwait(false);
             }
             catch (WireException e) when (e.StatusCode == 302)
             {
