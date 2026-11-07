@@ -32,7 +32,7 @@ public sealed class DatabaseApi
     /// <summary>The dataset families your organization is licensed to download.</summary>
     /// <remarks>
     /// A license covers a FAMILY while a download names one of its versions, so the IDs
-    /// <see cref="DownloadAsync"/> and <see cref="ChecksumsAsync"/> take come from
+    /// <see cref="DownloadAsync(string, DatabaseFormat, string, CancellationToken)"/> and <see cref="ChecksumsAsync"/> take come from
     /// <see cref="Database.Versions"/>.
     /// </remarks>
     public Task<IReadOnlyList<Database>> ListAsync(CancellationToken cancellationToken = default)
@@ -94,14 +94,24 @@ public sealed class DatabaseApi
     /// </remarks>
     public Task<string> DownloadUrlAsync(
         string id, DatabaseFormat format, CancellationToken cancellationToken = default)
+        => DownloadUrlAsync(id, format, null, cancellationToken);
+
+    /// <inheritdoc cref="DownloadUrlAsync(string, DatabaseFormat, CancellationToken)"/>
+    /// <param name="id">The dataset's ID.</param>
+    /// <param name="format">The file's format.</param>
+    /// <param name="options">Which build to fetch; null, the live one.</param>
+    /// <param name="cancellationToken">Cancels the call.</param>
+    public Task<string> DownloadUrlAsync(
+        string id, DatabaseFormat format, DownloadOptions? options, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(id);
         CheckFormat(format);
+        var build = options?.Build;
         return Wire.ExecuteAsync(retries, timeout, async ct =>
         {
             try
             {
-                await wire.DownloadDatabaseAsync(id, format, null, ct).ConfigureAwait(false);
+                await wire.DownloadDatabaseAsync(id, format, build, ct).ConfigureAwait(false);
             }
             catch (WireException e) when (e.StatusCode == 302)
             {
@@ -133,13 +143,24 @@ public sealed class DatabaseApi
     /// rather than a <see cref="VpnDetectionException"/>: a reset socket and a full disk are
     /// different problems, and only one of them is ours.</para>
     /// </remarks>
-    public async Task<long> DownloadAsync(
+    public Task<long> DownloadAsync(
         string id, DatabaseFormat format, string path, CancellationToken cancellationToken = default)
+        => DownloadAsync(id, format, path, null, cancellationToken);
+
+    /// <inheritdoc cref="DownloadAsync(string, DatabaseFormat, string, CancellationToken)"/>
+    /// <param name="id">The dataset's ID.</param>
+    /// <param name="format">The file's format.</param>
+    /// <param name="path">Where the file lands.</param>
+    /// <param name="options">Which build to fetch; null, the live one.</param>
+    /// <param name="cancellationToken">Cancels the call.</param>
+    public async Task<long> DownloadAsync(
+        string id, DatabaseFormat format, string path, DownloadOptions? options,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(id);
         ArgumentException.ThrowIfNullOrEmpty(path);
 
-        using var response = await FetchAsync(id, format, cancellationToken).ConfigureAwait(false);
+        using var response = await FetchAsync(id, format, options, cancellationToken).ConfigureAwait(false);
         var partial = path + ".part";
         try
         {
@@ -173,12 +194,22 @@ public sealed class DatabaseApi
     /// <b>This holds the entire file in memory</b>, and the catalog spans five orders of magnitude:
     /// <c>cdn_ip_v1</c> is 10 KB while <c>resproxy_ip_90d_v1</c> is 1.79 GB, past which a single
     /// array is not even allocatable. Reach for this at the small end, where the bytes go straight
-    /// into a parser; use <see cref="DownloadAsync"/> for anything you have not measured.
+    /// into a parser; use <see cref="DownloadAsync(string, DatabaseFormat, string, CancellationToken)"/>
+    /// for anything you have not measured.
     /// </remarks>
-    public async Task<byte[]> DownloadBytesAsync(
+    public Task<byte[]> DownloadBytesAsync(
         string id, DatabaseFormat format, CancellationToken cancellationToken = default)
+        => DownloadBytesAsync(id, format, null, cancellationToken);
+
+    /// <inheritdoc cref="DownloadBytesAsync(string, DatabaseFormat, CancellationToken)"/>
+    /// <param name="id">The dataset's ID.</param>
+    /// <param name="format">The file's format.</param>
+    /// <param name="options">Which build to fetch; null, the live one.</param>
+    /// <param name="cancellationToken">Cancels the call.</param>
+    public async Task<byte[]> DownloadBytesAsync(
+        string id, DatabaseFormat format, DownloadOptions? options, CancellationToken cancellationToken = default)
     {
-        using var response = await FetchAsync(id, format, cancellationToken).ConfigureAwait(false);
+        using var response = await FetchAsync(id, format, options, cancellationToken).ConfigureAwait(false);
         var body = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
         await using var _ = body.ConfigureAwait(false);
 
@@ -225,9 +256,9 @@ public sealed class DatabaseApi
     // not go through. Measured: .NET drops Authorization across a cross-host redirect too, so this
     // is belt and braces rather than the only thing standing between the key and object storage.
     private async Task<HttpResponseMessage> FetchAsync(
-        string id, DatabaseFormat format, CancellationToken cancellationToken)
+        string id, DatabaseFormat format, DownloadOptions? options, CancellationToken cancellationToken)
     {
-        var url = await DownloadUrlAsync(id, format, cancellationToken).ConfigureAwait(false);
+        var url = await DownloadUrlAsync(id, format, options, cancellationToken).ConfigureAwait(false);
         return await Wire.ExecuteAsync(retries, timeout, async ct =>
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, url);

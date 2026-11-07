@@ -188,6 +188,15 @@ var url = await client.Database.DownloadUrlAsync(id, DatabaseFormat.Mmdb);
 
 `DownloadBytesAsync` holds the whole file in memory, and the catalog runs from `cdn_ip_v1` at 10 KB to `resproxy_ip_90d_v1` at 1.79 GB, so use `DownloadAsync` for anything you have not measured.
 
+From 5.11.0, each of the three takes a `DownloadOptions` whose `Build` is the build a `database.updated` webhook names, so the file is the one whose `sha256` the webhook carries rather than whatever is live by the time you ask. Without it you get the live build. A build is kept 7 days, and one pruned since is an `ErrorKind.BadRequest` with status 410:
+
+```csharp
+var data = webhook.GetProperty("data"); // a database.updated webhook's JsonElement
+var dataset = data.GetProperty("dataset").GetString()!;
+await client.Database.DownloadAsync(dataset, DatabaseFormat.Mmdb, $"{dataset}.mmdb",
+    new DownloadOptions { Build = data.GetProperty("build").GetString() });
+```
+
 ### Sign in with OAuth (device flow)
 
 A program running on the person's own machine can let them sign in with a browser and pick one of their API keys, instead of asking them to paste it:

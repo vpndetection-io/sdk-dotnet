@@ -48,7 +48,7 @@ public sealed class VpnDetectionClientOptions
     /// Use a specific <see cref="HttpClient"/>, for a proxy, a custom handler or a test double.
     /// </summary>
     /// <remarks>
-    /// It MUST NOT follow redirects, or <see cref="DatabaseApi.DownloadUrlAsync"/> would
+    /// It MUST NOT follow redirects, or <see cref="DatabaseApi.DownloadUrlAsync(string, DatabaseFormat, CancellationToken)"/> would
     /// fetch the dataset instead of returning its link. A client supplied here is never disposed.
     /// </remarks>
     public HttpClient? HttpClient { get; set; }
@@ -107,6 +107,20 @@ public sealed class OauthOptions
     /// it bounds each poll, never the poll as a whole.
     /// </remarks>
     public TimeSpan? RequestTimeout { get; init; }
+}
+
+/// <summary>Which file one <see cref="DatabaseApi"/> download fetches.</summary>
+public sealed class DownloadOptions
+{
+    /// <summary>
+    /// One build of the dataset, by the name a <c>database.updated</c> webhook gives it, so the file
+    /// is the one whose <c>sha256</c> the webhook carries. Null, the build that is live.
+    /// </summary>
+    /// <remarks>
+    /// A build is kept 7 days; one pruned since is a <see cref="ErrorKind.BadRequest"/> with status
+    /// 410, sent once.
+    /// </remarks>
+    public string? Build { get; init; }
 }
 
 /// <summary>What to ask for when starting a device sign-in.</summary>

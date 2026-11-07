@@ -51,7 +51,7 @@ public sealed class VpnDetectionClient : IDisposable
     /// <c>IHttpClientFactory</c> and typed-client registration.
     /// </summary>
     /// <remarks>
-    /// The supplied client MUST NOT follow redirects, or <see cref="VPNDetection.DatabaseApi.DownloadUrlAsync"/>
+    /// The supplied client MUST NOT follow redirects, or <see cref="VPNDetection.DatabaseApi.DownloadUrlAsync(string, DatabaseFormat, CancellationToken)"/>
     /// would fetch a dataset that routinely runs to gigabytes instead of returning its link.
     /// Register it with
     /// <c>.ConfigurePrimaryHttpMessageHandler(() =&gt; new HttpClientHandler { AllowAutoRedirect = false })</c>.

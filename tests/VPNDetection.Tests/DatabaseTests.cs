@@ -106,6 +106,56 @@ public class DatabaseTests
     }
 
     [Fact]
+    public async Task DownloadUrlAsksForTheLiveBuildUnlessGivenOne()
+    {
+        var handler = new StubHandler(_ =>
+        {
+            var response = new HttpResponseMessage(HttpStatusCode.Redirect);
+            response.Headers.Location = new Uri("https://s3.example.test/vpn_ip_extended_v1.mmdb?sig=abc");
+            return response;
+        });
+        using var client = Stub.Client(handler, new VpnDetectionClientOptions { ApiKey = "k" });
+
+        await client.Database.DownloadUrlAsync("vpn_ip_extended_v1", DatabaseFormat.Mmdb);
+        await client.Database.DownloadUrlAsync(
+            "vpn_ip_extended_v1", DatabaseFormat.Mmdb, new DownloadOptions { Build = "20261105.0t53s5" });
+
+        Assert.DoesNotContain("build=", handler.Calls[0]);
+        Assert.EndsWith("&build=20261105.0t53s5", handler.Calls[1]);
+    }
+
+    [Fact]
+    public async Task EveryTransferAsksForTheBuildItIsGiven()
+    {
+        using var origin = new RedirectingServer(Payload(), truncate: false);
+        using var client = new VpnDetectionClient(
+            new VpnDetectionClientOptions { BaseUrl = origin.BaseUrl, ApiKey = "k" });
+        var options = new DownloadOptions { Build = "20261105.0t53s5" };
+
+        await client.Database.DownloadAsync(
+            "vpn_ip_extended_v1", DatabaseFormat.Mmdb, Path.Combine(TempDir(), "build.mmdb"), options);
+        await client.Database.DownloadBytesAsync("vpn_ip_extended_v1", DatabaseFormat.Mmdb, options);
+
+        Assert.Equal(2, origin.ApiQueries.Count);
+        Assert.All(origin.ApiQueries, query => Assert.EndsWith("&build=20261105.0t53s5", query));
+    }
+
+    // A pruned build is gone for good, so asking again cannot help.
+    [Fact]
+    public async Task ABuildNoLongerKeptIsABadRequestWithIts410SentOnce()
+    {
+        var handler = new StubHandler(_ => StubHandler.Json(new Route("""{"rc":"BUILD_GONE"}""", 410)));
+        using var client = Stub.Client(handler, new VpnDetectionClientOptions { ApiKey = "k", Retries = 2 });
+
+        var error = await Assert.ThrowsAsync<VpnDetectionException>(() => client.Database.DownloadBytesAsync(
+            "vpn_ip_extended_v1", DatabaseFormat.Mmdb, new DownloadOptions { Build = "20261029.abc123" }));
+
+        Assert.Equal(ErrorKind.BadRequest, error.Kind);
+        Assert.Equal(410, error.StatusCode);
+        Assert.Single(handler.Calls);
+    }
+
+    [Fact]
     public async Task AnUnknownDatasetIsNotRetried()
     {
         var handler = new StubHandler(_ => StubHandler.Json(new Route("""{"rc":"NOT_FOUND"}""", 404)));
@@ -467,6 +517,9 @@ internal sealed class RedirectingServer : IDisposable
 
     internal bool StorageWasAsked => StorageRequests > 0;
 
+    /// <summary>The query string of every request the API was sent, in order.</summary>
+    internal List<string> ApiQueries { get; } = new();
+
     /// <summary>How many times storage was asked for the file.</summary>
     internal int StorageRequests { get; private set; }
 
@@ -505,6 +558,10 @@ internal sealed class RedirectingServer : IDisposable
             catch (Exception)
             {
                 return;
+            }
+            lock (ApiQueries)
+            {
+                ApiQueries.Add(context.Request.Url?.Query ?? "");
             }
             context.Response.StatusCode = 302;
             context.Response.RedirectLocation = PayloadUrl;
