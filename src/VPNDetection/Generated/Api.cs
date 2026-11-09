@@ -558,11 +558,9 @@ namespace VPNDetection
         /// List
         /// </summary>
         /// <remarks>
-        /// Every database this organization may SEE, with where its license stands.
-        /// <br/>Not just the ones you hold: a customer with one grant should be able to
-        /// <br/>tell what else is published without asking. `standing` is the
-        /// <br/>difference - `licensed`, `expired`, or `unlicensed` for one never
-        /// <br/>bought.
+        /// Every database this organization can see, licensed or not. `standing`
+        /// <br/>says where its license stands: `licensed`, `expired`, or `unlicensed`
+        /// <br/>for one never bought.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
@@ -576,11 +574,9 @@ namespace VPNDetection
         /// List
         /// </summary>
         /// <remarks>
-        /// Every database this organization may SEE, with where its license stands.
-        /// <br/>Not just the ones you hold: a customer with one grant should be able to
-        /// <br/>tell what else is published without asking. `standing` is the
-        /// <br/>difference - `licensed`, `expired`, or `unlicensed` for one never
-        /// <br/>bought.
+        /// Every database this organization can see, licensed or not. `standing`
+        /// <br/>says where its license stands: `licensed`, `expired`, or `unlicensed`
+        /// <br/>for one never bought.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
@@ -666,7 +662,7 @@ namespace VPNDetection
         /// Download
         /// </summary>
         /// <remarks>
-        /// Answers `302` with a time-limited URL pointing straight at object storage. Follow the redirect; the link authorizes the START of a transfer, so one already running is not interrupted when it lapses.
+        /// Redirects (`302`) to a time-limited link to the database file. The link only has to be valid when the download starts, so a long one isn't cut off when it expires.
         /// </remarks>
         /// <param name="id">Dataset ID, e.g. vpn_ip_extended_v1</param>
         /// <param name="format">Not every database is built in every format. The `_provider`
@@ -686,7 +682,7 @@ namespace VPNDetection
         /// Download
         /// </summary>
         /// <remarks>
-        /// Answers `302` with a time-limited URL pointing straight at object storage. Follow the redirect; the link authorizes the START of a transfer, so one already running is not interrupted when it lapses.
+        /// Redirects (`302`) to a time-limited link to the database file. The link only has to be valid when the download starts, so a long one isn't cut off when it expires.
         /// </remarks>
         /// <param name="id">Dataset ID, e.g. vpn_ip_extended_v1</param>
         /// <param name="format">Not every database is built in every format. The `_provider`
@@ -1363,16 +1359,13 @@ namespace VPNDetection
         /// The identity behind this credential: what it is, the organization it is
         /// <br/>scoped to, and the scopes it currently holds.
         /// <br/>
-        /// <br/>`user` is present for an OAuth token and ABSENT for an API key, which
+        /// <br/>`user` is present for an OAuth token and absent for an API key, which
         /// <br/>has an organization but no person behind it. `credential.kind` says
         /// <br/>which you are holding, so a client can branch without guessing from a
         /// <br/>missing field.
         /// <br/>
-        /// <br/>Narrower than what the console shows its own user on purpose: an
-        /// <br/>integration needs a name to display and an organization to address, not
-        /// <br/>a profile. The `scopes` array is what the credential may do RIGHT NOW,
-        /// <br/>so a client can render its own capabilities rather than discovering
-        /// <br/>them from a 403.
+        /// <br/>`scopes` is what the credential may do now, so a client can check
+        /// <br/>before it calls.
         /// </remarks>
         /// <returns>The caller.</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
@@ -1389,16 +1382,13 @@ namespace VPNDetection
         /// The identity behind this credential: what it is, the organization it is
         /// <br/>scoped to, and the scopes it currently holds.
         /// <br/>
-        /// <br/>`user` is present for an OAuth token and ABSENT for an API key, which
+        /// <br/>`user` is present for an OAuth token and absent for an API key, which
         /// <br/>has an organization but no person behind it. `credential.kind` says
         /// <br/>which you are holding, so a client can branch without guessing from a
         /// <br/>missing field.
         /// <br/>
-        /// <br/>Narrower than what the console shows its own user on purpose: an
-        /// <br/>integration needs a name to display and an organization to address, not
-        /// <br/>a profile. The `scopes` array is what the credential may do RIGHT NOW,
-        /// <br/>so a client can render its own capabilities rather than discovering
-        /// <br/>them from a 403.
+        /// <br/>`scopes` is what the credential may do now, so a client can check
+        /// <br/>before it calls.
         /// </remarks>
         /// <returns>The caller.</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
@@ -1496,9 +1486,7 @@ namespace VPNDetection
         /// <remarks>
         /// The organization this credential is scoped to.
         /// <br/>
-        /// <br/>There is no way to name a different one. A credential describes exactly
-        /// <br/>one organization, so an identifier in the path could only ever be your
-        /// <br/>own or a refusal.
+        /// <br/>A credential belongs to one organization, so this takes no ID.
         /// </remarks>
         /// <returns>The organization.</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
@@ -1514,9 +1502,7 @@ namespace VPNDetection
         /// <remarks>
         /// The organization this credential is scoped to.
         /// <br/>
-        /// <br/>There is no way to name a different one. A credential describes exactly
-        /// <br/>one organization, so an identifier in the path could only ever be your
-        /// <br/>own or a refusal.
+        /// <br/>A credential belongs to one organization, so this takes no ID.
         /// </remarks>
         /// <returns>The organization.</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
@@ -1612,9 +1598,9 @@ namespace VPNDetection
         /// Members
         /// </summary>
         /// <remarks>
-        /// Read-only. Adding or removing a member is an invitation flow with email
-        /// <br/>in the middle rather than a POST, and modeling it as one here would
-        /// <br/>promise something this API does not do.
+        /// The members of the organization this credential is scoped to.
+        /// <br/>
+        /// <br/>Read-only. Members are invited by email from the console.
         /// </remarks>
         /// <returns>The members.</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
@@ -1628,9 +1614,9 @@ namespace VPNDetection
         /// Members
         /// </summary>
         /// <remarks>
-        /// Read-only. Adding or removing a member is an invitation flow with email
-        /// <br/>in the middle rather than a POST, and modeling it as one here would
-        /// <br/>promise something this API does not do.
+        /// The members of the organization this credential is scoped to.
+        /// <br/>
+        /// <br/>Read-only. Members are invited by email from the console.
         /// </remarks>
         /// <returns>The members.</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
@@ -1726,9 +1712,8 @@ namespace VPNDetection
         /// List
         /// </summary>
         /// <remarks>
-        /// Metadata only. A key's secret is never in a list - not here and not in
-        /// <br/>the console - because a list is the response that ends up in logs,
-        /// <br/>caches and support tickets.
+        /// Each key's metadata. A list never carries a secret, here or in the
+        /// <br/>console: `reveal` reads one.
         /// <br/>
         /// <br/>`retrievable` says whether the secret could still be read back at all.
         /// <br/>A key issued before this product stored secrets recoverably was never
@@ -1747,9 +1732,8 @@ namespace VPNDetection
         /// List
         /// </summary>
         /// <remarks>
-        /// Metadata only. A key's secret is never in a list - not here and not in
-        /// <br/>the console - because a list is the response that ends up in logs,
-        /// <br/>caches and support tickets.
+        /// Each key's metadata. A list never carries a secret, here or in the
+        /// <br/>console: `reveal` reads one.
         /// <br/>
         /// <br/>`retrievable` says whether the secret could still be read back at all.
         /// <br/>A key issued before this product stored secrets recoverably was never
@@ -1852,8 +1836,8 @@ namespace VPNDetection
         /// <remarks>
         /// Creates a key and returns its secret.
         /// <br/>
-        /// <br/>This is the ONLY response that ever carries the secret, and only
-        /// <br/>because this is the moment it comes into existence. Store it now.
+        /// <br/>Store the secret now. Reading it back later takes `reveal` and the
+        /// <br/>`apikeys.reveal` scope.
         /// </remarks>
         /// <returns>The new key, including its secret.</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
@@ -1869,8 +1853,8 @@ namespace VPNDetection
         /// <remarks>
         /// Creates a key and returns its secret.
         /// <br/>
-        /// <br/>This is the ONLY response that ever carries the secret, and only
-        /// <br/>because this is the moment it comes into existence. Store it now.
+        /// <br/>Store the secret now. Reading it back later takes `reveal` and the
+        /// <br/>`apikeys.reveal` scope.
         /// </remarks>
         /// <returns>The new key, including its secret.</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
@@ -2251,13 +2235,11 @@ namespace VPNDetection
         /// <remarks>
         /// Returns an existing key's secret.
         /// <br/>
-        /// <br/>Its own scope rather than part of `apikeys.manage`, because the two are
-        /// <br/>different acts: rotating replaces a secret you never see, while this
-        /// <br/>hands one over.
+        /// <br/>It needs the `apikeys.reveal` scope, which `apikeys.manage` doesn't
+        /// <br/>include.
         /// <br/>
-        /// <br/>Refused with `NOT_RETRIEVABLE` for a key issued before this product
-        /// <br/>stored secrets recoverably - that secret was never kept, so no retry
-        /// <br/>will ever produce it. Rotate the key instead.
+        /// <br/>Refused with `NOT_RETRIEVABLE` for a key issued before we kept secrets.
+        /// <br/>Rotate that key instead.
         /// </remarks>
         /// <param name="id">The key's ID, as returned by the list endpoint. Never the key itself.</param>
         /// <returns>The key's secret.</returns>
@@ -2274,13 +2256,11 @@ namespace VPNDetection
         /// <remarks>
         /// Returns an existing key's secret.
         /// <br/>
-        /// <br/>Its own scope rather than part of `apikeys.manage`, because the two are
-        /// <br/>different acts: rotating replaces a secret you never see, while this
-        /// <br/>hands one over.
+        /// <br/>It needs the `apikeys.reveal` scope, which `apikeys.manage` doesn't
+        /// <br/>include.
         /// <br/>
-        /// <br/>Refused with `NOT_RETRIEVABLE` for a key issued before this product
-        /// <br/>stored secrets recoverably - that secret was never kept, so no retry
-        /// <br/>will ever produce it. Rotate the key instead.
+        /// <br/>Refused with `NOT_RETRIEVABLE` for a key issued before we kept secrets.
+        /// <br/>Rotate that key instead.
         /// </remarks>
         /// <param name="id">The key's ID, as returned by the list endpoint. Never the key itself.</param>
         /// <returns>The key's secret.</returns>
@@ -2950,7 +2930,8 @@ namespace VPNDetection
         /// Token
         /// </summary>
         /// <remarks>
-        /// Three grant types.
+        /// Issues tokens for three grant types: a device code, an authorization
+        /// <br/>code and a refresh token.
         /// <br/>
         /// <br/>`urn:ietf:params:oauth:grant-type:device_code` polls a device
         /// <br/>authorization. Until the person approves it answers
@@ -2979,7 +2960,8 @@ namespace VPNDetection
         /// Token
         /// </summary>
         /// <remarks>
-        /// Three grant types.
+        /// Issues tokens for three grant types: a device code, an authorization
+        /// <br/>code and a refresh token.
         /// <br/>
         /// <br/>`urn:ietf:params:oauth:grant-type:device_code` polls a device
         /// <br/>authorization. Until the person approves it answers
@@ -3098,11 +3080,10 @@ namespace VPNDetection
         /// Revoke
         /// </summary>
         /// <remarks>
-        /// RFC 7009. Always answers 200, including for a token that was never
-        /// <br/>valid - an endpoint that distinguished the two would be a way to test
-        /// <br/>whether a stolen string is a live credential.
+        /// RFC 7009. Always answers 200, even for a token that was never valid, so
+        /// <br/>it can't be used to test whether a token is live.
         /// <br/>
-        /// <br/>Revoking a REFRESH token ends the whole authorization and takes its
+        /// <br/>Revoking a refresh token ends the whole authorization and takes its
         /// <br/>access tokens with it. Revoking an access token affects only that token.
         /// </remarks>
         /// <returns>Always, whatever was presented.</returns>
@@ -3117,11 +3098,10 @@ namespace VPNDetection
         /// Revoke
         /// </summary>
         /// <remarks>
-        /// RFC 7009. Always answers 200, including for a token that was never
-        /// <br/>valid - an endpoint that distinguished the two would be a way to test
-        /// <br/>whether a stolen string is a live credential.
+        /// RFC 7009. Always answers 200, even for a token that was never valid, so
+        /// <br/>it can't be used to test whether a token is live.
         /// <br/>
-        /// <br/>Revoking a REFRESH token ends the whole authorization and takes its
+        /// <br/>Revoking a refresh token ends the whole authorization and takes its
         /// <br/>access tokens with it. Revoking an access token affects only that token.
         /// </remarks>
         /// <returns>Always, whatever was presented.</returns>
