@@ -81,7 +81,7 @@ public sealed class Result
     /// <summary>Set when this answer was computed locally rather than served.</summary>
     public bool IsBogon { get; }
 
-    /// <summary>Whether the address belongs to a hosting or cloud provider. With any key, a free one included.</summary>
+    /// <summary>Whether the address belongs to a hosting or cloud provider. On every paid plan.</summary>
     public bool? IsHosting => raw.IsHosting;
 
     /// <summary>Whether the address is a privacy relay egress. On every answer, with or without a key.</summary>
@@ -90,21 +90,21 @@ public sealed class Result
     /// <summary>Whether the address is a Tor node. On every answer, with or without a key.</summary>
     public bool? IsTor => raw.IsTor;
 
-    /// <summary>Whether the address belongs to a CDN. With any key, a free one included.</summary>
+    /// <summary>Whether the address belongs to a CDN. On every paid plan.</summary>
     public bool? IsCdn => raw.IsCdn;
 
-    /// <summary>Whether the address was seen in a residential proxy pool. With any key, a free one included.</summary>
+    /// <summary>Whether the address was seen in a residential proxy pool. On every paid plan.</summary>
     public bool? IsResproxy => raw.IsResproxy;
 
-    /// <summary>Whether the address is one a datacenter proxy service sells or runs on, a proxy company's own ranges included. With any key, a free one included.</summary>
+    /// <summary>Whether the address is one a datacenter proxy service sells or runs on, a proxy company's own ranges included. On every paid plan.</summary>
     public bool? IsDcproxy => raw.IsDcproxy;
 
-    /// <summary>Whether the address was seen in a mobile proxy pool. With any key, a free one included.</summary>
+    /// <summary>Whether the address was seen in a mobile proxy pool. On every paid plan.</summary>
     public bool? IsMobproxy => raw.IsMobproxy;
 
     /// <summary>
     /// Whether a public proxy, one anyone can connect through, listens on the address or sends its
-    /// traffic out from it. With any key, a free one included.
+    /// traffic out from it. On every paid plan.
     /// </summary>
     public bool? IsPubproxy => raw.IsPubproxy;
 
@@ -146,6 +146,12 @@ public sealed class Result
     /// <see cref="VPNDetection.Asn.Number"/> is 0 where none does.
     /// </summary>
     public Asn? Asn => raw.Asn;
+
+    /// <summary>
+    /// On a Trial key's answers only: <c>false</c> while the organization's 100 full answers for
+    /// the UTC day last, <c>true</c> once the answer is Unlimited's.
+    /// </summary>
+    public bool? TrialExpired => raw.TrialExpired;
 
     /// <summary>The response exactly as it came off the wire.</summary>
     /// <remarks>

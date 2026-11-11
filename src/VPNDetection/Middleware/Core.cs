@@ -9,8 +9,8 @@ namespace VPNDetection.Middleware;
 
 /// <summary>How a middleware behaves.</summary>
 /// <remarks>
-/// Everything is optional except that you almost certainly want an <see cref="ApiKey"/>: the free
-/// allowance is counted per source address, and a server is one source address.
+/// Everything is optional except that you almost certainly want an <see cref="ApiKey"/> on a paid
+/// plan: without one a lookup answers only the Unlimited tier's fields.
 ///
 /// <para>Deliberately not sealed: an adapter adds the one or two settings that only its framework
 /// has (ASP.NET Core's <c>OnBlocked</c>) by deriving, which keeps a single flat options object at

@@ -43,6 +43,7 @@ internal static class Served
         // Not detail objects, but mapped the same way: every field set whenever the member is present.
         PutDetail(served, "location", result.Location);
         PutDetail(served, "asn", result.Asn);
+        Put(served, "trial_expired", result.TrialExpired);
         return served;
     }
 

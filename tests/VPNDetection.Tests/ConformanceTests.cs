@@ -277,7 +277,7 @@ public class ConformanceTests
         var handler = StubHandler.Lookups(new Dictionary<string, Route>
         {
             ["1.1.1.1"] = new Route(Stub.LookupBody("1.1.1.1")),
-            ["8.8.8.8"] = new Route("""{"error":"monthly request allowance spent; upgrade your plan for more lookups"}""", 429),
+            ["8.8.8.8"] = new Route("""{"error":"overage cap reached; raise or remove it in Billing"}""", 429),
             ["9.9.9.9"] = new Route("""{"error":"lookup failed"}""", 500),
         });
         using var client = Stub.Client(handler, new VpnDetectionClientOptions { Retries = 3 });

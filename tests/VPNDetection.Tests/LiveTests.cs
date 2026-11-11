@@ -30,7 +30,7 @@ public class LiveTests
 
         Assert.True(vpn.IsVpn, "45.83.91.1 is VPN infrastructure");
         Assert.False(notVpn.IsVpn, "1.1.1.1 is not");
-        // Absent, not false: the hosting flag needs a key and this call carries none.
+        // Absent, not false: the hosting flag needs a paid plan and this call carries no key.
         Assert.Null(notVpn.IsHosting);
         Assert.False(notVpn.IsHosting ?? false);
 

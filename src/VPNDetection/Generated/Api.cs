@@ -195,7 +195,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<LookupError>("Either a rate limit or a spent allowance. `Retry-After` is present\nfor the former and absent for the latter, and is the only way to\ntell them apart.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<LookupError>("Either a rate limit or a paid plan\'s overage cap. `Retry-After` is\npresent for the former and absent for the latter, and is the only\nway to tell them apart.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 500)
@@ -234,7 +234,7 @@ namespace VPNDetection
         /// Answers what is known about the address this request came from, which is
         /// <br/>the same answer `GET /{ip}` gives for that address: the presented key
         /// <br/>decides which fields come back, and the request counts against the same
-        /// <br/>limit or allowance.
+        /// <br/>limits.
         /// <br/>
         /// <br/>The address is the one our edge observed, so a request through a proxy
         /// <br/>or a VPN reports the exit it left through rather than the machine that
@@ -256,7 +256,7 @@ namespace VPNDetection
         /// Answers what is known about the address this request came from, which is
         /// <br/>the same answer `GET /{ip}` gives for that address: the presented key
         /// <br/>decides which fields come back, and the request counts against the same
-        /// <br/>limit or allowance.
+        /// <br/>limits.
         /// <br/>
         /// <br/>The address is the one our edge observed, so a request through a proxy
         /// <br/>or a VPN reports the exit it left through rather than the machine that
@@ -341,7 +341,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<LookupError>("Either a rate limit or a spent allowance. `Retry-After` is present\nfor the former and absent for the latter, and is the only way to\ntell them apart.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<LookupError>("Either a rate limit or a paid plan\'s overage cap. `Retry-After` is\npresent for the former and absent for the latter, and is the only\nway to tell them apart.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 500)
@@ -387,16 +387,18 @@ namespace VPNDetection
         /// <br/>normalized form. An address that could not be answered sits in `errors`
         /// <br/>with the status and message the single lookup would have given, and
         /// <br/>never disturbs the others: a string that is not an address is a `400`
-        /// <br/>there, and an allowance that runs out part way through leaves the
-        /// <br/>remaining entries as `429`s.
+        /// <br/>there, and an overage cap reached part way through leaves the remaining
+        /// <br/>entries as `429`s.
         /// <br/>
         /// <br/>The call itself fails only for the reasons below, and a `429` on the
         /// <br/>call always carries `Retry-After`: the batch is admitted or refused
-        /// <br/>whole by the rate limit, so a per-entry `429` is always a spent
-        /// <br/>allowance and never a throttle.
+        /// <br/>whole by the rate limit, so a per-entry `429` is always the overage cap
+        /// <br/>and never a throttle.
         /// <br/>
-        /// <br/>A batch needs an API key, a free one included: without one the call is
-        /// <br/>refused with `401`. The Unlimited tier looks up one address at a time.
+        /// <br/>A batch needs a paid plan: without a key the call is refused with `401`,
+        /// <br/>and with a trial key with `402`, unless it names one address, which is
+        /// <br/>answered as `GET /{ip}` would answer it. Unlimited and a trial look up
+        /// <br/>one address at a time.
         /// </remarks>
         /// <returns>One entry per distinct input string, in `results` or in `errors`.
         /// <br/>Present fields within a result are those your plan includes; see the
@@ -422,16 +424,18 @@ namespace VPNDetection
         /// <br/>normalized form. An address that could not be answered sits in `errors`
         /// <br/>with the status and message the single lookup would have given, and
         /// <br/>never disturbs the others: a string that is not an address is a `400`
-        /// <br/>there, and an allowance that runs out part way through leaves the
-        /// <br/>remaining entries as `429`s.
+        /// <br/>there, and an overage cap reached part way through leaves the remaining
+        /// <br/>entries as `429`s.
         /// <br/>
         /// <br/>The call itself fails only for the reasons below, and a `429` on the
         /// <br/>call always carries `Retry-After`: the batch is admitted or refused
-        /// <br/>whole by the rate limit, so a per-entry `429` is always a spent
-        /// <br/>allowance and never a throttle.
+        /// <br/>whole by the rate limit, so a per-entry `429` is always the overage cap
+        /// <br/>and never a throttle.
         /// <br/>
-        /// <br/>A batch needs an API key, a free one included: without one the call is
-        /// <br/>refused with `401`. The Unlimited tier looks up one address at a time.
+        /// <br/>A batch needs a paid plan: without a key the call is refused with `401`,
+        /// <br/>and with a trial key with `402`, unless it names one address, which is
+        /// <br/>answered as `GET /{ip}` would answer it. Unlimited and a trial look up
+        /// <br/>one address at a time.
         /// </remarks>
         /// <returns>One entry per distinct input string, in `results` or in `errors`.
         /// <br/>Present fields within a result are those your plan includes; see the
@@ -513,6 +517,16 @@ namespace VPNDetection
                             throw new WireException<LookupError>("No API key was presented, or the one presented is unknown, revoked, or expired.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
+                        if (status_ == 402)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<LookupError>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WireException<LookupError>("The key is a trial\'s, an organization on no paid plan, and the batch\nnames more than one address: a batch needs a paid plan.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
                         if (status_ == 403)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<LookupError>(response_, headers_, cancellationToken).ConfigureAwait(false);
@@ -540,7 +554,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<LookupError>("The rate limit refused the whole call. Always transient and always\nwith `Retry-After`; a spent allowance is reported per entry in a\n`200` instead.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<LookupError>("The rate limit refused the whole call. Always transient and always\nwith `Retry-After`; a reached overage cap is reported per entry in a\n`200` instead.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -3320,9 +3334,9 @@ namespace VPNDetection
     }
 
     /// <summary>
-    /// The union of every plan's answer. Every answer carries `ip`, `is_vpn`,
+    /// The union of every tier's answer. Every answer carries `ip`, `is_vpn`,
     /// <br/>the Tor and relay members, `location` and `asn`, with or without a key;
-    /// <br/>each remaining field is present when your key includes it, and absent
+    /// <br/>each remaining field is present when your tier includes it, and absent
     /// <br/>otherwise. A client that must work across plans should treat an absent
     /// <br/>flag as unknown rather than as `false`.
     /// <br/>
@@ -3347,7 +3361,7 @@ namespace VPNDetection
         public bool IsVpn { get; set; } = default!;
 
         /// <summary>
-        /// Whether the address belongs to a hosting or cloud provider. Free and paid plans.
+        /// Whether the address belongs to a hosting or cloud provider. Paid plans.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_hosting")]
         public bool? IsHosting { get; set; } = default!;
@@ -3365,31 +3379,31 @@ namespace VPNDetection
         public bool? IsTor { get; set; } = default!;
 
         /// <summary>
-        /// Whether the address belongs to a CDN. Free and paid plans.
+        /// Whether the address belongs to a CDN. Paid plans.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_cdn")]
         public bool? IsCdn { get; set; } = default!;
 
         /// <summary>
-        /// Whether the address was seen in a residential proxy pool. Free and paid plans.
+        /// Whether the address was seen in a residential proxy pool. Paid plans.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_resproxy")]
         public bool? IsResproxy { get; set; } = default!;
 
         /// <summary>
-        /// Whether the address is one a datacenter proxy service sells or runs on, a proxy company's own ranges included. Free and paid plans.
+        /// Whether the address is one a datacenter proxy service sells or runs on, a proxy company's own ranges included. Paid plans.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_dcproxy")]
         public bool? IsDcproxy { get; set; } = default!;
 
         /// <summary>
-        /// Whether the address was seen in a mobile proxy pool. Free and paid plans.
+        /// Whether the address was seen in a mobile proxy pool. Paid plans.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_mobproxy")]
         public bool? IsMobproxy { get; set; } = default!;
 
         /// <summary>
-        /// Whether a public proxy, one anyone can connect through, listens on the address or sends its traffic out from it. Free and paid plans.
+        /// Whether a public proxy, one anyone can connect through, listens on the address or sends its traffic out from it. Paid plans.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_pubproxy")]
         public bool? IsPubproxy { get; set; } = default!;
@@ -3457,6 +3471,15 @@ namespace VPNDetection
 
         [System.Text.Json.Serialization.JsonPropertyName("asn")]
         public Asn? Asn { get; set; } = default!;
+
+        /// <summary>
+        /// On every answer to a trial key, an organization on no paid plan, and
+        /// <br/>on no other: `false` while the organization's 100 full answers for
+        /// <br/>the UTC day last, `true` once the answer is Unlimited's.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("trial_expired")]
+        public bool? TrialExpired { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -3533,7 +3556,7 @@ namespace VPNDetection
 
         /// <summary>
         /// The HTTP status `GET /{ip}` would have answered for this entry: `400`
-        /// <br/>for a string that is not an address, `429` for a spent allowance,
+        /// <br/>for a string that is not an address, `429` for a reached overage cap,
         /// <br/>`500` when the VPN dataset could not be consulted. A `429` here is
         /// <br/>never a throttle; the whole call is refused instead.
         /// <br/>
@@ -4427,15 +4450,19 @@ namespace VPNDetection
     {
 
         /// <summary>
-        /// The plan the organization is on.
+        /// The plan the organization is on, or `trial` on none: a trial
+        /// <br/>answers every field for the organization's first 100 lookups each
+        /// <br/>UTC day, and Unlimited's answer after them.
+        /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         public string Key { get; set; } = default!;
 
         /// <summary>
         /// The field tier, which decides how much of a lookup answer comes
-        /// <br/>back. What each tier includes is documented on the lookup endpoint
-        /// <br/>rather than repeated here, so there is one place it can be wrong.
+        /// <br/>back; `free` is a trial's. What each tier includes is documented
+        /// <br/>on the lookup endpoint rather than repeated here, so there is one
+        /// <br/>place it can be wrong.
         /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("tier")]

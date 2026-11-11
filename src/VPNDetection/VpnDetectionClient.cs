@@ -310,9 +310,10 @@ public sealed class VpnDetectionClient : IDisposable
     /// key gets an unauthorized error rather than a partial one.
     /// </para>
     /// <para>
-    /// Usage counts against the ALLOWANCE WINDOW - the anniversary of the subscription, not the
-    /// calendar month and not the billing period - and it is the same number a lookup is gated on.
-    /// It can lag by a few seconds, because requests are counted in memory and flushed in aggregate.
+    /// Usage counts against the ALLOWANCE WINDOW - on a paid plan the anniversary of the
+    /// subscription, not the calendar month and not the billing period, and on a trial key the UTC
+    /// day - and it is the same number a lookup is gated on. It can lag by a few seconds, because
+    /// requests are counted in memory and flushed in aggregate.
     /// </para>
     /// <para>
     /// Deliberately NOT cached: the whole point is what has been spent, and a cached answer is a
@@ -346,8 +347,9 @@ public sealed class VpnDetectionClient : IDisposable
     /// its error as its value, so one bad entry cannot lose the rest of the answers: the API reports
     /// a per-entry failure with the status the single lookup would have answered, and a chunk that
     /// fails as a whole marks every address in it. Iteration order is the order the addresses were
-    /// first seen in the input. The batch endpoint needs an API key, a free one included: without
-    /// one, every address sent to it carries an <see cref="ErrorKind.Unauthorized"/> error.
+    /// first seen in the input. The batch endpoint needs a paid plan: without a key every address
+    /// sent to it carries an <see cref="ErrorKind.Unauthorized"/> error, and a trial key's batch of
+    /// two or more a <see cref="ErrorKind.BadRequest"/> (HTTP 402).
     /// </remarks>
     /// <exception cref="VpnDetectionException">
     /// <see cref="BatchOptions.Concurrency"/> is below 1, refused as

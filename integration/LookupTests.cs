@@ -24,7 +24,7 @@ public class LookupTests
     }
 
     [Theory]
-    [InlineData("free")]
+    [InlineData("trial")]
     [InlineData("starter")]
     [InlineData("scale")]
     [InlineData("max")]
@@ -45,28 +45,90 @@ public class LookupTests
         foreach (var rung in Rung.Observable)
         {
             var fixture = await Staging.AnswerFor(rung);
-            Console.WriteLine($"{rung.Tier}: {fixture.ServedFields.Count} fields");
+            var fields = TierFields(fixture);
+            Console.WriteLine($"{rung.Tier}: {fields.Count} fields");
             if (below is null)
             {
                 below = fixture;
                 continue;
             }
-            foreach (var field in below.ServedFields)
+            var lower = TierFields(below);
+            foreach (var field in lower)
             {
-                Assert.True(
-                    fixture.ServedFields.Contains(field),
-                    $"{rung.Tier} drops {field}, which {below.Tier.Tier} serves");
+                Assert.True(fields.Contains(field), $"{rung.Tier} drops {field}, which {below.Tier.Tier} serves");
             }
             // Without this a run in which every key resolved to the same plan would pass:
             // identical sets satisfy containment in both directions.
             if (rung.Widens)
             {
                 Assert.True(
-                    fixture.ServedFields.Count > below.ServedFields.Count,
-                    $"{rung.Tier} answers {fixture.ServedFields.Count} field(s) and {below.Tier.Tier} "
-                    + $"answers {below.ServedFields.Count}, so it is no wider");
+                    fields.Count > lower.Count,
+                    $"{rung.Tier} answers {fields.Count} field(s) and {below.Tier.Tier} "
+                    + $"answers {lower.Count}, so it is no wider");
             }
-            below = fixture;
+            if (rung.Tier != "trial")
+            {
+                below = fixture;
+            }
+        }
+    }
+
+    // The fields a tier serves: trial_expired marks a trial key's answers, and no other, so it is
+    // not one.
+    private static HashSet<string> TierFields(Fixture fixture)
+        => fixture.ServedFields.Where(field => field != "trial_expired").ToHashSet();
+
+    [Fact]
+    public async Task ATrialKeysAnswerIsAPaidOneOrUnlimitedsAndSaysWhich()
+    {
+        Rung.Trial.SkipUnlessKeyed();
+        var raw = (await Staging.AnswerFor(Rung.Trial)).Raw;
+
+        Assert.True(raw.TryGetProperty("trial_expired", out var expired), "a trial key answers trial_expired");
+        Assert.True(expired.ValueKind is JsonValueKind.True or JsonValueKind.False);
+        // The organization's first 100 lookups of the UTC day are answered in full, and the rest as
+        // Unlimited's: which half a run sees depends on the day.
+        Assert.Equal(expired.ValueKind == JsonValueKind.False, raw.TryGetProperty("is_hosting", out _));
+    }
+
+    [Fact]
+    public async Task ATrialKeysBatchOfTwoIsRefusedAsABadRequestOnce()
+    {
+        Rung.Trial.SkipUnlessKeyed();
+        var (client, recorder) = Staging.ClientFor(Rung.Trial);
+        using (client)
+        {
+            var answers = await client.LookupBatchAsync(new[] { Staging.Probe, "8.8.8.8" });
+
+            foreach (var ip in new[] { Staging.Probe, "8.8.8.8" })
+            {
+                var refused = answers[ip].Error;
+                Assert.NotNull(refused);
+                Assert.Equal(ErrorKind.BadRequest, refused.Kind);
+                Assert.Equal(402, refused.StatusCode);
+                Assert.False(refused.Retryable);
+            }
+            Assert.Equal(new[] { "/batch" }, recorder.Seen.Select(fact => fact.Path).ToArray());
+        }
+    }
+
+    [Fact]
+    public async Task ATrialKeysBatchOfOneIsAnswered()
+    {
+        Rung.Trial.SkipUnlessKeyed();
+        var (client, recorder) = Staging.ClientFor(Rung.Trial);
+        using (client)
+        {
+            var answers = await client.LookupBatchAsync(new[] { Staging.Probe });
+
+            var answer = answers[Staging.Probe];
+            Assert.True(answer.IsSuccess, $"a trial key's batch of one failed: {answer.Error?.Message}");
+            // Read off the wire, since the client this suite resolves may predate the member.
+            var served = recorder.JsonBody("/batch").GetProperty("results").GetProperty(Staging.Probe);
+            Assert.True(
+                served.TryGetProperty("trial_expired", out var expired)
+                    && expired.ValueKind is JsonValueKind.True or JsonValueKind.False,
+                "the answer carries trial_expired");
         }
     }
 
@@ -156,9 +218,9 @@ public class LookupTests
     [Fact]
     public async Task ABatchCollapsesDuplicatesAndKeepsBogonsOffTheWire()
     {
-        // A batch needs a key, and the free one is the cheapest that has it.
-        Rung.Free.SkipUnlessKeyed();
-        var (client, recorder) = Staging.ClientFor(Rung.Free);
+        // A batch needs a paid plan, and starter is the cheapest.
+        Rung.Paid.SkipUnlessKeyed();
+        var (client, recorder) = Staging.ClientFor(Rung.Paid);
         using (client)
         {
             var answers = await client.LookupBatchAsync(
@@ -170,7 +232,7 @@ public class LookupTests
             // deduplicate.
             var asked = recorder.Seen.Select(fact => fact.Path).Distinct().ToArray();
             Assert.Equal(new[] { "/batch" }, asked);
-            Assert.True(recorder.CarriedKey, "the free key never reached the wire");
+            Assert.True(recorder.CarriedKey, "the paid key never reached the wire");
             Assert.True(answers["10.0.0.1"].Result?.IsBogon, "10.0.0.1 was not answered locally");
             foreach (var ip in new[] { Staging.Probe, "8.8.8.8" })
             {
