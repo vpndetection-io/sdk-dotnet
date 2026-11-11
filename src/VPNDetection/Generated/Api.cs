@@ -79,8 +79,8 @@ namespace VPNDetection
         /// </summary>
         /// <remarks>
         /// Answers what is known about a single IPv4 or IPv6 address. Which fields
-        /// <br/>come back is decided by the presented key; with no key, the Unlimited
-        /// <br/>tier, the answer is `ip`, `is_vpn`, the Tor and relay members,
+        /// <br/>come back is decided by the presented key; with no key, on Unlimited,
+        /// <br/>the free plan, the answer is `ip`, `is_vpn`, the Tor and relay members,
         /// <br/>`location` and `asn`.
         /// </remarks>
         /// <param name="ip">The IPv4 or IPv6 address to classify.</param>
@@ -98,8 +98,8 @@ namespace VPNDetection
         /// </summary>
         /// <remarks>
         /// Answers what is known about a single IPv4 or IPv6 address. Which fields
-        /// <br/>come back is decided by the presented key; with no key, the Unlimited
-        /// <br/>tier, the answer is `ip`, `is_vpn`, the Tor and relay members,
+        /// <br/>come back is decided by the presented key; with no key, on Unlimited,
+        /// <br/>the free plan, the answer is `ip`, `is_vpn`, the Tor and relay members,
         /// <br/>`location` and `asn`.
         /// </remarks>
         /// <param name="ip">The IPv4 or IPv6 address to classify.</param>

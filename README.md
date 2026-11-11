@@ -274,11 +274,11 @@ Each redirect URI must be https on a public host name, or http on a loopback add
 
 ### Absent is not false
 
-The Unlimited tier leaves out `IsHosting`, `IsCdn` and the four proxy flags, and of the detail behind each flag it answers only Tor's and relay's; a free-plan key's answer carries `TrialExpired`, true once its daily trial is spent. The flags are `bool?`, where `null` means "not in your plan" rather than "checked, and no".
+Unlimited leaves out `IsHosting`, `IsCdn` and the four proxy flags, and of the detail behind each flag it answers only Tor's and relay's; a free-plan key's answer carries `TrialExpired`, true once its daily trial is spent. The flags are `bool?`, where `null` means "not in your plan" rather than "checked, and no".
 
 ```csharp
 result.IsHosting ?? false   // when you only want the flag
-result.IsHosting is null    // on the Unlimited tier: not in your plan
+result.IsHosting is null    // on Unlimited: not in your plan
 result.TrialExpired == true // a free-plan key's daily trial is spent
 ```
 
