@@ -2,6 +2,15 @@
 
 What each release changed for you, newest first. Each line is a commit's summary, linked to its full description and diff. Releases before 5.2.4 are described by their release commits.
 
+## 5.11.1 - 2026-11-11
+
+### Fixes
+
+- Read Retry-After as the server sent it, not as .NET reformats it ([`8717f83`](https://github.com/vpndetection-io/sdk-dotnet/commit/8717f8326170572a55dc64b77a7e7f84d1917e91))
+- Refuse an OAuth answer whose list holds a null ([`04c4bdd`](https://github.com/vpndetection-io/sdk-dotnet/commit/04c4bddf7d541fcd3988b2652f0a5f98a3272a7c))
+- Re-pin the spec to 2026.11.10: a plainer datacenter proxy description ([`aac113b`](https://github.com/vpndetection-io/sdk-dotnet/commit/aac113b142ec92fd0ae638d46adc5f7b1b2c30d3))
+- Re-pin the spec to 2026.11.08: plainer endpoint descriptions ([`1c5fd98`](https://github.com/vpndetection-io/sdk-dotnet/commit/1c5fd981d7d6a13a68997beb9a82b927904b92c3))
+
 ## 5.11.0 - 2026-11-07
 
 ### Features
