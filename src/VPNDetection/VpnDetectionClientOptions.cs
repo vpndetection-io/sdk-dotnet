@@ -5,8 +5,8 @@ public sealed class VpnDetectionClientOptions
 {
     /// <summary>
     /// Your API key. Leave it unset to look up without one: a lookup then answers <c>ip</c>,
-    /// <c>is_vpn</c>, the Tor and relay members, <c>location</c> and <c>asn</c>, up to 60 a minute
-    /// from each address, and a batch is refused as <see cref="ErrorKind.Unauthorized"/>.
+    /// <c>is_vpn</c>, the Tor and relay members, <c>location</c> and <c>asn</c>, with no daily or
+    /// monthly cap, and a batch is refused as <see cref="ErrorKind.Unauthorized"/>.
     /// </summary>
     public string? ApiKey { get; set; }
 

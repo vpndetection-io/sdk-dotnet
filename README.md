@@ -17,7 +17,7 @@ Targets .NET 8 and newer.
 
 ## Usage
 
-**No API key needed to start.** Without a key a lookup answers `ip`, `is_vpn`, Tor and relay detection, `location` and `asn`, with no daily or monthly cap: up to 60 lookups a minute from each address.
+**No API key needed to start.** Without a key a lookup answers `ip`, `is_vpn`, Tor and relay detection, `location` and `asn`, unlimited, with no daily or monthly cap.
 
 ```csharp
 using VPNDetection;
@@ -165,7 +165,7 @@ catch (VpnDetectionException e)
 
 `Kind` is one of `BadRequest`, `Unauthorized`, `Forbidden`, `RateLimited`, `QuotaExceeded`, `ServerError` or `Network`.
 
-Note that `RateLimited` and `QuotaExceeded` both arrive as HTTP 429 and are not the same thing. A rate limit is when the API faces extreme traffic bursts, or a lookup without a key passes 60 a minute, and so retrying later works; but a spent quota needs your allowance raised or the window to roll over. The library retries rate limits for you, but not if your quota is exceeded.
+Note that `RateLimited` and `QuotaExceeded` both arrive as HTTP 429 and are not the same thing. A rate limit is when the API faces extreme traffic bursts and so retrying later works; but a spent quota needs your allowance raised or the window to roll over. The library retries rate limits for you, but not if your quota is exceeded.
 
 Each attempt is abandoned after 30 seconds by default (`RequestTimeout` on the options), which fails as a retryable `Network` error. One call can set its own, longer or shorter:
 
