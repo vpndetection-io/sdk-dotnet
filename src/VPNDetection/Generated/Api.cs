@@ -79,8 +79,9 @@ namespace VPNDetection
         /// </summary>
         /// <remarks>
         /// Answers what is known about a single IPv4 or IPv6 address. Which fields
-        /// <br/>come back is decided by the presented key; with no key the answer is
-        /// <br/>`ip`, `is_vpn`, the Tor and relay members, `location` and `asn`.
+        /// <br/>come back is decided by the presented key; with no key, the Unlimited
+        /// <br/>tier, the answer is `ip`, `is_vpn`, the Tor and relay members,
+        /// <br/>`location` and `asn`.
         /// </remarks>
         /// <param name="ip">The IPv4 or IPv6 address to classify.</param>
         /// <returns>The classification. Present fields are those your plan includes; see
@@ -97,8 +98,9 @@ namespace VPNDetection
         /// </summary>
         /// <remarks>
         /// Answers what is known about a single IPv4 or IPv6 address. Which fields
-        /// <br/>come back is decided by the presented key; with no key the answer is
-        /// <br/>`ip`, `is_vpn`, the Tor and relay members, `location` and `asn`.
+        /// <br/>come back is decided by the presented key; with no key, the Unlimited
+        /// <br/>tier, the answer is `ip`, `is_vpn`, the Tor and relay members,
+        /// <br/>`location` and `asn`.
         /// </remarks>
         /// <param name="ip">The IPv4 or IPv6 address to classify.</param>
         /// <returns>The classification. Present fields are those your plan includes; see
@@ -394,7 +396,7 @@ namespace VPNDetection
         /// <br/>allowance and never a throttle.
         /// <br/>
         /// <br/>A batch needs an API key, a free one included: without one the call is
-        /// <br/>refused with `401`. Keyless lookups are one address at a time.
+        /// <br/>refused with `401`. The Unlimited tier looks up one address at a time.
         /// </remarks>
         /// <returns>One entry per distinct input string, in `results` or in `errors`.
         /// <br/>Present fields within a result are those your plan includes; see the
@@ -429,7 +431,7 @@ namespace VPNDetection
         /// <br/>allowance and never a throttle.
         /// <br/>
         /// <br/>A batch needs an API key, a free one included: without one the call is
-        /// <br/>refused with `401`. Keyless lookups are one address at a time.
+        /// <br/>refused with `401`. The Unlimited tier looks up one address at a time.
         /// </remarks>
         /// <returns>One entry per distinct input string, in `results` or in `errors`.
         /// <br/>Present fields within a result are those your plan includes; see the
