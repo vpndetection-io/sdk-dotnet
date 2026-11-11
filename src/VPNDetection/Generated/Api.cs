@@ -3368,7 +3368,7 @@ namespace VPNDetection
         public bool? IsResproxy { get; set; } = default!;
 
         /// <summary>
-        /// Whether the address was seen in a datacenter proxy pool. Paid plans.
+        /// Whether the address is one a datacenter proxy service sells or runs on, a proxy company's own ranges included. Paid plans.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_dcproxy")]
         public bool? IsDcproxy { get; set; } = default!;

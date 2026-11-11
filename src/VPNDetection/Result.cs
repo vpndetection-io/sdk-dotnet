@@ -96,7 +96,7 @@ public sealed class Result
     /// <summary>Whether the address was seen in a residential proxy pool. On every paid plan.</summary>
     public bool? IsResproxy => raw.IsResproxy;
 
-    /// <summary>Whether the address was seen in a datacenter proxy pool. On every paid plan.</summary>
+    /// <summary>Whether the address is one a datacenter proxy service sells or runs on, a proxy company's own ranges included. On every paid plan.</summary>
     public bool? IsDcproxy => raw.IsDcproxy;
 
     /// <summary>Whether the address was seen in a mobile proxy pool. On every paid plan.</summary>
