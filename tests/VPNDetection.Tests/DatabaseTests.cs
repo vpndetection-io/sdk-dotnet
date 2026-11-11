@@ -420,6 +420,66 @@ public class DatabaseTests
         Assert.True(started.Elapsed < TimeSpan.FromSeconds(5), $"took {started.ElapsedMilliseconds}ms");
     }
 
+    // .NET's typed headers re-format any date its own reader takes as an IMF-fixdate in GMT, and
+    // through 5.11.0 the generated client and the transfer read them that way, so each date below
+    // that is no HTTP date was waited out, from the API and object storage alike. Past dates, so a
+    // wait is a second request at once.
+    [Theory]
+    [InlineData("Sun, 01 Nov 2026 00:00:00 GMT", true)]
+    [InlineData("Sunday, 01-Nov-26 00:00:00 GMT", true)]
+    [InlineData("Sun Nov  1 00:00:00 2026", true)]
+    [InlineData("Sun Nov 01 00:00:00 2026", true)]
+    [InlineData("Sun, 01 Nov 2026 00:00:00 +0500", false)]
+    [InlineData("Sun, 01 Nov 2026 00:00:00 +0000", false)]
+    [InlineData("Sun, 01 Nov 2026 00:00:00 UTC", false)]
+    [InlineData("Sun, 01 Nov 2026 00:00:00", false)]
+    [InlineData("Sun, 01 Nov 26 00:00:00 GMT", false)]
+    [InlineData("Sun, 1 Nov 2026 0:0:0 GMT", false)]
+    [InlineData("Sunday, 01-Nov-26 00:00:00 +0500", false)]
+    [InlineData("Sun Nov 1 00:00:00 2026", false)]
+    public async Task ARetryAfterIsReadAsTheServerSentIt(string header, bool isADate)
+    {
+        var throttle = new Dictionary<string, string> { ["Retry-After"] = header };
+        var apiCalls = 0;
+        var api = new StubHandler(_ => Interlocked.Increment(ref apiCalls) == 1
+            ? StubHandler.Json(new Route("""{"rc":"RATE_LIMITED"}""", 429, throttle))
+            : StubHandler.Json(new Route("""{"databases":[]}""", 200)));
+        using var apiClient = Stub.Client(api, new VpnDetectionClientOptions { Retries = 1 });
+
+        var apiFailure = await Record.ExceptionAsync(
+            () => apiClient.Database.ListAsync().WaitAsync(TimeSpan.FromSeconds(20)));
+
+        Assert.Equal(isADate ? 2 : 1, api.Calls.Count);
+        AssertSpentUnlessADate(apiFailure, isADate);
+
+        var storageCalls = 0;
+        var storage = new StubHandler(request => request.RequestUri!.Host != "storage.test"
+            ? StubHandler.Json(new Route(
+                "", 302, new Dictionary<string, string> { ["Location"] = "https://storage.test/blob" }))
+            : Interlocked.Increment(ref storageCalls) == 1
+                ? StubHandler.Json(new Route("", 429, throttle))
+                : StubHandler.Json(new Route("data", 200)));
+        using var storageClient = Stub.Client(storage, new VpnDetectionClientOptions { Retries = 1 });
+
+        var storageFailure = await Record.ExceptionAsync(() => storageClient.Database
+            .DownloadBytesAsync("vpn_ip_extended_v1", DatabaseFormat.Mmdb).WaitAsync(TimeSpan.FromSeconds(20)));
+
+        Assert.Equal(isADate ? 2 : 1, storage.Calls.Count(call => call == "/blob"));
+        AssertSpentUnlessADate(storageFailure, isADate);
+    }
+
+    private static void AssertSpentUnlessADate(Exception? failure, bool isADate)
+    {
+        if (isADate)
+        {
+            Assert.Null(failure);
+            return;
+        }
+        var error = Assert.IsType<VpnDetectionException>(failure);
+        Assert.Equal(ErrorKind.QuotaExceeded, error.Kind);
+        Assert.Equal(429, error.StatusCode);
+    }
+
     // A C# enum takes any integer by a cast, and 5.2.2 sent `(DatabaseFormat)99` as `format=99`
     // for the API to refuse a round trip later. Refused before any request, and before a download
     // creates anything on disk.
