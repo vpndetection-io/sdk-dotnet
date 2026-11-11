@@ -81,30 +81,30 @@ public sealed class Result
     /// <summary>Set when this answer was computed locally rather than served.</summary>
     public bool IsBogon { get; }
 
-    /// <summary>Whether the address belongs to a hosting or cloud provider. On every paid plan.</summary>
+    /// <summary>Whether the address belongs to a hosting or cloud provider. With any key, a free one included.</summary>
     public bool? IsHosting => raw.IsHosting;
 
-    /// <summary>Whether the address is a privacy relay egress. On a free key and every paid plan.</summary>
+    /// <summary>Whether the address is a privacy relay egress. On every answer, with or without a key.</summary>
     public bool? IsRelay => raw.IsRelay;
 
-    /// <summary>Whether the address is a Tor node. On a free key and every paid plan.</summary>
+    /// <summary>Whether the address is a Tor node. On every answer, with or without a key.</summary>
     public bool? IsTor => raw.IsTor;
 
-    /// <summary>Whether the address belongs to a CDN. On every paid plan.</summary>
+    /// <summary>Whether the address belongs to a CDN. With any key, a free one included.</summary>
     public bool? IsCdn => raw.IsCdn;
 
-    /// <summary>Whether the address was seen in a residential proxy pool. On every paid plan.</summary>
+    /// <summary>Whether the address was seen in a residential proxy pool. With any key, a free one included.</summary>
     public bool? IsResproxy => raw.IsResproxy;
 
-    /// <summary>Whether the address is one a datacenter proxy service sells or runs on, a proxy company's own ranges included. On every paid plan.</summary>
+    /// <summary>Whether the address is one a datacenter proxy service sells or runs on, a proxy company's own ranges included. With any key, a free one included.</summary>
     public bool? IsDcproxy => raw.IsDcproxy;
 
-    /// <summary>Whether the address was seen in a mobile proxy pool. On every paid plan.</summary>
+    /// <summary>Whether the address was seen in a mobile proxy pool. With any key, a free one included.</summary>
     public bool? IsMobproxy => raw.IsMobproxy;
 
     /// <summary>
     /// Whether a public proxy, one anyone can connect through, listens on the address or sends its
-    /// traffic out from it. On every paid plan.
+    /// traffic out from it. With any key, a free one included.
     /// </summary>
     public bool? IsPubproxy => raw.IsPubproxy;
 
@@ -114,10 +114,10 @@ public sealed class Result
     /// <summary>Detail behind <see cref="IsHosting"/>. Empty when it is false. On every paid plan.</summary>
     public ClassDetail? Hosting => raw.Hosting;
 
-    /// <summary>Detail behind <see cref="IsRelay"/>. Empty when it is false. On a free key and every paid plan.</summary>
+    /// <summary>Detail behind <see cref="IsRelay"/>. Empty when it is false. On every answer, with or without a key.</summary>
     public ClassDetail? Relay => raw.Relay;
 
-    /// <summary>Detail behind <see cref="IsTor"/>. Empty when it is false. On a free key and every paid plan.</summary>
+    /// <summary>Detail behind <see cref="IsTor"/>. Empty when it is false. On every answer, with or without a key.</summary>
     public ClassDetail? Tor => raw.Tor;
 
     /// <summary>Detail behind <see cref="IsCdn"/>. Empty when it is false. On every paid plan.</summary>
@@ -136,14 +136,14 @@ public sealed class Result
     public PubproxyDetail? Pubproxy => raw.Pubproxy;
 
     /// <summary>
-    /// Where the address is, on a free key and every paid plan: every field set, an empty string
-    /// where it is not known.
+    /// Where the address is, on every answer, with or without a key: every field set, an empty
+    /// string where it is not known.
     /// </summary>
     public Location? Location => raw.Location;
 
     /// <summary>
-    /// The AS announcing the address, on a free key and every paid plan: <see cref="VPNDetection.Asn.Number"/>
-    /// is 0 where none does.
+    /// The AS announcing the address, on every answer, with or without a key:
+    /// <see cref="VPNDetection.Asn.Number"/> is 0 where none does.
     /// </summary>
     public Asn? Asn => raw.Asn;
 

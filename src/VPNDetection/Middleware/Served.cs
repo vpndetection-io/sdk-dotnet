@@ -40,7 +40,7 @@ internal static class Served
         PutDetail(served, "dcproxy", result.Dcproxy);
         PutDetail(served, "mobproxy", result.Mobproxy);
         PutDetail(served, "pubproxy", result.Pubproxy);
-        // Not detail objects, but mapped the same way: absent without a key, every field set with one.
+        // Not detail objects, but mapped the same way: every field set whenever the member is present.
         PutDetail(served, "location", result.Location);
         PutDetail(served, "asn", result.Asn);
         return served;

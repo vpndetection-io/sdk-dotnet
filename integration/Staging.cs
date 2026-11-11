@@ -77,7 +77,7 @@ internal static class Staging
                 var fixture = new Fixture(rung, result, recorder.JsonBody("/" + Probe), recorder.CarriedKey);
                 // Checked here rather than in one test, so no comparison anywhere can be made
                 // against a tier that silently ran unauthenticated: an empty or unsent key answers
-                // the free shape, which satisfies every containment check vacuously.
+                // the keyless shape, which satisfies every containment check vacuously.
                 Assert.True(
                     rung.Secret is null || fixture.CarriedKey,
                     $"the {rung.Tier} key never reached the wire");

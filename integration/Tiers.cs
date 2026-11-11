@@ -34,6 +34,9 @@ internal sealed record Rung(string Tier, string? Secret, bool Widens)
 
     internal static Rung Unauth => All[0];
 
+    /// <summary>The cheapest rung a batch can run on: POST /batch needs a key.</summary>
+    internal static Rung Free => All[1];
+
     internal static Rung Max => All[^1];
 
     /// <summary>The tiers this run can exercise, in plan order.</summary>

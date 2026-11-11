@@ -34,7 +34,7 @@ public sealed class VpnDetectionClient : IDisposable
     private readonly int retries;
     private readonly TimeSpan? requestTimeout;
 
-    /// <summary>A client on the free tier, with every default.</summary>
+    /// <summary>A client without a key, with every default.</summary>
     public VpnDetectionClient()
         : this(new VpnDetectionClientOptions(), null)
     {
@@ -346,7 +346,8 @@ public sealed class VpnDetectionClient : IDisposable
     /// its error as its value, so one bad entry cannot lose the rest of the answers: the API reports
     /// a per-entry failure with the status the single lookup would have answered, and a chunk that
     /// fails as a whole marks every address in it. Iteration order is the order the addresses were
-    /// first seen in the input.
+    /// first seen in the input. The batch endpoint needs an API key, a free one included: without
+    /// one, every address sent to it carries an <see cref="ErrorKind.Unauthorized"/> error.
     /// </remarks>
     /// <exception cref="VpnDetectionException">
     /// <see cref="BatchOptions.Concurrency"/> is below 1, refused as

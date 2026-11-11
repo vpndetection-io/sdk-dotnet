@@ -4,16 +4,16 @@ namespace VPNDetection.Tests;
 
 // Hits the real API, so it is opt-in: VPNDETECTION_LIVE=1 dotnet test.
 //
-// CI leaves it off. A test suite that spends the keyless daily allowance on every pull request
-// eventually fails for reasons that have nothing to do with the change under review.
+// CI leaves it off. A test suite that queries the real API on every pull request eventually fails
+// for reasons that have nothing to do with the change under review.
 public class LiveTests
 {
     [Fact]
-    public async Task TheFreeTierAnswersIsVpnAndWithholdsEverythingElse()
+    public async Task ALookupWithoutAKeyAnswersIsVpnAndWithholdsIsHosting()
     {
         Assert.SkipUnless(
             Environment.GetEnvironmentVariable("VPNDETECTION_LIVE") == "1",
-            "set VPNDETECTION_LIVE=1 to spend the keyless daily allowance");
+            "set VPNDETECTION_LIVE=1 to query the real API without a key");
 
         using var client = new VpnDetectionClient();
 
@@ -30,7 +30,7 @@ public class LiveTests
 
         Assert.True(vpn.IsVpn, "45.83.91.1 is VPN infrastructure");
         Assert.False(notVpn.IsVpn, "1.1.1.1 is not");
-        // Absent, not false: the hosting flag is a paid member and this call carries no key.
+        // Absent, not false: the hosting flag needs a key and this call carries none.
         Assert.Null(notVpn.IsHosting);
         Assert.False(notVpn.IsHosting ?? false);
 

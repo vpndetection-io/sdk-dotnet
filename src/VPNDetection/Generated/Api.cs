@@ -80,7 +80,7 @@ namespace VPNDetection
         /// <remarks>
         /// Answers what is known about a single IPv4 or IPv6 address. Which fields
         /// <br/>come back is decided by the presented key; with no key the answer is
-        /// <br/>`ip` and `is_vpn`.
+        /// <br/>`ip`, `is_vpn`, the Tor and relay members, `location` and `asn`.
         /// </remarks>
         /// <param name="ip">The IPv4 or IPv6 address to classify.</param>
         /// <returns>The classification. Present fields are those your plan includes; see
@@ -98,7 +98,7 @@ namespace VPNDetection
         /// <remarks>
         /// Answers what is known about a single IPv4 or IPv6 address. Which fields
         /// <br/>come back is decided by the presented key; with no key the answer is
-        /// <br/>`ip` and `is_vpn`.
+        /// <br/>`ip`, `is_vpn`, the Tor and relay members, `location` and `asn`.
         /// </remarks>
         /// <param name="ip">The IPv4 or IPv6 address to classify.</param>
         /// <returns>The classification. Present fields are those your plan includes; see
@@ -193,7 +193,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<LookupError>("Either a transient rate limit or a spent allowance. `Retry-After` is\npresent for the former and absent for the latter, and is the only\nway to tell them apart.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<LookupError>("Either a rate limit or a spent allowance. `Retry-After` is present\nfor the former and absent for the latter, and is the only way to\ntell them apart.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 500)
@@ -232,7 +232,7 @@ namespace VPNDetection
         /// Answers what is known about the address this request came from, which is
         /// <br/>the same answer `GET /{ip}` gives for that address: the presented key
         /// <br/>decides which fields come back, and the request counts against the same
-        /// <br/>allowance.
+        /// <br/>limit or allowance.
         /// <br/>
         /// <br/>The address is the one our edge observed, so a request through a proxy
         /// <br/>or a VPN reports the exit it left through rather than the machine that
@@ -254,7 +254,7 @@ namespace VPNDetection
         /// Answers what is known about the address this request came from, which is
         /// <br/>the same answer `GET /{ip}` gives for that address: the presented key
         /// <br/>decides which fields come back, and the request counts against the same
-        /// <br/>allowance.
+        /// <br/>limit or allowance.
         /// <br/>
         /// <br/>The address is the one our edge observed, so a request through a proxy
         /// <br/>or a VPN reports the exit it left through rather than the machine that
@@ -339,7 +339,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<LookupError>("Either a transient rate limit or a spent allowance. `Retry-After` is\npresent for the former and absent for the latter, and is the only\nway to tell them apart.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<LookupError>("Either a rate limit or a spent allowance. `Retry-After` is present\nfor the former and absent for the latter, and is the only way to\ntell them apart.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 500)
@@ -392,6 +392,9 @@ namespace VPNDetection
         /// <br/>call always carries `Retry-After`: the batch is admitted or refused
         /// <br/>whole by the rate limit, so a per-entry `429` is always a spent
         /// <br/>allowance and never a throttle.
+        /// <br/>
+        /// <br/>A batch needs an API key, a free one included: without one the call is
+        /// <br/>refused with `401`. Keyless lookups are one address at a time.
         /// </remarks>
         /// <returns>One entry per distinct input string, in `results` or in `errors`.
         /// <br/>Present fields within a result are those your plan includes; see the
@@ -424,6 +427,9 @@ namespace VPNDetection
         /// <br/>call always carries `Retry-After`: the batch is admitted or refused
         /// <br/>whole by the rate limit, so a per-entry `429` is always a spent
         /// <br/>allowance and never a throttle.
+        /// <br/>
+        /// <br/>A batch needs an API key, a free one included: without one the call is
+        /// <br/>refused with `401`. Keyless lookups are one address at a time.
         /// </remarks>
         /// <returns>One entry per distinct input string, in `results` or in `errors`.
         /// <br/>Present fields within a result are those your plan includes; see the
@@ -502,7 +508,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<LookupError>("The presented API key is unknown, revoked, or expired.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<LookupError>("No API key was presented, or the one presented is unknown, revoked, or expired.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 403)
@@ -3312,8 +3318,9 @@ namespace VPNDetection
     }
 
     /// <summary>
-    /// The union of every plan's answer. Only `ip` and `is_vpn` are guaranteed;
-    /// <br/>each remaining field is present when your plan includes it, and absent
+    /// The union of every plan's answer. Every answer carries `ip`, `is_vpn`,
+    /// <br/>the Tor and relay members, `location` and `asn`, with or without a key;
+    /// <br/>each remaining field is present when your key includes it, and absent
     /// <br/>otherwise. A client that must work across plans should treat an absent
     /// <br/>flag as unknown rather than as `false`.
     /// <br/>
@@ -3338,49 +3345,49 @@ namespace VPNDetection
         public bool IsVpn { get; set; } = default!;
 
         /// <summary>
-        /// Whether the address belongs to a hosting or cloud provider. Paid plans.
+        /// Whether the address belongs to a hosting or cloud provider. Free and paid plans.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_hosting")]
         public bool? IsHosting { get; set; } = default!;
 
         /// <summary>
-        /// Whether the address is privacy relay or enterprise web gateway egress, such as iCloud Private Relay or Zscaler. Free and paid plans.
+        /// Whether the address is privacy relay or enterprise web gateway egress, such as iCloud Private Relay or Zscaler. Every answer, with or without a key.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_relay")]
         public bool? IsRelay { get; set; } = default!;
 
         /// <summary>
-        /// Whether the address is a Tor node. Free and paid plans.
+        /// Whether the address is a Tor node. Every answer, with or without a key.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_tor")]
         public bool? IsTor { get; set; } = default!;
 
         /// <summary>
-        /// Whether the address belongs to a CDN. Paid plans.
+        /// Whether the address belongs to a CDN. Free and paid plans.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_cdn")]
         public bool? IsCdn { get; set; } = default!;
 
         /// <summary>
-        /// Whether the address was seen in a residential proxy pool. Paid plans.
+        /// Whether the address was seen in a residential proxy pool. Free and paid plans.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_resproxy")]
         public bool? IsResproxy { get; set; } = default!;
 
         /// <summary>
-        /// Whether the address is one a datacenter proxy service sells or runs on, a proxy company's own ranges included. Paid plans.
+        /// Whether the address is one a datacenter proxy service sells or runs on, a proxy company's own ranges included. Free and paid plans.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_dcproxy")]
         public bool? IsDcproxy { get; set; } = default!;
 
         /// <summary>
-        /// Whether the address was seen in a mobile proxy pool. Paid plans.
+        /// Whether the address was seen in a mobile proxy pool. Free and paid plans.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_mobproxy")]
         public bool? IsMobproxy { get; set; } = default!;
 
         /// <summary>
-        /// Whether a public proxy, one anyone can connect through, listens on the address or sends its traffic out from it. Paid plans.
+        /// Whether a public proxy, one anyone can connect through, listens on the address or sends its traffic out from it. Free and paid plans.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_pubproxy")]
         public bool? IsPubproxy { get; set; } = default!;
@@ -3399,14 +3406,15 @@ namespace VPNDetection
         public ClassDetail? Hosting { get; set; } = default!;
 
         /// <summary>
-        /// Detail for `is_relay`. Empty when false. Free and paid plans.
+        /// Detail for `is_relay`. Empty when false. Every answer, with or without a key.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("relay")]
         public ClassDetail? Relay { get; set; } = default!;
 
         /// <summary>
-        /// Detail for `is_tor`. Empty when false. Free and paid plans. The tor
-        /// <br/>dataset carries no provider, so `provider` is always an empty string.
+        /// Detail for `is_tor`. Empty when false. Every answer, with or without a
+        /// <br/>key. The tor dataset carries no provider, so `provider` is always an
+        /// <br/>empty string.
         /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("tor")]
@@ -3787,9 +3795,9 @@ namespace VPNDetection
 
     /// <summary>
     /// Where the address is, to the country: the fields of our IP Country
-    /// <br/>database. Free and paid plans. Each field is present whenever the
-    /// <br/>object is, so an address in no country, or a private one, answers
-    /// <br/>empty strings.
+    /// <br/>database. Every answer, with or without a key. Each field is present
+    /// <br/>whenever the object is, so an address in no country, or a private one,
+    /// <br/>answers empty strings.
     /// <br/>
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -3868,7 +3876,8 @@ namespace VPNDetection
     }
 
     /// <summary>
-    /// The autonomous system that announces the address. Free and paid plans.
+    /// The autonomous system that announces the address. Every answer, with or
+    /// <br/>without a key.
     /// <br/>Each field is present whenever the object is: `asn` is 0 and the rest
     /// <br/>empty where no announcement covers the address.
     /// <br/>

@@ -14,7 +14,7 @@ namespace VPNDetection.Integration;
 public class LookupTests
 {
     [Fact]
-    public async Task AnUnauthenticatedLookupAnswersIpAndIsVpn()
+    public async Task ALookupWithoutAKeyAnswersIpAndIsVpnAtTheLeast()
     {
         var fixture = await Staging.AnswerFor(Rung.Unauth);
 
@@ -136,9 +136,29 @@ public class LookupTests
     }
 
     [Fact]
-    public async Task ABatchCollapsesDuplicatesAndKeepsBogonsOffTheWire()
+    public async Task ABatchWithoutAKeyIsRefusedOnceAndItsBogonStillAnswered()
     {
         var (client, recorder) = Staging.ClientFor(Rung.Unauth);
+        using (client)
+        {
+            var answers = await client.LookupBatchAsync(new[] { Staging.Probe, "10.0.0.1" });
+
+            Assert.True(answers["10.0.0.1"].Result?.IsBogon, "10.0.0.1 was not answered locally");
+            var refused = answers[Staging.Probe].Error;
+            Assert.NotNull(refused);
+            Assert.Equal(ErrorKind.Unauthorized, refused.Kind);
+            Assert.Equal(401, refused.StatusCode);
+            Assert.False(refused.Retryable);
+            Assert.Equal(new[] { "/batch" }, recorder.Seen.Select(fact => fact.Path).ToArray());
+        }
+    }
+
+    [Fact]
+    public async Task ABatchCollapsesDuplicatesAndKeepsBogonsOffTheWire()
+    {
+        // A batch needs a key, and the free one is the cheapest that has it.
+        Rung.Free.SkipUnlessKeyed();
+        var (client, recorder) = Staging.ClientFor(Rung.Free);
         using (client)
         {
             var answers = await client.LookupBatchAsync(
@@ -150,6 +170,7 @@ public class LookupTests
             // deduplicate.
             var asked = recorder.Seen.Select(fact => fact.Path).Distinct().ToArray();
             Assert.Equal(new[] { "/batch" }, asked);
+            Assert.True(recorder.CarriedKey, "the free key never reached the wire");
             Assert.True(answers["10.0.0.1"].Result?.IsBogon, "10.0.0.1 was not answered locally");
             foreach (var ip in new[] { Staging.Probe, "8.8.8.8" })
             {
