@@ -79,12 +79,12 @@ public class LookupTests
         => fixture.ServedFields.Where(field => field != "trial_expired").ToHashSet();
 
     [Fact]
-    public async Task ATrialKeysAnswerIsAPaidOneOrUnlimitedsAndSaysWhich()
+    public async Task AFreePlanKeysAnswerIsAPaidOneOrUnlimitedsAndSaysWhich()
     {
         Rung.Trial.SkipUnlessKeyed();
         var raw = (await Staging.AnswerFor(Rung.Trial)).Raw;
 
-        Assert.True(raw.TryGetProperty("trial_expired", out var expired), "a trial key answers trial_expired");
+        Assert.True(raw.TryGetProperty("trial_expired", out var expired), "a free-plan key answers trial_expired");
         Assert.True(expired.ValueKind is JsonValueKind.True or JsonValueKind.False);
         // The organization's first 100 lookups of the UTC day are answered in full, and the rest as
         // Unlimited's: which half a run sees depends on the day.
@@ -92,7 +92,7 @@ public class LookupTests
     }
 
     [Fact]
-    public async Task ATrialKeysBatchOfTwoIsRefusedAsABadRequestOnce()
+    public async Task AFreePlanKeysBatchOfTwoIsRefusedAsABadRequestOnce()
     {
         Rung.Trial.SkipUnlessKeyed();
         var (client, recorder) = Staging.ClientFor(Rung.Trial);
@@ -113,7 +113,7 @@ public class LookupTests
     }
 
     [Fact]
-    public async Task ATrialKeysBatchOfOneIsAnswered()
+    public async Task AFreePlanKeysBatchOfOneIsAnswered()
     {
         Rung.Trial.SkipUnlessKeyed();
         var (client, recorder) = Staging.ClientFor(Rung.Trial);
@@ -122,7 +122,7 @@ public class LookupTests
             var answers = await client.LookupBatchAsync(new[] { Staging.Probe });
 
             var answer = answers[Staging.Probe];
-            Assert.True(answer.IsSuccess, $"a trial key's batch of one failed: {answer.Error?.Message}");
+            Assert.True(answer.IsSuccess, $"a free-plan key's batch of one failed: {answer.Error?.Message}");
             // Read off the wire, since the client this suite resolves may predate the member.
             var served = recorder.JsonBody("/batch").GetProperty("results").GetProperty(Staging.Probe);
             Assert.True(

@@ -17,7 +17,7 @@ Targets .NET 8 and newer.
 
 ## Usage
 
-**No API key needed to start.** The Unlimited tier answers `ip`, `is_vpn`, Tor and relay detection, `location` and `asn`, with no daily or monthly cap, with a key or without one.
+**No API key needed to start.** Unlimited, the free plan, answers `ip`, `is_vpn`, Tor and relay detection, `location` and `asn`, with no daily or monthly cap, with a key or without one.
 
 ```csharp
 using VPNDetection;
@@ -32,7 +32,7 @@ Console.WriteLine(result.Asn?.Name);          // who runs the announcing network
 
 ### With an API key
 
-Every paid plan answers every field: `is_hosting`, `is_cdn` and the four proxy flags as well, and the provider, confidence and last-seen detail behind each flag. The plans differ only in how many lookups they include, and a new account can try every field, 100 lookups a day. Create a key in the [console](https://app.vpndetection.io), then pass it in:
+Every paid plan answers every field: `is_hosting`, `is_cdn` and the four proxy flags as well, and the provider, confidence and last-seen detail behind each flag. The plans differ only in how many lookups they include, and a free account tries every field, 100 lookups a day. Create a key in the [console](https://app.vpndetection.io), then pass it in:
 
 ```csharp
 using var client = new VpnDetectionClient(new VpnDetectionClientOptions
@@ -64,7 +64,7 @@ Console.WriteLine(acct.Usage.Requests);   // 580
 Console.WriteLine(acct.Usage.WindowEnd);  // when the allowance resets
 ```
 
-Usage counts against the anniversary of your subscription on a paid plan, not the calendar month and not the billing period, and against the UTC day on a trial key; it is the same number a lookup is gated on. `HardLimit` is `null` on an uncapped plan, which is not the same as zero.
+Usage counts against the anniversary of your subscription on a paid plan, not the calendar month and not the billing period, and against the UTC day on the free plan; it is the same number a lookup is gated on. `HardLimit` is `null` on an uncapped plan, which is not the same as zero.
 
 ### Batch lookup
 
@@ -274,12 +274,12 @@ Each redirect URI must be https on a public host name, or http on a loopback add
 
 ### Absent is not false
 
-The Unlimited tier leaves out `IsHosting`, `IsCdn` and the four proxy flags, and of the detail behind each flag it answers only Tor's and relay's; a trial key's answer carries `TrialExpired`, true once its day of full answers is spent. The flags are `bool?`, where `null` means "not in your plan" rather than "checked, and no".
+The Unlimited tier leaves out `IsHosting`, `IsCdn` and the four proxy flags, and of the detail behind each flag it answers only Tor's and relay's; a free-plan key's answer carries `TrialExpired`, true once its daily trial is spent. The flags are `bool?`, where `null` means "not in your plan" rather than "checked, and no".
 
 ```csharp
 result.IsHosting ?? false   // when you only want the flag
 result.IsHosting is null    // on the Unlimited tier: not in your plan
-result.TrialExpired == true // a trial key's day of full answers is spent
+result.TrialExpired == true // a free-plan key's daily trial is spent
 ```
 
 ## Other Libraries

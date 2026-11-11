@@ -396,9 +396,9 @@ namespace VPNDetection
         /// <br/>and never a throttle.
         /// <br/>
         /// <br/>A batch needs a paid plan: without a key the call is refused with `401`,
-        /// <br/>and with a trial key with `402`, unless it names one address, which is
-        /// <br/>answered as `GET /{ip}` would answer it. Unlimited and a trial look up
-        /// <br/>one address at a time.
+        /// <br/>and with a key on the free plan with `402`, unless it names one address,
+        /// <br/>which is answered as `GET /{ip}` would answer it. Unlimited looks up one
+        /// <br/>address at a time.
         /// </remarks>
         /// <returns>One entry per distinct input string, in `results` or in `errors`.
         /// <br/>Present fields within a result are those your plan includes; see the
@@ -433,9 +433,9 @@ namespace VPNDetection
         /// <br/>and never a throttle.
         /// <br/>
         /// <br/>A batch needs a paid plan: without a key the call is refused with `401`,
-        /// <br/>and with a trial key with `402`, unless it names one address, which is
-        /// <br/>answered as `GET /{ip}` would answer it. Unlimited and a trial look up
-        /// <br/>one address at a time.
+        /// <br/>and with a key on the free plan with `402`, unless it names one address,
+        /// <br/>which is answered as `GET /{ip}` would answer it. Unlimited looks up one
+        /// <br/>address at a time.
         /// </remarks>
         /// <returns>One entry per distinct input string, in `results` or in `errors`.
         /// <br/>Present fields within a result are those your plan includes; see the
@@ -524,7 +524,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<LookupError>("The key is a trial\'s, an organization on no paid plan, and the batch\nnames more than one address: a batch needs a paid plan.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<LookupError>("The key is on the free plan and the batch names more than one\naddress: a batch needs a paid plan.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 403)
@@ -3473,9 +3473,9 @@ namespace VPNDetection
         public Asn? Asn { get; set; } = default!;
 
         /// <summary>
-        /// On every answer to a trial key, an organization on no paid plan, and
-        /// <br/>on no other: `false` while the organization's 100 full answers for
-        /// <br/>the UTC day last, `true` once the answer is Unlimited's.
+        /// On every answer to a key on the free plan, and on no other: `false`
+        /// <br/>while its organization's daily trial lasts (every field for the first
+        /// <br/>100 lookups each UTC day), `true` once the answer has Unlimited's.
         /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("trial_expired")]
@@ -4450,9 +4450,9 @@ namespace VPNDetection
     {
 
         /// <summary>
-        /// The plan the organization is on, or `trial` on none: a trial
-        /// <br/>answers every field for the organization's first 100 lookups each
-        /// <br/>UTC day, and Unlimited's answer after them.
+        /// The plan the organization is on: `free` for the free plan,
+        /// <br/>Unlimited, or a paid plan's key. On `free`, usage counts the
+        /// <br/>day's lookups answered with every field, its daily trial.
         /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
@@ -4460,7 +4460,7 @@ namespace VPNDetection
 
         /// <summary>
         /// The field tier, which decides how much of a lookup answer comes
-        /// <br/>back; `free` is a trial's. What each tier includes is documented
+        /// <br/>back; `free` is the free plan's. What each tier includes is documented
         /// <br/>on the lookup endpoint rather than repeated here, so there is one
         /// <br/>place it can be wrong.
         /// <br/>

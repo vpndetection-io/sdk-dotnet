@@ -148,8 +148,9 @@ public sealed class Result
     public Asn? Asn => raw.Asn;
 
     /// <summary>
-    /// On a Trial key's answers only: <c>false</c> while the organization's 100 full answers for
-    /// the UTC day last, <c>true</c> once the answer is Unlimited's.
+    /// On answers to a key on the free plan only: <c>false</c> while its organization's daily
+    /// trial lasts (every field for the first 100 lookups each UTC day), <c>true</c> once the
+    /// answer has Unlimited's.
     /// </summary>
     public bool? TrialExpired => raw.TrialExpired;
 
