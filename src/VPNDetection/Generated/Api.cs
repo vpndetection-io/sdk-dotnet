@@ -397,8 +397,8 @@ namespace VPNDetection
         /// <br/>
         /// <br/>A batch needs a paid plan: without a key the call is refused with `401`,
         /// <br/>and with a key on the free plan with `402`, unless it names one address,
-        /// <br/>which is answered as `GET /{ip}` would answer it. Unlimited looks up one
-        /// <br/>address at a time.
+        /// <br/>which is answered as `GET /{ip}` would answer it, under the same rate
+        /// <br/>limit. Unlimited looks up one address at a time.
         /// </remarks>
         /// <returns>One entry per distinct input string, in `results` or in `errors`.
         /// <br/>Present fields within a result are those your plan includes; see the
@@ -434,8 +434,8 @@ namespace VPNDetection
         /// <br/>
         /// <br/>A batch needs a paid plan: without a key the call is refused with `401`,
         /// <br/>and with a key on the free plan with `402`, unless it names one address,
-        /// <br/>which is answered as `GET /{ip}` would answer it. Unlimited looks up one
-        /// <br/>address at a time.
+        /// <br/>which is answered as `GET /{ip}` would answer it, under the same rate
+        /// <br/>limit. Unlimited looks up one address at a time.
         /// </remarks>
         /// <returns>One entry per distinct input string, in `results` or in `errors`.
         /// <br/>Present fields within a result are those your plan includes; see the
@@ -514,7 +514,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<LookupError>("No API key was presented, or the one presented is unknown, revoked, or expired.", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<LookupError>("No API key was presented for more than one address, or the one\npresented is unknown, revoked, or expired.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 402)
