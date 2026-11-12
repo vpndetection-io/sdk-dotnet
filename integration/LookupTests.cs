@@ -203,7 +203,8 @@ public class LookupTests
         var (client, recorder) = Staging.ClientFor(Rung.Unauth);
         using (client)
         {
-            var answers = await client.LookupBatchAsync(new[] { Staging.Probe, "10.0.0.1" });
+            // Two addresses on the wire: a keyless batch of one is answered as its lookup.
+            var answers = await client.LookupBatchAsync(new[] { Staging.Probe, "8.8.8.8", "10.0.0.1" });
 
             Assert.True(answers["10.0.0.1"].Result?.IsBogon, "10.0.0.1 was not answered locally");
             var refused = answers[Staging.Probe].Error;
