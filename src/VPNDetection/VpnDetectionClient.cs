@@ -347,9 +347,10 @@ public sealed class VpnDetectionClient : IDisposable
     /// its error as its value, so one bad entry cannot lose the rest of the answers: the API reports
     /// a per-entry failure with the status the single lookup would have answered, and a chunk that
     /// fails as a whole marks every address in it. Iteration order is the order the addresses were
-    /// first seen in the input. The batch endpoint needs a paid plan: without a key every address
-    /// sent to it carries an <see cref="ErrorKind.Unauthorized"/> error, and a free-plan key's batch
-    /// of two or more a <see cref="ErrorKind.BadRequest"/> (HTTP 402).
+    /// first seen in the input. The batch endpoint needs a paid plan: without a key every address in
+    /// a request of two or more carries an <see cref="ErrorKind.Unauthorized"/> error, and a
+    /// free-plan key's request of two or more a <see cref="ErrorKind.BadRequest"/> (HTTP 402). A
+    /// request of one address is answered as its lookup would be.
     /// </remarks>
     /// <exception cref="VpnDetectionException">
     /// <see cref="BatchOptions.Concurrency"/> is below 1, refused as
