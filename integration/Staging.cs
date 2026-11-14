@@ -16,14 +16,14 @@ internal static class Staging
     // One entry per dataset the API answers about. Required is what a POPULATED detail object
     // carries on every tier; Optional is the max-only remainder, which is absent rather than empty
     // on a lower plan.
-    private static readonly string[] ClassKeys = { "provider", "confidence", "last_seen" };
+    private static readonly string[] ClassKeys = { "provider", "provider_name", "confidence", "last_seen" };
 
     private static readonly string[] ProxyKeys =
-        { "provider", "first_seen", "last_seen", "hits", "hits_days_pct", "providers_num" };
+        { "provider", "provider_name", "first_seen", "last_seen", "hits", "hits_days_pct", "providers_num" };
 
     internal static readonly IReadOnlyDictionary<string, Detail> Members = new Dictionary<string, Detail>
     {
-        ["vpn"] = new(new[] { "provider", "last_seen" }, new[] { "confidence", "method" }),
+        ["vpn"] = new(new[] { "provider", "provider_name", "last_seen" }, new[] { "confidence", "method" }),
         ["hosting"] = new(ClassKeys, Array.Empty<string>()),
         ["relay"] = new(ClassKeys, Array.Empty<string>()),
         ["tor"] = new(ClassKeys, Array.Empty<string>()),
