@@ -296,7 +296,31 @@ public class ClientTests
             Stub.Route("api/v1/entitlement", """{"error":"invalid API key"}""", 401));
         using var client = Stub.Client(handler, new VpnDetectionClientOptions { Retries = 0 });
 
-        await Assert.ThrowsAsync<VpnDetectionException>(() => client.MyEntitlementAsync());
+        var error = await Assert.ThrowsAsync<VpnDetectionException>(() => client.MyEntitlementAsync());
+
+        // The refusal's own words, which only a client reading its `error` member can give: NSwag
+        // leaves the response text null for a documented status, so through 5.14.0 this read
+        // "request failed with status 401".
+        Assert.Equal(ErrorKind.Unauthorized, error.Kind);
+        Assert.Equal("invalid API key", error.Message);
+    }
+
+    // A refusal in the other envelope keeps its words too: `rc` on a lookup, `error` on a
+    // database call, each read from the member its typed body left over.
+    [Fact]
+    public async Task ARefusalInTheOtherEnvelopeKeepsItsMessage()
+    {
+        var lookup = StubHandler.Lookups(Stub.Route("9.9.9.9", """{"rc":"NOT_ALLOWED"}""", 403));
+        using var lookupClient = Stub.Client(lookup, new VpnDetectionClientOptions { Retries = 0 });
+        var refusedLookup = await Assert.ThrowsAsync<VpnDetectionException>(() => lookupClient.LookupAsync("9.9.9.9"));
+        Assert.Equal(ErrorKind.Forbidden, refusedLookup.Kind);
+        Assert.Equal("NOT_ALLOWED", refusedLookup.Message);
+
+        var database = new StubHandler(_ => StubHandler.Json(new Route("""{"error":"invalid API key"}""", 401)));
+        using var databaseClient = Stub.Client(database, new VpnDetectionClientOptions { ApiKey = "k", Retries = 0 });
+        var refusedList = await Assert.ThrowsAsync<VpnDetectionException>(() => databaseClient.Database.ListAsync());
+        Assert.Equal(ErrorKind.Unauthorized, refusedList.Kind);
+        Assert.Equal("invalid API key", refusedList.Message);
     }
 
     // `Retry-After` is the server's number, and Task.Delay throws past ~49.7 days: through 5.2.2

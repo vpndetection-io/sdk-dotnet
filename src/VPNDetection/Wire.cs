@@ -217,21 +217,42 @@ internal static class Wire
         _ => status < 500 ? ErrorKind.BadRequest : ErrorKind.ServerError,
     };
 
-    // The two APIs behind this host answer with different envelopes: the lookup endpoint uses
-    // `error`, the database endpoints use `rc`. Both are read here so a caller never has to know
-    // which one they hit.
+    // The two APIs behind this host answer with different envelopes: the lookups and the
+    // entitlement use `error`, the database endpoints use `rc`. Both are read here so a caller never
+    // has to know which one they hit. A documented refusal is parsed into its typed body and carries
+    // no text, so one in the other envelope is read from the member the type left over: through the
+    // text alone, a database call refused with `error`, and an entitlement refused at all, said
+    // nothing but its status.
     private static string MessageOf(WireException e)
     {
-        if (e is WireException<LookupError> lookup && !string.IsNullOrEmpty(lookup.Result?.Error))
+        var message = e switch
         {
-            return lookup.Result.Error;
-        }
-        if (e is WireException<Error> database && !string.IsNullOrEmpty(database.Result?.Rc))
-        {
-            return database.Result.Rc;
-        }
+            WireException<LookupError> lookup => Named(lookup.Result?.Error, lookup.Result?.AdditionalProperties),
+            WireException<EntitlementError> entitlement
+                => Named(entitlement.Result?.Error, entitlement.Result?.AdditionalProperties),
+            WireException<Error> database => Named(database.Result?.Rc, database.Result?.AdditionalProperties),
+            _ => null,
+        };
         // An undocumented status, or a body that would not parse, still reaches here with its text.
-        return FieldFromJson(e.Response) ?? $"request failed with status {e.StatusCode}";
+        return message ?? FieldFromJson(e.Response) ?? $"request failed with status {e.StatusCode}";
+    }
+
+    private static string? Named(string? declared, IDictionary<string, object>? rest)
+    {
+        if (!string.IsNullOrEmpty(declared))
+        {
+            return declared;
+        }
+        foreach (var field in new[] { "error", "rc" })
+        {
+            if (rest is not null && rest.TryGetValue(field, out var value)
+                && value is JsonElement { ValueKind: JsonValueKind.String } text
+                && !string.IsNullOrEmpty(text.GetString()))
+            {
+                return text.GetString();
+            }
+        }
+        return null;
     }
 
     private static string? FieldFromJson(string? body)
