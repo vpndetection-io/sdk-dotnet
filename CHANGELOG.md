@@ -2,6 +2,12 @@
 
 What each release changed for you, newest first. Each line is a commit's summary, linked to its full description and diff. Releases before 5.2.4 are described by their release commits.
 
+## 5.14.1 - 2026-11-15
+
+### Fixes
+
+- Keep a refusal's own message, an entitlement's and either envelope's ([`8899a47`](https://github.com/vpndetection-io/sdk-dotnet/commit/8899a470008b624112d963ab213e6e79932d770c))
+
 ## 5.14.0 - 2026-11-15
 
 ### Features
