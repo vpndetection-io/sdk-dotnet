@@ -2,6 +2,17 @@
 
 What each release changed for you, newest first. Each line is a commit's summary, linked to its full description and diff. Releases before 5.2.4 are described by their release commits.
 
+## 5.14.0 - 2026-11-15
+
+### Features
+
+- Re-pin the spec to 2026.11.14: is_bogon on every answer, and provider_name beside each provider ([`ba2999d`](https://github.com/vpndetection-io/sdk-dotnet/commit/ba2999d4d9f69d1570ba7a75cb6a7d7c37fba44a))
+
+### Fixes
+
+- Say that a batch request of one address is answered as its lookup ([`bcc7b0c`](https://github.com/vpndetection-io/sdk-dotnet/commit/bcc7b0cdbcab678a7673e53c6637ce7e3d6145df))
+- Re-pin the spec to 2026.11.12: plainer words on the 401 and the batch rate limit ([`ccb299f`](https://github.com/vpndetection-io/sdk-dotnet/commit/ccb299fa9bb8b9f884929e0c622e683b70621c0d))
+
 ## 5.13.2 - 2026-11-11
 
 ### Fixes
