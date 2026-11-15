@@ -21,22 +21,22 @@ public sealed class Result
         this.IsBogon = isBogon;
     }
 
-    internal static Result Of(LookupResponse body) => new(body, false);
+    internal static Result Of(LookupResponse body) => new(body, body.IsBogon ?? false);
 
     /// <summary>
-    /// The answer a bogon gets, in the full shape the API serves at its widest plan: every flag
-    /// present and false, every detail object present and empty, and the location and AS with
-    /// every field empty, as the API answers a bogon.
+    /// The answer a bogon gets, in the full shape the API serves at its widest plan:
+    /// <see cref="IsBogon"/> true and every other flag present and false, every detail object
+    /// present and empty, and the location and AS with every field empty, as the API answers a bogon.
     /// </summary>
     /// <remarks>
     /// This is deliberately the WIDEST shape regardless of your plan, so do not infer which fields
-    /// your plan includes from a bogon answer. <see cref="IsBogon"/> is how you tell a locally
-    /// computed answer from a served one.
+    /// your plan includes from a bogon answer.
     /// </remarks>
     internal static Result Bogon(string ip) => new(
         new LookupResponse
         {
             Ip = ip,
+            IsBogon = true,
             IsVpn = false,
             IsHosting = false,
             IsRelay = false,
@@ -78,7 +78,11 @@ public sealed class Result
     /// <summary>Whether the address is VPN infrastructure. Every answer includes this, with or without a key.</summary>
     public bool IsVpn => raw.IsVpn;
 
-    /// <summary>Set when this answer was computed locally rather than served.</summary>
+    /// <summary>
+    /// True for reserved space (private, loopback, documentation and the like), which the client
+    /// answers locally without a request. A served answer carries the API's own <c>is_bogon</c>,
+    /// and this reads it.
+    /// </summary>
     public bool IsBogon { get; }
 
     /// <summary>Whether the address belongs to a hosting or cloud provider. On every paid plan.</summary>

@@ -225,6 +225,44 @@ public class ConformanceTests
     }
 
     [Fact]
+    public async Task AServedIsBogonReachesTheResult()
+    {
+        var handler = StubHandler.Lookups(new Dictionary<string, Route>
+        {
+            ["8.8.8.8"] = new Route("""{"ip":"8.8.8.8","is_bogon":true,"is_vpn":false}"""),
+            ["8.8.4.4"] = new Route("""{"ip":"8.8.4.4","is_bogon":false,"is_vpn":false}"""),
+            ["1.1.1.1"] = new Route(Stub.LookupBody("1.1.1.1")),
+        });
+        using var client = Stub.Client(handler, new VpnDetectionClientOptions { CacheEnabled = false });
+
+        Assert.True((await client.LookupAsync("8.8.8.8")).IsBogon, "lookup: the served true");
+        Assert.False((await client.LookupAsync("1.1.1.1")).IsBogon, "lookup: an absent is_bogon is false");
+        var got = await client.LookupBatchAsync(["8.8.8.8", "8.8.4.4"]);
+        Assert.True(got["8.8.8.8"].Result!.IsBogon, "batch: the served true");
+        Assert.False(got["8.8.4.4"].Result!.IsBogon, "batch: the served false");
+    }
+
+    // The corpus compares each detail as JSON, which NSwag's AdditionalProperties round-trips
+    // whether or not the type has the member, so the typed property is asserted here.
+    [Fact]
+    public async Task AServedProviderNameIsATypedMemberOfEachDetail()
+    {
+        const string body = """
+            {"ip":"9.9.9.9","is_vpn":true,"vpn":{"provider":"mullvad","provider_name":"Mullvad"},
+             "hosting":{"provider":"m247","provider_name":"M247"},
+             "dcproxy":{"provider":"brightdata","provider_name":"Bright Data"}}
+            """;
+        using var client = Stub.Client(StubHandler.Lookups(Stub.Route("9.9.9.9", body)));
+
+        var result = await client.LookupAsync("9.9.9.9");
+
+        Assert.Equal("Mullvad", result.Vpn!.ProviderName);
+        Assert.Equal("M247", result.Hosting!.ProviderName);
+        Assert.Equal("Bright Data", result.Dcproxy!.ProviderName);
+        Assert.False(result.Vpn.AdditionalProperties?.ContainsKey("provider_name") ?? false);
+    }
+
+    [Fact]
     public async Task ACacheHitIssuesNoSecondRequest()
     {
         var c = Corpus.Case("batch", "cache-hit-issues-no-second-request");

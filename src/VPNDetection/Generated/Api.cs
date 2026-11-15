@@ -3334,8 +3334,8 @@ namespace VPNDetection
     }
 
     /// <summary>
-    /// The union of every tier's answer. Every answer carries `ip`, `is_vpn`,
-    /// <br/>the Tor and relay members, `location` and `asn`, with or without a key;
+    /// The union of every tier's answer. Every answer carries `ip`, `is_bogon`,
+    /// <br/>`is_vpn`, the Tor and relay members, `location` and `asn`, with or without a key;
     /// <br/>each remaining field is present when your tier includes it, and absent
     /// <br/>otherwise. A client that must work across plans should treat an absent
     /// <br/>flag as unknown rather than as `false`.
@@ -3350,6 +3350,15 @@ namespace VPNDetection
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("ip")]
         public string Ip { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the address is reserved space (RFC 1918, loopback, link-local,
+        /// <br/>documentation ranges and their IPv6 equivalents), answered from the
+        /// <br/>address alone. Every answer, with or without a key.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("is_bogon")]
+        public bool? IsBogon { get; set; } = default!;
 
         /// <summary>
         /// Whether the address is VPN infrastructure. Keys off presence in the
@@ -3429,8 +3438,8 @@ namespace VPNDetection
 
         /// <summary>
         /// Detail for `is_tor`. Empty when false. Every answer, with or without a
-        /// <br/>key. The tor dataset carries no provider, so `provider` is always an
-        /// <br/>empty string.
+        /// <br/>key. The tor dataset carries no provider, so `provider` and
+        /// <br/>`provider_name` are always empty strings.
         /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("tor")]
@@ -3592,10 +3601,18 @@ namespace VPNDetection
     {
 
         /// <summary>
-        /// The VPN provider, or an empty string for an unattributed range.
+        /// The VPN provider's ID, or an empty string for an unattributed range.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("provider")]
         public string? Provider { get; set; } = default!;
+
+        /// <summary>
+        /// The name the provider catalog gives the provider, beside the ID to key on;
+        /// <br/>an empty string where the catalog names none or the range is unattributed.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("provider_name")]
+        public string? ProviderName { get; set; } = default!;
 
         /// <summary>
         /// The most recent date this address was observed as VPN infrastructure.
@@ -3641,10 +3658,18 @@ namespace VPNDetection
     {
 
         /// <summary>
-        /// The provider, or an empty string where the dataset has none.
+        /// The provider's ID, or an empty string where the dataset has none.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("provider")]
         public string? Provider { get; set; } = default!;
+
+        /// <summary>
+        /// The name the provider catalog gives the provider; an empty string where the
+        /// <br/>catalog names none or the dataset has no provider.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("provider_name")]
+        public string? ProviderName { get; set; } = default!;
 
         /// <summary>
         /// How strongly the classification is supported.
@@ -3682,10 +3707,18 @@ namespace VPNDetection
     {
 
         /// <summary>
-        /// The proxy network, or an empty string where unattributed.
+        /// The proxy network's ID, or an empty string where unattributed.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("provider")]
         public string? Provider { get; set; } = default!;
+
+        /// <summary>
+        /// The name the provider catalog gives the proxy network; an empty string where
+        /// <br/>the catalog names none or the address is unattributed.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("provider_name")]
+        public string? ProviderName { get; set; } = default!;
 
         /// <summary>
         /// The earliest date within the window this address was seen in the
