@@ -148,6 +148,37 @@ public class ConformanceTests
         }
     }
 
+    // The plan reads its name, the thing a client shows, beside the key it compares. Only the plan
+    // name's case is read here: a tier, standing, license type, format and outcome are typed enums,
+    // which refuse a value they were not built with.
+    [Fact]
+    public async Task AnEntitlementReadsThePlanName()
+    {
+        var c = Corpus.Data.GetProperty("vocabulary").GetProperty("cases").EnumerateArray()
+            .Single(entry => entry.GetProperty("name").GetString() == "entitlement-plan-name");
+        using var client = Stub.Client(StubHandler.Lookups(
+            Stub.Route("api/v1/entitlement", c.GetProperty("answer").GetRawText())));
+
+        var plan = (await client.MyEntitlementAsync()).Plan;
+
+        var expect = c.GetProperty("expect");
+        Assert.Equal(expect.GetProperty("plan.key").GetString(), plan.Key);
+        Assert.Equal(expect.GetProperty("plan.name").GetString(), plan.Name);
+        Assert.Equal(expect.GetProperty("plan.tier").GetString(), Corpus.AsWire(plan.Tier).Trim('"'));
+    }
+
+    // An AS number is 32 bits unsigned, so the private-use range from 4200000000 is past an int.
+    [Fact]
+    public async Task AnAsNumberPastAnIntReads()
+    {
+        const string body = """{"ip":"45.83.91.1","is_vpn":false,"asn":{"asn":4200000001,"name":"n","domain":"d","type":"isp","prefix":"45.83.91.0/24"}}""";
+        using var client = Stub.Client(StubHandler.Lookups(Stub.Route("45.83.91.1", body)));
+
+        var result = await client.LookupAsync("45.83.91.1");
+
+        Assert.Equal(4200000001L, result.Asn!.Number);
+    }
+
     [Fact]
     public async Task A429IsClassifiedByRetryAfterNotByItsStatus()
     {

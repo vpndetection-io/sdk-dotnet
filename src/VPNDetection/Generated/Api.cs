@@ -3948,7 +3948,7 @@ namespace VPNDetection
         /// The AS number, 0 when no announcement covers the address.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("asn")]
-        public int Number { get; set; } = default!;
+        public long Number { get; set; } = default!;
 
         /// <summary>
         /// Name of the organization that operates the AS.
@@ -4483,8 +4483,9 @@ namespace VPNDetection
     {
 
         /// <summary>
-        /// The plan the organization is on: `free` for the free plan,
-        /// <br/>Unlimited, or a paid plan's key. On `free`, usage counts the
+        /// The plan the organization is on, as an identifier that is never
+        /// <br/>renamed or reused: `free` for the free plan, or a paid plan's key.
+        /// <br/>Compare against it and show `name`. On `free`, usage counts the
         /// <br/>day's lookups answered with every field, its daily trial.
         /// <br/>
         /// </summary>
@@ -4492,8 +4493,18 @@ namespace VPNDetection
         public string Key { get; set; } = default!;
 
         /// <summary>
+        /// The plan's name, as the site and console show it: `Unlimited` for
+        /// <br/>the free plan. Show this rather than a name built from `key`: a
+        /// <br/>plan's name can change, and its key never does.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        public string Name { get; set; } = default!;
+
+        /// <summary>
         /// The field tier, which decides how much of a lookup answer comes
-        /// <br/>back; `free` is the free plan's. What each tier includes is documented
+        /// <br/>back; `free` is the free plan's. This list never gains a value: a
+        /// <br/>new plan reports one of these. What each tier includes is documented
         /// <br/>on the lookup endpoint rather than repeated here, so there is one
         /// <br/>place it can be wrong.
         /// <br/>
