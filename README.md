@@ -59,12 +59,15 @@ Same answer `LookupAsync` would give for that address, and the same cost against
 
 ```csharp
 var acct = await client.MyEntitlementAsync();
-Console.WriteLine(acct.Plan.Key);         // max
+Console.WriteLine(acct.Plan.Name);        // Max, what to show
+Console.WriteLine(acct.Plan.Key);         // max, what to compare against
 Console.WriteLine(acct.Usage.Requests);   // 580
 Console.WriteLine(acct.Usage.WindowEnd);  // when the allowance resets
 ```
 
 Usage counts against the anniversary of your subscription on a paid plan, not the calendar month and not the billing period, and against the UTC day on the free plan; it is the same number a lookup is gated on. `HardLimit` is `null` on an uncapped plan, which is not the same as zero.
+
+Show `Plan.Name` and compare against `Plan.Key`: a plan's name can change, and its key never does.
 
 ### Batch lookup
 

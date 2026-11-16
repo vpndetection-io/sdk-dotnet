@@ -106,7 +106,7 @@ public class AnswerTests
     {
         ["list"] = """{"databases":[{"base":"vpn_ip_extended","name":"VPN IP Extended","summary":"s","starts":@D@,"expires":null,"renews_at":null,"notice_due_at":null,"license_type":"standard","in_term":true,"open":false,"standing":"licensed","versions":[{"id":"vpn_ip_extended_v1","version":1,"formats":[{"format":"mmdb","bytes":1234}],"sample_formats":["csvgz"]}]}]}""",
         ["downloads"] = """{"downloads":[{"dataset_id":"vpn_ip_extended_v1","format":"mmdb","outcome":"ok","sample":false,"open":false,"bytes":1234,"created":@D@}]}""",
-        ["myEntitlement"] = """{"org_id":"85bb51e4-2eb6-4a31-8e4d-02ba8b98fe61","apikey":{"id":"0ab424cc-7619-4dad-b027-afacdc2cedb0","expires":null,"allowed_cidrs":[]},"plan":{"key":"max","tier":"max"},"usage":{"requests":5,"quota":50,"hard_limit":null,"window_start":@D@,"window_end":"2026-10-04T07:00:00Z"}}""",
+        ["myEntitlement"] = """{"org_id":"85bb51e4-2eb6-4a31-8e4d-02ba8b98fe61","apikey":{"id":"0ab424cc-7619-4dad-b027-afacdc2cedb0","expires":null,"allowed_cidrs":[]},"plan":{"key":"max","name":"Max","tier":"max"},"usage":{"requests":5,"quota":50,"hard_limit":null,"window_start":@D@,"window_end":"2026-10-04T07:00:00Z"}}""",
         ["date:metadata"] = """{"id":"vpn_ip_extended_v1","update_freq":"daily","updated":@D@,"entries":42,"schema":{"mmdb":[{"name":"ip","type":"string"}]}}""",
         ["date:lookup"] = """{"ip":"45.83.91.1","is_vpn":true,"vpn":{"provider":"p","last_seen":@D@}}""",
     };

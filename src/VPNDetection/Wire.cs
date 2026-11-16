@@ -455,7 +455,7 @@ internal partial class WireClient
         [typeof(BatchLookupError)] = ["status", "error"],
         [typeof(Entitlement)] = ["org_id", "apikey", "plan", "usage"],
         [typeof(EntitlementApikey)] = ["id", "allowed_cidrs"],
-        [typeof(EntitlementPlan)] = ["key", "tier"],
+        [typeof(EntitlementPlan)] = ["key", "name", "tier"],
         [typeof(EntitlementUsage)] = ["requests", "quota", "window_start", "window_end"],
         [typeof(Database)] = ["base", "name", "summary", "in_term", "standing", "open", "versions"],
         [typeof(DatabaseVersion)] = ["id", "version", "formats"],

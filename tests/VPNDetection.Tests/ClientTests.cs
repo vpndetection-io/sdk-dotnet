@@ -224,7 +224,7 @@ public class ClientTests
             "expires": null,
             "allowed_cidrs": []
           },
-          "plan": {"key": "max", "tier": "max"},
+          "plan": {"key": "max", "name": "Max", "tier": "max"},
           "usage": {
             "requests": 580,
             "quota": 5000000,
@@ -269,6 +269,7 @@ public class ClientTests
         var ent = await client.MyEntitlementAsync();
 
         Assert.Equal("max", ent.Plan.Key);
+        Assert.Equal("Max", ent.Plan.Name);
         Assert.Equal(580, ent.Usage.Requests);
         Assert.Equal(5000000, ent.Usage.Quota);
         // Null means NEVER stop, which is not the same as a limit of zero.
