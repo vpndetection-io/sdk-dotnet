@@ -2,6 +2,16 @@
 
 What each release changed for you, newest first. Each line is a commit's summary, linked to its full description and diff. Releases before 5.2.4 are described by their release commits.
 
+## 5.15.0 - 2026-11-16
+
+### Features
+
+- Read the plan's name, what to show beside the key you compare ([`2aecadc`](https://github.com/vpndetection-io/sdk-dotnet/commit/2aecadcfad4c66ba7e2f20b8de145a06e7a0a273))
+
+### Fixes
+
+- Re-pin the spec to 2026.11.15: Asn.Number is a long, so any AS number reads ([`5cac587`](https://github.com/vpndetection-io/sdk-dotnet/commit/5cac587f967286472edc8696a4affbe94045ae5c))
+
 ## 5.14.1 - 2026-11-15
 
 ### Fixes
