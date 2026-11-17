@@ -285,6 +285,19 @@ result.IsHosting is null    // on Unlimited: not in your plan
 result.TrialExpired == true // a free-plan key's daily trial is spent
 ```
 
+### A value the API adds
+
+A plan's tier, a database's standing and license type, a format and a download's outcome are each a class with a property per value this release knows. A value the API adds later reads as itself rather than failing the call, so compare with `==` and keep a fallback:
+
+```csharp
+if (database.Standing == Standing.Licensed) { /* download it */ }
+database.Standing.Value    // "licensed", as the API spells it
+database.Standing.IsKnown  // false for a value added after this release
+Standing.Known             // every value this release knows
+```
+
+A format you pass in must be one of `DatabaseFormat.Known`; any other is an `ArgumentOutOfRangeException` before a request is made.
+
 ## Other Libraries
 
 There are official VPNDetection client libraries available for many languages including PHP, Python, Go, Java, Ruby, and many popular frameworks such as Django, Rails, and Laravel. See our GitHub at https://github.com/vpndetection-io for more.

@@ -148,23 +148,53 @@ public class ConformanceTests
         }
     }
 
-    // The plan reads its name, the thing a client shows, beside the key it compares. Only the plan
-    // name's case is read here: a tier, standing, license type, format and outcome are typed enums,
-    // which refuse a value they were not built with.
+    // Each vocabulary case serves a well-formed answer, and each `expect` path, wire names with a
+    // number indexing a list, reads the same value off the typed result: the plan's name beside its
+    // key, and a tier, standing, license type, format and outcome no published list holds (5.15.0
+    // failed the call on each of the five, measured 2026-11-17).
     [Fact]
-    public async Task AnEntitlementReadsThePlanName()
+    public async Task EveryVocabularyCaseReadsAsServed()
     {
-        var c = Corpus.Data.GetProperty("vocabulary").GetProperty("cases").EnumerateArray()
-            .Single(entry => entry.GetProperty("name").GetString() == "entitlement-plan-name");
-        using var client = Stub.Client(StubHandler.Lookups(
-            Stub.Route("api/v1/entitlement", c.GetProperty("answer").GetRawText())));
+        var cases = Corpus.Data.GetProperty("vocabulary").GetProperty("cases").EnumerateArray().ToList();
+        Assert.Equal(6, cases.Count);
+        foreach (var c in cases)
+        {
+            var name = c.GetProperty("name").GetString()!;
+            var call = c.GetProperty("call").GetString()!;
+            var answer = c.GetProperty("answer").GetRawText();
+            using var client = Stub.Client(new StubHandler(_ => StubHandler.Json(new Route(answer))));
+
+            object typed = call switch
+            {
+                "myEntitlement" => await client.MyEntitlementAsync(),
+                "listDatabases" => new Dictionary<string, object> { ["databases"] = await client.Database.ListAsync() },
+                "listDownloads" => new Dictionary<string, object> { ["downloads"] = await client.Database.DownloadsAsync() },
+                _ => throw new InvalidOperationException($"{name}: no call {call}"),
+            };
+
+            var read = JsonDocument.Parse(Corpus.AsWire(typed)).RootElement;
+            foreach (var expect in c.GetProperty("expect").EnumerateObject())
+            {
+                var at = expect.Name.Split('.').Aggregate(read, (node, step)
+                    => int.TryParse(step, out var index) ? node[index] : node.GetProperty(step));
+                Assert.True(expect.Value.GetRawText() == at.GetRawText(),
+                    $"{name}: {expect.Name} read {at.GetRawText()}, want {expect.Value.GetRawText()}");
+            }
+        }
+    }
+
+    [Fact]
+    public async Task AnUnknownVocabularyValueIsNotAKnownOne()
+    {
+        var entitlement = Corpus.Data.GetProperty("vocabulary").GetProperty("cases").EnumerateArray()
+            .Single(entry => entry.GetProperty("name").GetString() == "entitlement-tier-unknown");
+        using var client = Stub.Client(new StubHandler(_ => StubHandler.Json(new Route(entitlement.GetProperty("answer").GetRawText()))));
 
         var plan = (await client.MyEntitlementAsync()).Plan;
 
-        var expect = c.GetProperty("expect");
-        Assert.Equal(expect.GetProperty("plan.key").GetString(), plan.Key);
-        Assert.Equal(expect.GetProperty("plan.name").GetString(), plan.Name);
-        Assert.Equal(expect.GetProperty("plan.tier").GetString(), Corpus.AsWire(plan.Tier).Trim('"'));
+        Assert.Equal("data", plan.Tier.Value);
+        Assert.False(plan.Tier.IsKnown);
+        Assert.Equal("Data", plan.Name);
     }
 
     // An AS number is 32 bits unsigned, so the private-use range from 4200000000 is past an int.

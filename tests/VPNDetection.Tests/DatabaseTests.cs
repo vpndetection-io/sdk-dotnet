@@ -480,24 +480,28 @@ public class DatabaseTests
         Assert.Equal(429, error.StatusCode);
     }
 
-    // A C# enum takes any integer by a cast, and 5.2.2 sent `(DatabaseFormat)99` as `format=99`
-    // for the API to refuse a round trip later. Refused before any request, and before a download
-    // creates anything on disk.
-    [Fact]
-    public async Task AnUndefinedFormatIsRefusedBeforeAnyRequest()
+    // 5.2.2 sent `(DatabaseFormat)99` as `format=99` for the API to refuse a round trip later, and
+    // from 6.0.0 a format is any string. One this release was not built with, another case of one
+    // it was, and a null are refused before any request, and before a download creates anything on
+    // disk.
+    [Theory]
+    [InlineData("parquet")]
+    [InlineData("MMDB")]
+    [InlineData(null)]
+    public async Task AnUnpublishedFormatIsRefusedBeforeAnyRequest(string? value)
     {
         var handler = new StubHandler(_ => StubHandler.Json(new Route("""{"rc":"BAD_REQUEST"}""", 400)));
         using var client = Stub.Client(handler);
-        var undefined = (DatabaseFormat)99;
+        var undefined = value is null ? null! : new DatabaseFormat(value);
         var path = Path.Combine(TempDir(), "dataset.mmdb");
 
-        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+        await Assert.ThrowsAnyAsync<ArgumentException>(
             () => client.Database.ChecksumsAsync("vpn_ip_extended_v1", undefined));
-        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+        await Assert.ThrowsAnyAsync<ArgumentException>(
             () => client.Database.DownloadUrlAsync("vpn_ip_extended_v1", undefined));
-        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+        await Assert.ThrowsAnyAsync<ArgumentException>(
             () => client.Database.DownloadBytesAsync("vpn_ip_extended_v1", undefined));
-        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+        await Assert.ThrowsAnyAsync<ArgumentException>(
             () => client.Database.DownloadAsync("vpn_ip_extended_v1", undefined, path));
 
         Assert.Empty(handler.Calls);

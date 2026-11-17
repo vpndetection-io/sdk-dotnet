@@ -7,7 +7,7 @@ namespace VPNDetection.Tests;
 
 /// <summary>
 /// An answer holds what the spec says, in the form it says. 5.10.1 read an enum from a number, a
-/// numeric string or any case, kept a sample row that is not an object, took a date-time with a
+/// numeric string or any case (from 6.0.0 a vocabulary is any string, as served), kept a sample row that is not an object, took a date-time with a
 /// trailing newline, failed with a raw <c>FormatException</c> on a digit from another script, and
 /// refused a fraction past nine digits and an offset past 14 hours, both RFC 3339 (measured
 /// 2026-10-29).
@@ -59,26 +59,20 @@ public class AnswerFormTests
             data.Add("metadata", Set(Metadata, ["updated"], value));
             data.Add("lookup", Set(Lookup, ["vpn", "last_seen"], value));
         }
-        foreach (var standing in new JsonNode[] { 0, "0", "LICENSED", "Licensed", "licensed, expired" })
+        // A vocabulary member is any string the API serves; a number, a list, an object, or a null
+        // where the spec requires one, is not an answer.
+        JsonNode?[] notAString = [0, null, new JsonArray("licensed"), new JsonObject { ["value"] = "licensed" }];
+        foreach (var value in notAString)
         {
-            data.Add("list", Wrap("databases", Family, "standing", standing));
+            data.Add("list", Wrap("databases", Family, "standing", value?.DeepClone()));
+            data.Add("downloads", Wrap("downloads", Attempt, "outcome", value?.DeepClone()));
+            data.Add("myEntitlement", Set(Entitlement, ["plan", "tier"], value?.DeepClone()));
         }
-        foreach (var license in new JsonNode[] { 1, "1", "STANDARD" })
-        {
-            data.Add("list", Wrap("databases", Family, "license_type", license));
-        }
+        data.Add("list", Wrap("databases", Family, "license_type", 1));
         data.Add("list", Wrap("databases", Family.Replace("\"format\":\"mmdb\"", "\"format\":0", StringComparison.Ordinal), "open", false));
-        data.Add("list", Wrap("databases", Family.Replace("\"format\":\"mmdb\"", "\"format\":\"MMDB\"", StringComparison.Ordinal), "open", false));
+        data.Add("list", Wrap("databases", Family.Replace("\"format\":\"mmdb\"", "\"format\":null", StringComparison.Ordinal), "open", false));
         data.Add("list", Wrap("databases", Family.Replace("[\"csvgz\"]", "[0]", StringComparison.Ordinal), "open", false));
-        data.Add("list", Wrap("databases", Family.Replace("[\"csvgz\"]", "[\"CSVGZ\"]", StringComparison.Ordinal), "open", false));
-        foreach (var outcome in new JsonNode[] { 1, "1", "OK" })
-        {
-            data.Add("downloads", Wrap("downloads", Attempt, "outcome", outcome));
-        }
-        foreach (var tier in new JsonNode[] { 3, "3", "MAX" })
-        {
-            data.Add("myEntitlement", Set(Entitlement, ["plan", "tier"], tier));
-        }
+        data.Add("list", Wrap("databases", Family.Replace("[\"csvgz\"]", "[null]", StringComparison.Ordinal), "open", false));
         foreach (var row in new[] { "null", "1", "\"x\"", "[]" })
         {
             data.Add("metadata", Metadata.Replace("[{\"ip\":\"45.83.91.0/24\"}]", "[" + row + "]", StringComparison.Ordinal));
@@ -146,6 +140,61 @@ public class AnswerFormTests
         Assert.Equal(DownloadOutcome.Unavailable, attempt.Outcome);
         Assert.Equal(EntitlementPlanTier.Scale, tier);
         Assert.Equal("45.83.91.0/24", ((JsonElement)sample).GetProperty("ip").GetString());
+    }
+
+    // 5.15.0 read a vocabulary as a closed enum, so a value the API added failed the call, and
+    // 5.10.1 read one in any case or from a numeric string. Each string comes back as served,
+    // equal to no known value unless it is one exactly.
+    [Theory]
+    [InlineData("suspended")]
+    [InlineData("LICENSED")]
+    [InlineData("Licensed")]
+    [InlineData("0")]
+    [InlineData("")]
+    public async Task AVocabularyValueReadsAsServed(string value)
+    {
+        var family = JsonNode.Parse(Family)!;
+        family["standing"] = value;
+        family["license_type"] = value;
+        family["versions"]![0]!["formats"]![0]!["format"] = value;
+        family["versions"]![0]!["sample_formats"] = new JsonArray(value, "csvgz");
+        using var listing = Stub.Client(new StubHandler(_ => StubHandler.Json(new Route(new JsonObject { ["databases"] = new JsonArray(family) }.ToJsonString()))));
+        using var history = Stub.Client(new StubHandler(_ => StubHandler.Json(new Route(Wrap("downloads", Attempt, "outcome", value)))));
+        using var plan = Stub.Client(new StubHandler(_ => StubHandler.Json(new Route(Set(Entitlement, ["plan", "tier"], value)))));
+
+        var database = (await listing.Database.ListAsync())[0];
+        var outcome = (await history.Database.DownloadsAsync())[0].Outcome;
+        var tier = (await plan.MyEntitlementAsync()).Plan.Tier;
+        var version = database.Versions.Single();
+
+        Assert.Equal(value, database.Standing.Value);
+        Assert.False(database.Standing.IsKnown);
+        Assert.Equal(new Standing(value), database.Standing);
+        Assert.NotEqual(Standing.Licensed, database.Standing);
+        Assert.Equal(value, database.LicenseType!.Value);
+        Assert.False(database.LicenseType.IsKnown);
+        Assert.Equal(value, version.Formats.Single().Format.Value);
+        Assert.Equal(new[] { new DatabaseFormat(value), DatabaseFormat.Csvgz }, version.SampleFormats);
+        Assert.Equal(value, outcome.Value);
+        Assert.False(outcome.IsKnown);
+        Assert.Equal(value, tier.Value);
+        Assert.False(tier.IsKnown);
+    }
+
+    [Fact]
+    public void AVocabularyComparesByValueAndListsWhatThisReleaseKnows()
+    {
+        Assert.True(new Standing("licensed") == Standing.Licensed);
+        Assert.True(new Standing("licensed").IsKnown);
+        Assert.Equal(Standing.Licensed.GetHashCode(), new Standing("licensed").GetHashCode());
+        Assert.True(new Standing("LICENSED") != Standing.Licensed);
+        Assert.Equal("licensed", Standing.Licensed.ToString());
+        Assert.Equal(["expired", "licensed", "unlicensed"], Standing.Known.Select(known => known.Value));
+        Assert.Equal(["csvgz", "mmdb"], DatabaseFormat.Known.Select(known => known.Value));
+        Assert.Equal(["evaluation", "standard", "redistribute"], DatabaseLicense_type.Known.Select(known => known.Value));
+        Assert.Equal(["ok", "unauthorized", "denied", "expired", "unknown", "unavailable"], DownloadOutcome.Known.Select(known => known.Value));
+        Assert.Equal(["free", "starter", "scale", "max"], EntitlementPlanTier.Known.Select(known => known.Value));
+        Assert.Throws<ArgumentNullException>(() => new Standing(null!));
     }
 
     private static string Wrap(string envelope, string entry, string member, JsonNode? value)

@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Reflection;
-using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
@@ -410,13 +409,6 @@ internal partial class WireClient
 
     internal string? ApiKey { get; set; }
 
-    // NSwag gives a scalar enum property its own JsonStringEnumConverter, but where an enum sits
-    // inside a LIST it writes a "TODO: Add string enum item converter" comment and nothing else,
-    // and System.Text.Json's default is to read an enum as a NUMBER. So `sample_formats: ["csvgz"]`
-    // throws on a perfectly healthy answer unless the converter is registered for the document.
-    // Registered for the one enum that appears in a list rather than for all of them;
-    // scripts/normalize_generated.py refuses to emit a client where a SECOND enum needs it.
-    //
     // NSwag also starts every member at a default, so `{}` read as an answer: a lookup of nulls, an
     // empty plan, an empty catalog (5.4.1, measured 2026-10-13). And System.Text.Json sets a null
     // into a reference-typed member, or into a list or map, without a word, so a database's `name`,
@@ -430,13 +422,13 @@ internal partial class WireClient
     // a date alone as midnight, a time with no offset in the machine's own zone, `+05` and a time
     // without seconds (measured 2026-10-25). Its DateOnly reader takes `full-date` alone.
     //
-    // NSwag's JsonStringEnumConverter reads a NUMBER, a numeric string and any case as an enum too,
-    // so 5.10.1 read `"standing": 0` and `"LICENSED"` as `Licensed` and `"outcome": 1` as
-    // `Unauthorized` (measured 2026-10-29). Every enum is read by its wire name alone
-    // (WireEnumConverter), the one in a list included.
+    // NSwag's JsonStringEnumConverter read a NUMBER, a numeric string and any case as an enum, so
+    // 5.10.1 read `"standing": 0` and `"LICENSED"` as `Licensed` (measured 2026-10-29), and an enum
+    // refused a value the API added, so 5.15.0 failed on a `tier` of `data` (measured 2026-11-17).
+    // scripts/normalize_generated.py opens every enum an answer carries into a class holding the
+    // value as served, read from a JSON string alone (VocabularyConverter), the one in a list included.
     static partial void UpdateJsonSerializerSettings(JsonSerializerOptions settings)
     {
-        settings.Converters.Add(new WireEnumConverter<DatabaseFormat>());
         settings.Converters.Add(new Rfc3339DateTimeConverter());
         settings.TypeInfoResolver = new DefaultJsonTypeInfoResolver { Modifiers = { RequireAnswerMembers } };
     }
@@ -479,12 +471,6 @@ internal partial class WireClient
         var nullability = new NullabilityInfoContext();
         foreach (var property in info.Properties)
         {
-            var type = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
-            if (type.IsEnum)
-            {
-                var converter = type == property.PropertyType ? typeof(WireEnumConverter<>) : typeof(NullableWireEnumConverter<>);
-                property.CustomConverter = (JsonConverter)Activator.CreateInstance(converter.MakeGenericType(type))!;
-            }
             if (info.Type == typeof(DatabaseMetadata) && property.Name == "sample" && property.Set is { } setSample)
             {
                 property.Set = (target, value) => setSample(target, SampleRows(value));
@@ -667,55 +653,6 @@ internal sealed partial class Rfc3339DateTimeConverter : JsonConverter<DateTimeO
         catch (ArgumentOutOfRangeException)
         {
             return null;
-        }
-    }
-}
-
-/// <summary>
-/// An enum read by the spec's wire name alone, exactly as the spec spells it, where
-/// <see cref="JsonStringEnumConverter"/> also takes a number, a numeric string and any case.
-/// </summary>
-internal sealed class WireEnumConverter<T> : JsonConverter<T>
-    where T : struct, Enum
-{
-    private static readonly Dictionary<string, T> ByName = typeof(T)
-        .GetFields(BindingFlags.Public | BindingFlags.Static)
-        .ToDictionary(field => field.GetCustomAttribute<EnumMemberAttribute>()?.Value ?? field.Name,
-            field => (T)field.GetValue(null)!, StringComparer.Ordinal);
-
-    private static readonly Dictionary<T, string> ByValue = ByName.ToDictionary(entry => entry.Value, entry => entry.Key);
-
-    public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-        => reader.TokenType == JsonTokenType.String && ByName.TryGetValue(reader.GetString()!, out var value)
-            ? value
-            : throw new JsonException($"not one of {typeof(T).Name}'s values");
-
-    public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
-        => writer.WriteStringValue(ByValue.TryGetValue(value, out var name)
-            ? name
-            : throw new JsonException($"{value} is not one of {typeof(T).Name}'s values"));
-}
-
-/// <summary><see cref="WireEnumConverter{T}"/> for a member the spec allows to be null.</summary>
-internal sealed class NullableWireEnumConverter<T> : JsonConverter<T?>
-    where T : struct, Enum
-{
-    private static readonly WireEnumConverter<T> Inner = new();
-
-    public override bool HandleNull => true;
-
-    public override T? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-        => reader.TokenType == JsonTokenType.Null ? null : Inner.Read(ref reader, typeof(T), options);
-
-    public override void Write(Utf8JsonWriter writer, T? value, JsonSerializerOptions options)
-    {
-        if (value is { } present)
-        {
-            Inner.Write(writer, present, options);
-        }
-        else
-        {
-            writer.WriteNullValue();
         }
     }
 }
