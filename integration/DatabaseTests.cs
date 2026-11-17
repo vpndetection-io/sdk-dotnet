@@ -16,7 +16,7 @@ public class DatabaseTests
     // small enough to move in CI.
     private const string DatasetId = "cdn_ip_v1";
 
-    private const DatabaseFormat Format = DatabaseFormat.Csvgz;
+    private static readonly DatabaseFormat Format = DatabaseFormat.Csvgz;
 
     // 8 MiB against a ~10 KB dataset. Three orders of magnitude of headroom, so tripping it means
     // the suite is pointed somewhere unintended, which is exactly when a transfer must not proceed.
@@ -61,11 +61,10 @@ public class DatabaseTests
             {
                 Assert.False(string.IsNullOrEmpty(family.Base), "a family carries no base");
                 Assert.False(string.IsNullOrEmpty(family.Name), $"{family.Base} carries no name");
-                Assert.True(
-                    Enum.IsDefined(family.Standing), $"{family.Base} carries an undocumented standing");
+                Assert.True(family.Standing.IsKnown, $"{family.Base} carries an undocumented standing");
                 // `list` answers the WHOLE catalogue, so an unlicensed family is a normal row with
                 // no license type at all. Asserting one either way is what tells a null apart from
-                // an enum value the client does not know.
+                // a value the client does not know.
                 if (family.Standing == Standing.Unlicensed)
                 {
                     Assert.Null(family.LicenseType);
@@ -73,7 +72,7 @@ public class DatabaseTests
                 else
                 {
                     Assert.True(
-                        family.LicenseType is { } right && Enum.IsDefined(right),
+                        family.LicenseType is { IsKnown: true },
                         $"{family.Base} is {family.Standing} and carries an undocumented right");
                     licensed.Add(family.Base);
                 }
