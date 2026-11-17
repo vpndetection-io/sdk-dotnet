@@ -2,6 +2,12 @@
 
 What each release changed for you, newest first. Each line is a commit's summary, linked to its full description and diff. Releases before 5.2.4 are described by their release commits.
 
+## 6.0.0 - 2026-11-17
+
+### Breaking changes
+
+- Read a tier, standing, license type, format or outcome the API adds ([`c30b9dc`](https://github.com/vpndetection-io/sdk-dotnet/commit/c30b9dcd2316ad70929b0e789cdfc55d7b38884f))
+
 ## 5.15.0 - 2026-11-16
 
 ### Features
