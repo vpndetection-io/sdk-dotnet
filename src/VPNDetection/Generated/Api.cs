@@ -185,7 +185,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<LookupError>("The key restricts which source addresses may use it and this\nrequest came from none of them, or the key was sent over plain\nHTTP, where anyone on the network path could read it. Rotate a key\nthat was.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<LookupError>("The key restricts which source addresses may use it and this\nrequest came from none of them, or the key lacks the `ip.lookup`\nscope (IP lookup, in the console\'s key settings), or the key was\nsent over plain HTTP, where anyone on the network path could read\nit. Rotate a key that was.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 429)
@@ -195,7 +195,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<LookupError>("Either a rate limit or a paid plan\'s overage cap. `Retry-After` is\npresent for the former and absent for the latter, and is the only\nway to tell them apart.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<LookupError>("A rate limit, always with `Retry-After`. A paid plan\'s overage cap is\nnever a `429`: it answers `200` with Unlimited\'s fields and\n`cap_reached` `true`.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 500)
@@ -331,7 +331,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<LookupError>("The key restricts which source addresses may use it and this\nrequest came from none of them, or the key was sent over plain\nHTTP, where anyone on the network path could read it. Rotate a key\nthat was.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<LookupError>("The key restricts which source addresses may use it and this\nrequest came from none of them, or the key lacks the `ip.lookup`\nscope (IP lookup, in the console\'s key settings), or the key was\nsent over plain HTTP, where anyone on the network path could read\nit. Rotate a key that was.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 429)
@@ -341,7 +341,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<LookupError>("Either a rate limit or a paid plan\'s overage cap. `Retry-After` is\npresent for the former and absent for the latter, and is the only\nway to tell them apart.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<LookupError>("A rate limit, always with `Retry-After`. A paid plan\'s overage cap is\nnever a `429`: it answers `200` with Unlimited\'s fields and\n`cap_reached` `true`.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 500)
@@ -387,13 +387,12 @@ namespace VPNDetection
         /// <br/>normalized form. An address that could not be answered sits in `errors`
         /// <br/>with the status and message the single lookup would have given, and
         /// <br/>never disturbs the others: a string that is not an address is a `400`
-        /// <br/>there, and an overage cap reached part way through leaves the remaining
-        /// <br/>entries as `429`s.
+        /// <br/>there. An overage cap reached part way through answers the remaining
+        /// <br/>entries with Unlimited's fields and `cap_reached` `true`, in `results`.
         /// <br/>
         /// <br/>The call itself fails only for the reasons below, and a `429` on the
         /// <br/>call always carries `Retry-After`: the batch is admitted or refused
-        /// <br/>whole by the rate limit, so a per-entry `429` is always the overage cap
-        /// <br/>and never a throttle.
+        /// <br/>whole by the rate limit, never per entry.
         /// <br/>
         /// <br/>A batch needs a paid plan: without a key the call is refused with `401`,
         /// <br/>and with a key on the free plan with `402`, unless it names one address,
@@ -424,13 +423,12 @@ namespace VPNDetection
         /// <br/>normalized form. An address that could not be answered sits in `errors`
         /// <br/>with the status and message the single lookup would have given, and
         /// <br/>never disturbs the others: a string that is not an address is a `400`
-        /// <br/>there, and an overage cap reached part way through leaves the remaining
-        /// <br/>entries as `429`s.
+        /// <br/>there. An overage cap reached part way through answers the remaining
+        /// <br/>entries with Unlimited's fields and `cap_reached` `true`, in `results`.
         /// <br/>
         /// <br/>The call itself fails only for the reasons below, and a `429` on the
         /// <br/>call always carries `Retry-After`: the batch is admitted or refused
-        /// <br/>whole by the rate limit, so a per-entry `429` is always the overage cap
-        /// <br/>and never a throttle.
+        /// <br/>whole by the rate limit, never per entry.
         /// <br/>
         /// <br/>A batch needs a paid plan: without a key the call is refused with `401`,
         /// <br/>and with a key on the free plan with `402`, unless it names one address,
@@ -534,7 +532,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<LookupError>("The key restricts which source addresses may use it and this\nrequest came from none of them, or the key was sent over plain\nHTTP, where anyone on the network path could read it. Rotate a key\nthat was.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<LookupError>("The key restricts which source addresses may use it and this\nrequest came from none of them, or the key lacks the `ip.lookup`\nscope (IP lookup, in the console\'s key settings), or the key was\nsent over plain HTTP, where anyone on the network path could read\nit. Rotate a key that was.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 413)
@@ -554,7 +552,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<LookupError>("The rate limit refused the whole call. Always transient and always\nwith `Retry-After`; a reached overage cap is reported per entry in a\n`200` instead.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<LookupError>("The rate limit refused the whole call. Always transient and always\nwith `Retry-After`; a reached overage cap answers each entry in a\n`200` instead.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -1342,7 +1340,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<EntitlementError>("The key restricts which source addresses may use it, and this\nrequest did not come from one of them.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<EntitlementError>("The key restricts which source addresses may use it, and this\nrequest did not come from one of them; or the key was sent over\nplain HTTP, which is refused whatever the key.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 503)
@@ -3490,6 +3488,17 @@ namespace VPNDetection
         [System.Text.Json.Serialization.JsonPropertyName("trial_expired")]
         public bool? TrialExpired { get; set; } = default!;
 
+        /// <summary>
+        /// On every answer to a key on a paid plan, and on no other: `false`
+        /// <br/>while the answer has every field, `true` once its organization's
+        /// <br/>overage cap is reached and the answer has Unlimited's. Lookups
+        /// <br/>answered past the cap are not billed; raising or removing the cap in
+        /// <br/>Billing turns it `false` again.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cap_reached")]
+        public bool? CapReached { get; set; } = default!;
+
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]
@@ -3565,9 +3574,8 @@ namespace VPNDetection
 
         /// <summary>
         /// The HTTP status `GET /{ip}` would have answered for this entry: `400`
-        /// <br/>for a string that is not an address, `429` for a reached overage cap,
-        /// <br/>`500` when the VPN dataset could not be consulted. A `429` here is
-        /// <br/>never a throttle; the whole call is refused instead.
+        /// <br/>for a string that is not an address, `500` when the VPN dataset could
+        /// <br/>not be consulted.
         /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("status")]
@@ -4601,9 +4609,12 @@ namespace VPNDetection
         public long Quota { get; set; } = default!;
 
         /// <summary>
-        /// Where we stop serving. NULL means never, which is the normal state
-        /// <br/>of an uncapped paid plan and is not the same as zero. Above the
-        /// <br/>quota and below this, requests are served and billed as overage.
+        /// Where full answers stop: past it, a paid key is answered with
+        /// <br/>Unlimited's fields and `cap_reached: true`, uncharged, until the
+        /// <br/>window ends or the cap is raised. NULL means never, which is the
+        /// <br/>normal state of an uncapped paid plan and is not the same as zero.
+        /// <br/>Above the quota and below this, requests are served and billed as
+        /// <br/>overage.
         /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("hard_limit")]

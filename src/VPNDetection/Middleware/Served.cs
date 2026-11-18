@@ -44,6 +44,7 @@ internal static class Served
         PutDetail(served, "location", result.Location);
         PutDetail(served, "asn", result.Asn);
         Put(served, "trial_expired", result.TrialExpired);
+        Put(served, "cap_reached", result.CapReached);
         return served;
     }
 
