@@ -2,6 +2,12 @@
 
 What each release changed for you, newest first. Each line is a commit's summary, linked to its full description and diff. Releases before 5.2.4 are described by their release commits.
 
+## 6.1.0 - 2026-11-18
+
+### Features
+
+- Read cap_reached past a paid plan's overage cap, and re-pin the spec ([`7e0082d`](https://github.com/vpndetection-io/sdk-dotnet/commit/7e0082d436a0a4370471c121ff5a13c752bab50e))
+
 ## 6.0.0 - 2026-11-17
 
 ### Breaking changes
