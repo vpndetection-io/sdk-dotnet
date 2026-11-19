@@ -2,6 +2,12 @@
 
 What each release changed for you, newest first. Each line is a commit's summary, linked to its full description and diff. Releases before 5.2.4 are described by their release commits.
 
+## 6.1.1 - 2026-11-19
+
+### Fixes
+
+- Re-pin the spec to 2026.11.18: a key over plain HTTP is refused ([`f928f89`](https://github.com/vpndetection-io/sdk-dotnet/commit/f928f8966f943952ffd9a75ba66794ed83a4fd0c))
+
 ## 6.1.0 - 2026-11-18
 
 ### Features
