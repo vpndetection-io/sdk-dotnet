@@ -659,6 +659,16 @@ namespace VPNDetection
                             throw new WireException<Error>("Missing or invalid key, or the key lacks the db.download scope", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
+                        if (status_ == 403)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<Error>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WireException<Error>("The key was sent over plain HTTP (`KEY_OVER_HTTP`), refused whatever it is. By then it has crossed in the clear, so use `https://` and replace a key that did", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
                         {
                             var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
                             throw new WireException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
@@ -797,7 +807,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<Error>("Your organization holds no license for this database, or its term has ended", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<Error>("Your organization holds no license for this database, or its term has ended (`NOT_LICENSED`); or the key was sent over plain HTTP (`KEY_OVER_HTTP`), so use `https://`", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 404)
@@ -953,6 +963,16 @@ namespace VPNDetection
                             throw new WireException<Error>("Missing or invalid key, or the key lacks the db.download scope", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
+                        if (status_ == 403)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<Error>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WireException<Error>("The key was sent over plain HTTP (`KEY_OVER_HTTP`), refused whatever it is. By then it has crossed in the clear, so use `https://` and replace a key that did", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
                         if (status_ == 404)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<Error>(response_, headers_, cancellationToken).ConfigureAwait(false);
@@ -1100,7 +1120,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<Error>("Your organization holds no license for this database, or its term has ended", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<Error>("Your organization holds no license for this database, or its term has ended (`NOT_LICENSED`); or the key was sent over plain HTTP (`KEY_OVER_HTTP`), so use `https://`", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 404)
@@ -1229,6 +1249,16 @@ namespace VPNDetection
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WireException<Error>("Missing or invalid key, or the key lacks the db.download scope", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 403)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<Error>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WireException<Error>("The key was sent over plain HTTP (`KEY_OVER_HTTP`), refused whatever it is. By then it has crossed in the clear, so use `https://` and replace a key that did", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -1478,7 +1508,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<AccountRc>("The credential does not hold the scope this endpoint requires. The\nmissing scope is deliberately not named.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<AccountRc>("The credential does not hold the scope this endpoint requires\n(`FORBIDDEN`); the missing scope is deliberately not named. Or the\ncredential was sent over plain HTTP, refused whatever it is\n(`KEY_OVER_HTTP`): use `https://`.\n`rc`: `FORBIDDEN`, `KEY_OVER_HTTP`.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -1592,7 +1622,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<AccountRc>("The credential does not hold the scope this endpoint requires. The\nmissing scope is deliberately not named.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<AccountRc>("The credential does not hold the scope this endpoint requires\n(`FORBIDDEN`); the missing scope is deliberately not named. Or the\ncredential was sent over plain HTTP, refused whatever it is\n(`KEY_OVER_HTTP`): use `https://`.\n`rc`: `FORBIDDEN`, `KEY_OVER_HTTP`.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -1706,7 +1736,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<AccountRc>("The credential does not hold the scope this endpoint requires. The\nmissing scope is deliberately not named.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<AccountRc>("The credential does not hold the scope this endpoint requires\n(`FORBIDDEN`); the missing scope is deliberately not named. Or the\ncredential was sent over plain HTTP, refused whatever it is\n(`KEY_OVER_HTTP`): use `https://`.\n`rc`: `FORBIDDEN`, `KEY_OVER_HTTP`.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -1828,7 +1858,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<AccountRc>("The credential does not hold the scope this endpoint requires. The\nmissing scope is deliberately not named.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<AccountRc>("The credential does not hold the scope this endpoint requires\n(`FORBIDDEN`); the missing scope is deliberately not named. Or the\ncredential was sent over plain HTTP, refused whatever it is\n(`KEY_OVER_HTTP`): use `https://`.\n`rc`: `FORBIDDEN`, `KEY_OVER_HTTP`.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -1961,7 +1991,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<AccountRc>("The credential does not hold the scope this endpoint requires. The\nmissing scope is deliberately not named.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<AccountRc>("The credential does not hold the scope this endpoint requires\n(`FORBIDDEN`); the missing scope is deliberately not named. Or the\ncredential was sent over plain HTTP, refused whatever it is\n(`KEY_OVER_HTTP`): use `https://`.\n`rc`: `FORBIDDEN`, `KEY_OVER_HTTP`.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -2085,7 +2115,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<AccountRc>("The credential does not hold the scope this endpoint requires. The\nmissing scope is deliberately not named.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<AccountRc>("The credential does not hold the scope this endpoint requires\n(`FORBIDDEN`); the missing scope is deliberately not named. Or the\ncredential was sent over plain HTTP, refused whatever it is\n(`KEY_OVER_HTTP`): use `https://`.\n`rc`: `FORBIDDEN`, `KEY_OVER_HTTP`.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 404)
@@ -2217,7 +2247,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<AccountRc>("The credential does not hold the scope this endpoint requires. The\nmissing scope is deliberately not named.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<AccountRc>("The credential does not hold the scope this endpoint requires\n(`FORBIDDEN`); the missing scope is deliberately not named. Or the\ncredential was sent over plain HTTP, refused whatever it is\n(`KEY_OVER_HTTP`): use `https://`.\n`rc`: `FORBIDDEN`, `KEY_OVER_HTTP`.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 404)
@@ -2357,7 +2387,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<AccountRc>("The credential does not hold the scope this endpoint requires. The\nmissing scope is deliberately not named.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<AccountRc>("The credential does not hold the scope this endpoint requires\n(`FORBIDDEN`); the missing scope is deliberately not named. Or the\ncredential was sent over plain HTTP, refused whatever it is\n(`KEY_OVER_HTTP`): use `https://`.\n`rc`: `FORBIDDEN`, `KEY_OVER_HTTP`.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 404)
