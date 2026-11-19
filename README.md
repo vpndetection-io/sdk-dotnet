@@ -219,7 +219,7 @@ if (token.Apikey is null)
 using var keyed = new VpnDetectionClient(new VpnDetectionClientOptions { ApiKey = token.Apikey });
 ```
 
-A denied sign-in throws `OauthAccessDeniedException` and a code that ran out `OauthExpiredTokenException`. Client IDs are issued on request from support@vpndetection.io, and `client.Oauth.RevokeAsync("your-client-id", token.RefreshToken)` signs the machine out again.
+A denied sign-in throws `OauthAccessDeniedException` and a code that ran out `OauthExpiredTokenException`. `client.Oauth.RevokeAsync("your-client-id", token.RefreshToken)` signs the machine out again. Only a client we registered, such as our CLI, can use the device flow: an app of your own signs people in with the authorization code flow below.
 
 ### Dependency injection
 
