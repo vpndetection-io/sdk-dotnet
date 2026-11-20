@@ -2,6 +2,12 @@
 
 What each release changed for you, newest first. Each line is a commit's summary, linked to its full description and diff. Releases before 5.2.4 are described by their release commits.
 
+## 6.2.1 - 2026-11-20
+
+### Fixes
+
+- Let a block condition name an answer's new members ([`4856beb`](https://github.com/vpndetection-io/sdk-dotnet/commit/4856beb72e6f87e40b7b03b3ff96b0930ae8a334))
+
 ## 6.2.0 - 2026-11-20
 
 ### Features
