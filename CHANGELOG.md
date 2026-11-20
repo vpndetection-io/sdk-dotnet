@@ -2,6 +2,18 @@
 
 What each release changed for you, newest first. Each line is a commit's summary, linked to its full description and diff. Releases before 5.2.4 are described by their release commits.
 
+## 6.2.0 - 2026-11-20
+
+### Features
+
+- Re-pin the spec to 2026.11.20 and regenerate ([`c0d955c`](https://github.com/vpndetection-io/sdk-dotnet/commit/c0d955c465988abdf15196cebabbe0e2a7f04249))
+- Read the anycast, network, service, company and abuse members of an answer ([`e4bec96`](https://github.com/vpndetection-io/sdk-dotnet/commit/e4bec969839278a01565e472c0120fd2d04bcf24))
+- Name the SDK in every request's User-Agent ([`ceb3d11`](https://github.com/vpndetection-io/sdk-dotnet/commit/ceb3d1116ccd5d1d9b7cf02f9b362dfd15d7ea12))
+
+### Fixes
+
+- Cache a spent trial's or a reached cap's answer for a minute at most ([`ab212ad`](https://github.com/vpndetection-io/sdk-dotnet/commit/ab212ad0c3ed37a54165d8dfc5cb4e070463fb21))
+
 ## 6.1.1 - 2026-11-19
 
 ### Fixes
