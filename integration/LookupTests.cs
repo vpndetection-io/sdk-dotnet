@@ -86,8 +86,8 @@ public class LookupTests
 
         Assert.True(raw.TryGetProperty("trial_expired", out var expired), "a free-plan key answers trial_expired");
         Assert.True(expired.ValueKind is JsonValueKind.True or JsonValueKind.False);
-        // The organization's first 100 lookups of the UTC day are answered in full, and the rest as
-        // Unlimited's: which half a run sees depends on the day.
+        // The organization's answers are in full while its trial of every field lasts, and
+        // Unlimited's after: which half a run sees depends on when it runs.
         Assert.Equal(expired.ValueKind == JsonValueKind.False, raw.TryGetProperty("is_hosting", out _));
     }
 
@@ -190,9 +190,13 @@ public class LookupTests
         Assert.True(Bogon.IsBogon("10.0.0.1"), "the standalone function must agree with the client");
         Assert.True(client.IsBogon("10.0.0.1"));
         // Computed rather than served, so it carries every field whatever the plan.
-        foreach (var name in Staging.Members.Keys)
+        foreach (var name in Staging.Members.Keys.Append("web"))
         {
             Assert.Equal(false, Staging.ServedMember(result, "is_" + name));
+            Assert.NotNull(Staging.ServedMember(result, name));
+        }
+        foreach (var name in Staging.Objects.Keys.Append("hostname"))
+        {
             Assert.NotNull(Staging.ServedMember(result, name));
         }
     }

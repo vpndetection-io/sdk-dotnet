@@ -31,6 +31,40 @@ internal static class Staging
         ["resproxy"] = new(ProxyKeys, Array.Empty<string>()),
         ["dcproxy"] = new(ProxyKeys, Array.Empty<string>()),
         ["mobproxy"] = new(ProxyKeys, Array.Empty<string>()),
+        ["carrier"] = new(new[] { "name", "mcc", "mnc", "country", "confidence" }, Array.Empty<string>()),
+        ["satellite"] = new(
+            new[] { "provider", "provider_name", "orbit", "segment", "country", "asn", "confidence" },
+            Array.Empty<string>()),
+        ["ssh"] = new(
+            new[] { "port", "banner", "host_key_fp", "session_ok", "first_seen", "last_seen" }, Array.Empty<string>()),
+        ["smtp"] = new(new[] { "port", "banner", "session_ok", "first_seen", "last_seen" }, Array.Empty<string>()),
+        ["dns_resolver"] = new(
+            new[] { "port", "recursion_available", "rcode", "answer_correct", "first_seen", "last_seen" },
+            Array.Empty<string>()),
+        ["bittorrent"] = new(
+            new[]
+            {
+                "verified", "id_matches_ip", "first_seen", "last_seen", "last_reachable", "days_seen", "num_ports",
+                "peak_num_ports", "indexer", "clients",
+            },
+            Array.Empty<string>()),
+    };
+
+    // The web detail is a LIST, a row per port that answered and `[]` when is_web is false, so it is
+    // checked apart from the objects above. Every row carries every key.
+    internal static readonly IReadOnlyList<string> WebKeys = new[]
+    {
+        "port", "tls_ok", "session_ok", "status_code", "server", "location", "title", "cert_subject_cn",
+        "cert_subject_o", "cert_issuer_dn", "cert_browser_trusted", "tls_version", "first_seen", "last_seen",
+    };
+
+    // Objects with no flag above them: a paid answer's company and abuse contact.
+    internal static readonly IReadOnlyDictionary<string, Detail> Objects = new Dictionary<string, Detail>
+    {
+        ["company"] = new(new[] { "name", "domain" }, new[] { "type", "country" }),
+        ["abuse"] = new(
+            new[] { "email" },
+            new[] { "name", "phone", "address", "country", "network", "validated", "unvalidated_since" }),
     };
 
     private static readonly SemaphoreSlim AnswersLock = new(1, 1);
@@ -125,6 +159,40 @@ internal static class Staging
             // whether the address is flagged at all.
             Assert.True(raw.TryGetProperty(flag, out _), $"{tier}: {name} is served without {flag}");
             AssertDetail(tier, name, spec, detail, raw.GetProperty(flag).GetBoolean());
+        }
+
+        if (raw.TryGetProperty("web", out var web))
+        {
+            Assert.True(raw.TryGetProperty("is_web", out var isWeb), $"{tier}: web is served without is_web");
+            Assert.Equal(JsonValueKind.Array, web.ValueKind);
+            Assert.Equal(isWeb.GetBoolean(), web.GetArrayLength() > 0);
+            foreach (var row in web.EnumerateArray())
+            {
+                AssertDetail(tier, "web", new Detail(WebKeys, Array.Empty<string>()), row, true);
+            }
+        }
+        foreach (var (name, spec) in Objects)
+        {
+            if (raw.TryGetProperty(name, out var value))
+            {
+                AssertKeys(tier, name, spec, value);
+            }
+        }
+    }
+
+    private static void AssertKeys(string tier, string name, Detail spec, JsonElement value)
+    {
+        Assert.Equal(JsonValueKind.Object, value.ValueKind);
+        var keys = value.EnumerateObject().Select(field => field.Name).ToArray();
+        foreach (var key in spec.Required)
+        {
+            Assert.True(keys.Contains(key), $"{tier}: {name} carries no {key}");
+        }
+        foreach (var key in keys)
+        {
+            Assert.True(
+                spec.Required.Contains(key) || spec.Optional.Contains(key),
+                $"{tier}: {name}.{key} is not a documented key of this object");
         }
     }
 
