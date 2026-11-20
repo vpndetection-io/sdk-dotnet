@@ -95,9 +95,15 @@ public class ConformanceTests
             var name = detail.GetString()!;
             Assert.Equal("{}", Corpus.AsWire(Corpus.Member(result, name)));
         }
-        foreach (var name in new[] { "location", "asn" })
+        // Every member the shape names beside its two lists: the location, AS, company and abuse
+        // contact with every field empty, the web list empty and the hostname an empty string.
+        foreach (var member in shape.EnumerateObject())
         {
-            Corpus.AssertWire(shape.GetProperty(name), Corpus.Member(result, name), $"{name} must carry every field, empty");
+            if (member.Name is "why" or "flagsFalse" or "emptyObjects")
+            {
+                continue;
+            }
+            Corpus.AssertWire(member.Value, Corpus.Member(result, member.Name), $"{member.Name} must carry every field, empty");
         }
         Assert.Empty(handler.Calls);
     }
@@ -138,12 +144,18 @@ public class ConformanceTests
             {
                 Assert.Equal("{}", Corpus.AsWire(Corpus.Member(result, field)));
             }
-            foreach (var detail in new[] { "vpn", "hosting", "dcproxy", "pubproxy", "location", "asn" })
+            // Every other key is a member compared as JSON: a detail, the web list, the location,
+            // AS, company and abuse contact, the hostname. None is skipped, so a key the corpus adds
+            // fails here until the result carries it.
+            foreach (var member in expect.EnumerateObject())
             {
-                if (expect.TryGetProperty(detail, out var want))
+                if (member.Name is "ip" or "isBogon" or "present" or "absent" or "emptyPresent")
                 {
-                    Corpus.AssertWire(want, Corpus.Member(result, detail), $"{name}: {detail}");
+                    continue;
                 }
+                var value = Corpus.Member(result, member.Name);
+                Corpus.AssertWire(member.Value, value, $"{name}: {member.Name}");
+                AssertEveryKeyTyped(value, $"{name}: {member.Name}");
             }
         }
     }
@@ -301,6 +313,37 @@ public class ConformanceTests
         var got = await client.LookupBatchAsync(["8.8.8.8", "8.8.4.4"]);
         Assert.True(got["8.8.8.8"].Result!.IsBogon, "batch: the served true");
         Assert.False(got["8.8.4.4"].Result!.IsBogon, "batch: the served false");
+    }
+
+    // The JSON comparison passes through NSwag's AdditionalProperties for a key the generated type
+    // lacks, so each served key must also have landed in a typed property, at any depth.
+    private static void AssertEveryKeyTyped(object? value, string because)
+    {
+        switch (value)
+        {
+            case null or string or ValueType:
+                return;
+            case System.Collections.IEnumerable list:
+                foreach (var item in list)
+                {
+                    AssertEveryKeyTyped(item, because);
+                }
+                return;
+        }
+        var type = value.GetType();
+        foreach (var property in type.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
+        {
+            if (property.Name == "AdditionalProperties")
+            {
+                var extra = (IDictionary<string, object>?)property.GetValue(value);
+                Assert.True(extra is null || extra.Count == 0,
+                    $"{because}: {type.Name} read no typed member for {string.Join(", ", extra?.Keys ?? [])}");
+            }
+            else if (property.GetIndexParameters().Length == 0)
+            {
+                AssertEveryKeyTyped(property.GetValue(value), because);
+            }
+        }
     }
 
     // The corpus compares each detail as JSON, which NSwag's AdditionalProperties round-trips

@@ -8,8 +8,8 @@ namespace VPNDetection;
 /// so null and <c>false</c> are genuinely different answers: null is "not in your plan",
 /// <c>false</c> is "checked, and no". Write <c>result.IsHosting ?? false</c> when you only care
 /// whether the address is flagged, and compare against <c>null</c> when the difference matters.</para>
-/// <para>A detail object that is present but empty means the flag above it is false. A populated
-/// one always carries every one of its keys.</para>
+/// <para>A detail object that is present but empty (<see cref="Web"/>'s empty list) means the flag
+/// above it is false. A populated one always carries every one of its keys.</para>
 /// </remarks>
 public sealed class Result
 {
@@ -46,6 +46,14 @@ public sealed class Result
             IsDcproxy = false,
             IsMobproxy = false,
             IsPubproxy = false,
+            IsAnycast = false,
+            IsCarrier = false,
+            IsSatellite = false,
+            IsSsh = false,
+            IsSmtp = false,
+            IsWeb = false,
+            IsDnsResolver = false,
+            IsBittorrent = false,
             Vpn = new VpnDetail(),
             Hosting = new ClassDetail(),
             Relay = new ClassDetail(),
@@ -55,6 +63,13 @@ public sealed class Result
             Dcproxy = new ProxyDetail(),
             Mobproxy = new ProxyDetail(),
             Pubproxy = new PubproxyDetail(),
+            Carrier = new CarrierDetail(),
+            Satellite = new SatelliteDetail(),
+            Ssh = new SshDetail(),
+            Smtp = new SmtpDetail(),
+            Web = Array.Empty<WebDetail>(),
+            DnsResolver = new DnsResolverDetail(),
+            Bittorrent = new BitTorrentDetail(),
             Location = new Location
             {
                 Continent = "",
@@ -67,8 +82,31 @@ public sealed class Result
                 CurrencySymbol = "",
                 FlagEmoji = "",
                 FlagUnicode = "",
+                Region = "",
+                RegionCode = "",
+                City = "",
+                PostalCode = "",
+                Latitude = 0,
+                Longitude = 0,
+                AccuracyRadius = 0,
+                GeonameId = "",
+                DmaCode = "",
+                LastChanged = "",
             },
-            Asn = new Asn { Number = 0, Name = "", Domain = "", Type = "", Prefix = "" },
+            Asn = new Asn { Number = 0, Name = "", Domain = "", Type = "", Prefix = "", Country = "", RpkiStatus = "" },
+            Company = new Company { Name = "", Domain = "", Type = "", Country = "" },
+            Hostname = "",
+            Abuse = new AbuseContact
+            {
+                Email = "",
+                Name = "",
+                Phone = "",
+                Address = "",
+                Country = "",
+                Network = "",
+                Validated = false,
+                UnvalidatedSince = "",
+            },
         },
         true);
 
@@ -112,6 +150,33 @@ public sealed class Result
     /// </summary>
     public bool? IsPubproxy => raw.IsPubproxy;
 
+    /// <summary>
+    /// Whether the address is announced from many places at once, as a public DNS resolver's or a
+    /// CDN's edge is. On every answer, with or without a key.
+    /// </summary>
+    public bool? IsAnycast => raw.IsAnycast;
+
+    /// <summary>Whether the address is a mobile carrier's, where many phones can share one address. On every paid plan.</summary>
+    public bool? IsCarrier => raw.IsCarrier;
+
+    /// <summary>Whether the address is a satellite operator's. On every paid plan.</summary>
+    public bool? IsSatellite => raw.IsSatellite;
+
+    /// <summary>Whether an SSH server answered on the address. On every paid plan.</summary>
+    public bool? IsSsh => raw.IsSsh;
+
+    /// <summary>Whether a mail server answered on the address. On every paid plan.</summary>
+    public bool? IsSmtp => raw.IsSmtp;
+
+    /// <summary>Whether a web server answered on the address, on port 80 or 443. On every paid plan.</summary>
+    public bool? IsWeb => raw.IsWeb;
+
+    /// <summary>Whether an open DNS resolver answered on the address. On every paid plan.</summary>
+    public bool? IsDnsResolver => raw.IsDnsResolver;
+
+    /// <summary>Whether a BitTorrent client was seen on the address in the last 90 days. On every paid plan.</summary>
+    public bool? IsBittorrent => raw.IsBittorrent;
+
     /// <summary>Detail behind <see cref="IsVpn"/>. Empty when it is false. On every paid plan.</summary>
     public VpnDetail? Vpn => raw.Vpn;
 
@@ -139,22 +204,58 @@ public sealed class Result
     /// <summary>Detail behind <see cref="IsPubproxy"/>. Empty when it is false. On every paid plan.</summary>
     public PubproxyDetail? Pubproxy => raw.Pubproxy;
 
+    /// <summary>Detail behind <see cref="IsCarrier"/>. Empty when it is false. On every paid plan.</summary>
+    public CarrierDetail? Carrier => raw.Carrier;
+
+    /// <summary>Detail behind <see cref="IsSatellite"/>. Empty when it is false. On every paid plan.</summary>
+    public SatelliteDetail? Satellite => raw.Satellite;
+
+    /// <summary>Detail behind <see cref="IsSsh"/>. Empty when it is false. On every paid plan.</summary>
+    public SshDetail? Ssh => raw.Ssh;
+
+    /// <summary>Detail behind <see cref="IsSmtp"/>. Empty when it is false. On every paid plan.</summary>
+    public SmtpDetail? Smtp => raw.Smtp;
+
     /// <summary>
-    /// Where the address is, on every answer, with or without a key: every field set, an empty
-    /// string where it is not known.
+    /// Detail behind <see cref="IsWeb"/>: a row per port that answered, lowest first, and empty when
+    /// it is false. On every paid plan.
+    /// </summary>
+    public IReadOnlyList<WebDetail>? Web => raw.Web;
+
+    /// <summary>Detail behind <see cref="IsDnsResolver"/>. Empty when it is false. On every paid plan.</summary>
+    public DnsResolverDetail? DnsResolver => raw.DnsResolver;
+
+    /// <summary>Detail behind <see cref="IsBittorrent"/>. Empty when it is false. On every paid plan.</summary>
+    public BitTorrentDetail? Bittorrent => raw.Bittorrent;
+
+    /// <summary>
+    /// Where the address is, on every answer, with or without a key: the country and its currency on
+    /// every plan, and the region, city and coordinates on a paid one, null on a plan without them.
+    /// A field your plan includes is an empty string or zero where it is not known.
     /// </summary>
     public Location? Location => raw.Location;
 
     /// <summary>
-    /// The AS announcing the address, on every answer, with or without a key:
-    /// <see cref="VPNDetection.Asn.Number"/> is 0 where none does.
+    /// The AS announcing the address, on every answer, with or without a key, its country and RPKI
+    /// status included: <see cref="VPNDetection.Asn.Number"/> is 0 where none does.
     /// </summary>
     public Asn? Asn => raw.Asn;
 
+    /// <summary>The organization the address belongs to. On every paid plan.</summary>
+    public Company? Company => raw.Company;
+
     /// <summary>
-    /// On answers to a key on the free plan only: <c>false</c> while its organization's daily
-    /// trial lasts (every field for the first 100 lookups each UTC day), <c>true</c> once the
-    /// answer has Unlimited's.
+    /// The name the address's reverse DNS (PTR) record points to, empty when it has none. On every
+    /// answer, with or without a key.
+    /// </summary>
+    public string? Hostname => raw.Hostname;
+
+    /// <summary>Where to report abuse from the address. On every paid plan.</summary>
+    public AbuseContact? Abuse => raw.Abuse;
+
+    /// <summary>
+    /// On answers to a key on the free plan only: <c>false</c> while its organization's trial of
+    /// every field lasts, <c>true</c> once the answer has Unlimited's.
     /// </summary>
     public bool? TrialExpired => raw.TrialExpired;
 
