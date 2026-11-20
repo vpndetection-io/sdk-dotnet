@@ -53,6 +53,34 @@ public class MiddlewareTests
         }
     }
 
+    // A condition is written in the shape of a result, so it reaches every member an answer serves:
+    // each new flag and detail, the web rows, the company, abuse contact and hostname, matched and
+    // never reported missing.
+    [Theory]
+    [InlineData("paid-carrier-ssh-smtp-bittorrent", """{"is_carrier":true}""")]
+    [InlineData("paid-carrier-ssh-smtp-bittorrent", """{"carrier":{"mcc":"310"}}""")]
+    [InlineData("paid-carrier-ssh-smtp-bittorrent", """{"ssh":{"port":{"gte":22}}}""")]
+    [InlineData("paid-carrier-ssh-smtp-bittorrent", """{"is_smtp":true,"smtp":{"port":25}}""")]
+    [InlineData("paid-carrier-ssh-smtp-bittorrent", """{"bittorrent":{"verified":true}}""")]
+    [InlineData("paid-carrier-ssh-smtp-bittorrent", """{"company":{"name":"t-mobile usa, inc."}}""")]
+    [InlineData("paid-carrier-ssh-smtp-bittorrent", """{"abuse":{"email":"abuse@t-mobile.com"}}""")]
+    [InlineData("paid-anycast-web-dns-resolver", """{"is_anycast":true,"is_web":true}""")]
+    [InlineData("paid-anycast-web-dns-resolver", """{"dns_resolver":{"port":53}}""")]
+    [InlineData("paid-satellite", """{"is_satellite":true}""")]
+    [InlineData("unlimited-anycast-hostname", """{"hostname":["dns.google","one.one.one.one"]}""")]
+    public async Task AConditionReachesEveryMemberAnAnswerServes(string corpusCase, string condition)
+    {
+        var c = Corpus.Data.GetProperty("lookup").EnumerateArray()
+            .Single(one => one.GetProperty("name").GetString() == corpusCase);
+        var body = c.GetProperty("body");
+        var ip = body.GetProperty("ip").GetString()!;
+        var result = await Serving(ip, body.GetRawText()).LookupAsync(ip);
+        var conditions = ToConditions(JsonDocument.Parse(condition).RootElement);
+
+        Assert.Empty(Condition.MissingMembers(conditions, result));
+        Assert.True(Condition.Matches(conditions, result), $"{corpusCase}: {condition}");
+    }
+
     [Fact]
     public void CorpusRefusesAConditionThatConstrainsNothing()
     {

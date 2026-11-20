@@ -31,6 +31,14 @@ internal static class Served
         Put(served, "is_dcproxy", result.IsDcproxy);
         Put(served, "is_mobproxy", result.IsMobproxy);
         Put(served, "is_pubproxy", result.IsPubproxy);
+        Put(served, "is_anycast", result.IsAnycast);
+        Put(served, "is_carrier", result.IsCarrier);
+        Put(served, "is_satellite", result.IsSatellite);
+        Put(served, "is_ssh", result.IsSsh);
+        Put(served, "is_smtp", result.IsSmtp);
+        Put(served, "is_web", result.IsWeb);
+        Put(served, "is_dns_resolver", result.IsDnsResolver);
+        Put(served, "is_bittorrent", result.IsBittorrent);
         PutDetail(served, "vpn", result.Vpn);
         PutDetail(served, "hosting", result.Hosting);
         PutDetail(served, "relay", result.Relay);
@@ -40,9 +48,26 @@ internal static class Served
         PutDetail(served, "dcproxy", result.Dcproxy);
         PutDetail(served, "mobproxy", result.Mobproxy);
         PutDetail(served, "pubproxy", result.Pubproxy);
+        PutDetail(served, "carrier", result.Carrier);
+        PutDetail(served, "satellite", result.Satellite);
+        PutDetail(served, "ssh", result.Ssh);
+        PutDetail(served, "smtp", result.Smtp);
+        PutDetail(served, "dns_resolver", result.DnsResolver);
+        PutDetail(served, "bittorrent", result.Bittorrent);
+        if (result.Web is { } web)
+        {
+            // A list of rows, one per port that answered, each mapped as a detail object is.
+            served["web"] = web.Select(Detail).ToList();
+        }
         // Not detail objects, but mapped the same way: every field set whenever the member is present.
         PutDetail(served, "location", result.Location);
         PutDetail(served, "asn", result.Asn);
+        PutDetail(served, "company", result.Company);
+        PutDetail(served, "abuse", result.Abuse);
+        if (result.Hostname is { } hostname)
+        {
+            served["hostname"] = hostname;
+        }
         Put(served, "trial_expired", result.TrialExpired);
         Put(served, "cap_reached", result.CapReached);
         return served;
@@ -58,15 +83,18 @@ internal static class Served
 
     // The detail models carry their wire names on JsonPropertyName, so System.Text.Json is what
     // turns one into the shape a condition is written against. Their fields are scalars, bar
-    // pubproxy's list of protocols, so nothing here depends on how nulls are written: a null
-    // simply matches nothing.
+    // pubproxy's list of protocols and bittorrent's of clients, so nothing here depends on how
+    // nulls are written: a null simply matches nothing.
     private static void PutDetail(Dictionary<string, object?> served, string key, object? value)
     {
         if (value is null)
         {
             return;
         }
-        served[key] = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(
-            JsonSerializer.Serialize(value, value.GetType(), DetailOptions));
+        served[key] = Detail(value);
     }
+
+    private static Dictionary<string, JsonElement>? Detail(object value)
+        => JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(
+            JsonSerializer.Serialize(value, value.GetType(), DetailOptions));
 }
