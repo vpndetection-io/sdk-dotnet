@@ -81,7 +81,7 @@ namespace VPNDetection
         /// Answers what is known about a single IPv4 or IPv6 address. Which fields
         /// <br/>come back is decided by the presented key; with no key, on Unlimited,
         /// <br/>the free plan, the answer is `ip`, `is_vpn`, the Tor and relay members,
-        /// <br/>`location` and `asn`.
+        /// <br/>`is_anycast`, `hostname`, `location` and `asn`.
         /// </remarks>
         /// <param name="ip">The IPv4 or IPv6 address to classify.</param>
         /// <returns>The classification. Present fields are those your plan includes; see
@@ -100,7 +100,7 @@ namespace VPNDetection
         /// Answers what is known about a single IPv4 or IPv6 address. Which fields
         /// <br/>come back is decided by the presented key; with no key, on Unlimited,
         /// <br/>the free plan, the answer is `ip`, `is_vpn`, the Tor and relay members,
-        /// <br/>`location` and `asn`.
+        /// <br/>`is_anycast`, `hostname`, `location` and `asn`.
         /// </remarks>
         /// <param name="ip">The IPv4 or IPv6 address to classify.</param>
         /// <returns>The classification. Present fields are those your plan includes; see
@@ -195,7 +195,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<LookupError>("A rate limit, always with `Retry-After`. A paid plan\'s overage cap is\nnever a `429`: it answers `200` with Unlimited\'s fields and\n`cap_reached` `true`.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<LookupError>("A rate limit, always with `Retry-After`. A paid plan\'s overage cap is\nnever a `429` by itself: it answers `200` with Unlimited\'s fields and\n`cap_reached` `true`, and a burst past it is rate limited as an Unlimited one is.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 500)
@@ -341,7 +341,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<LookupError>("A rate limit, always with `Retry-After`. A paid plan\'s overage cap is\nnever a `429`: it answers `200` with Unlimited\'s fields and\n`cap_reached` `true`.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<LookupError>("A rate limit, always with `Retry-After`. A paid plan\'s overage cap is\nnever a `429` by itself: it answers `200` with Unlimited\'s fields and\n`cap_reached` `true`, and a burst past it is rate limited as an Unlimited one is.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 500)
@@ -552,7 +552,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<LookupError>("The rate limit refused the whole call. Always transient and always\nwith `Retry-After`; a reached overage cap answers each entry in a\n`200` instead.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<LookupError>("The rate limit refused the whole call. Always transient and always\nwith `Retry-After`; a reached overage cap answers each entry in a\n`200` instead, and a burst past it is rate limited as an Unlimited one is.\n", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -3363,7 +3363,8 @@ namespace VPNDetection
 
     /// <summary>
     /// The union of every tier's answer. Every answer carries `ip`, `is_bogon`,
-    /// <br/>`is_vpn`, the Tor and relay members, `location` and `asn`, with or without a key;
+    /// <br/>`is_vpn`, the Tor and relay members, `is_anycast`, `hostname`, `location` and
+    /// <br/>`asn`, with or without a key;
     /// <br/>each remaining field is present when your tier includes it, and absent
     /// <br/>otherwise. A client that must work across plans should treat an absent
     /// <br/>flag as unknown rather than as `false`.
@@ -3446,6 +3447,54 @@ namespace VPNDetection
         public bool? IsPubproxy { get; set; } = default!;
 
         /// <summary>
+        /// Whether the address is announced from many places at once, as a public DNS resolver's or a CDN's edge is. Every answer, with or without a key.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("is_anycast")]
+        public bool? IsAnycast { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the address is a mobile carrier's, where many phones can share one address. Paid plans.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("is_carrier")]
+        public bool? IsCarrier { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the address is a satellite operator's. Paid plans.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("is_satellite")]
+        public bool? IsSatellite { get; set; } = default!;
+
+        /// <summary>
+        /// Whether an SSH server answered on the address. Paid plans.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("is_ssh")]
+        public bool? IsSsh { get; set; } = default!;
+
+        /// <summary>
+        /// Whether a mail server answered on the address. Paid plans.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("is_smtp")]
+        public bool? IsSmtp { get; set; } = default!;
+
+        /// <summary>
+        /// Whether a web server answered on the address, on port 80 or 443. Paid plans.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("is_web")]
+        public bool? IsWeb { get; set; } = default!;
+
+        /// <summary>
+        /// Whether an open DNS resolver answered on the address. Paid plans.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("is_dns_resolver")]
+        public bool? IsDnsResolver { get; set; } = default!;
+
+        /// <summary>
+        /// Whether a BitTorrent client was seen on the address in the last 90 days. Paid plans.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("is_bittorrent")]
+        public bool? IsBittorrent { get; set; } = default!;
+
+        /// <summary>
         /// Detail for `is_vpn`. Empty when `is_vpn` is false. Paid plans.
         /// <br/>
         /// </summary>
@@ -3503,16 +3552,70 @@ namespace VPNDetection
         [System.Text.Json.Serialization.JsonPropertyName("pubproxy")]
         public PubproxyDetail? Pubproxy { get; set; } = default!;
 
+        /// <summary>
+        /// Detail for `is_carrier`. Empty when false. Paid plans.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("carrier")]
+        public CarrierDetail? Carrier { get; set; } = default!;
+
+        /// <summary>
+        /// Detail for `is_satellite`. Empty when false. Paid plans.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("satellite")]
+        public SatelliteDetail? Satellite { get; set; } = default!;
+
+        /// <summary>
+        /// Detail for `is_ssh`. Empty when false. Paid plans.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("ssh")]
+        public SshDetail? Ssh { get; set; } = default!;
+
+        /// <summary>
+        /// Detail for `is_smtp`. Empty when false. Paid plans.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("smtp")]
+        public SmtpDetail? Smtp { get; set; } = default!;
+
+        /// <summary>
+        /// Detail for `is_web`: a row per port that answered, lowest first, and `[]` when false. Paid plans.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("web")]
+        public System.Collections.Generic.IReadOnlyList<WebDetail>? Web { get; set; } = default!;
+
+        /// <summary>
+        /// Detail for `is_dns_resolver`. Empty when false. Paid plans.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("dns_resolver")]
+        public DnsResolverDetail? DnsResolver { get; set; } = default!;
+
+        /// <summary>
+        /// Detail for `is_bittorrent`. Empty when false. Paid plans.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("bittorrent")]
+        public BitTorrentDetail? Bittorrent { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("location")]
         public Location? Location { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("asn")]
         public Asn? Asn { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("company")]
+        public Company? Company { get; set; } = default!;
+
+        /// <summary>
+        /// The name the address's reverse DNS (PTR) record points to, from our IP RDNS database; an empty string when it has none. Every answer, with or without a key.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("hostname")]
+        public string? Hostname { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("abuse")]
+        public AbuseContact? Abuse { get; set; } = default!;
+
         /// <summary>
         /// On every answer to a key on the free plan, and on no other: `false`
-        /// <br/>while its organization's daily trial lasts (every field for the first
-        /// <br/>100 lookups each UTC day), `true` once the answer has Unlimited's.
+        /// <br/>while its organization's trial of every field lasts, `true` once the
+        /// <br/>answer has Unlimited's.
         /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("trial_expired")]
@@ -3890,10 +3993,11 @@ namespace VPNDetection
     }
 
     /// <summary>
-    /// Where the address is, to the country: the fields of our IP Country
-    /// <br/>database. Every answer, with or without a key. Each field is present
-    /// <br/>whenever the object is, so an address in no country, or a private one,
-    /// <br/>answers empty strings.
+    /// Where the address is: the fields of our IP Country database on every
+    /// <br/>answer, with or without a key, and our IP Geolocation database's finer
+    /// <br/>ones on a paid plan. Each field your plan includes is present whenever
+    /// <br/>the object is, so an address in no country, or a private one, answers
+    /// <br/>empty strings and zeros.
     /// <br/>
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -3960,6 +4064,66 @@ namespace VPNDetection
         [System.Text.Json.Serialization.JsonPropertyName("flag_unicode")]
         public string FlagUnicode { get; set; } = default!;
 
+        /// <summary>
+        /// Region (state or province). Paid plans.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("region")]
+        public string? Region { get; set; } = default!;
+
+        /// <summary>
+        /// ISO 3166-2 region code. Paid plans.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("region_code")]
+        public string? RegionCode { get; set; } = default!;
+
+        /// <summary>
+        /// City. Paid plans.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("city")]
+        public string? City { get; set; } = default!;
+
+        /// <summary>
+        /// Postal code. Paid plans.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("postal_code")]
+        public string? PostalCode { get; set; } = default!;
+
+        /// <summary>
+        /// Latitude of the city. Paid plans.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("latitude")]
+        public double? Latitude { get; set; } = default!;
+
+        /// <summary>
+        /// Longitude of the city. Paid plans.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("longitude")]
+        public double? Longitude { get; set; } = default!;
+
+        /// <summary>
+        /// Radius in km holding the true location with 67% confidence; 20000 for an address announced everywhere, as an anycast one is. Paid plans.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("accuracy_radius")]
+        public int? AccuracyRadius { get; set; } = default!;
+
+        /// <summary>
+        /// GeoNames ID of the city. Paid plans.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("geoname_id")]
+        public string? GeonameId { get; set; } = default!;
+
+        /// <summary>
+        /// US TV market (DMA) code, empty outside the US. Paid plans.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("dma_code")]
+        public string? DmaCode { get; set; } = default!;
+
+        /// <summary>
+        /// The day the range's location last changed. Paid plans.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("last_changed")]
+        public string? LastChanged { get; set; } = default!;
+
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]
@@ -4011,6 +4175,594 @@ namespace VPNDetection
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("prefix")]
         public string Prefix { get; set; } = default!;
+
+        /// <summary>
+        /// The country the AS's registry assigned it to.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("country")]
+        public string? Country { get; set; } = default!;
+
+        /// <summary>
+        /// The announcement's RPKI status: valid, invalid or not_found.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("rpki_status")]
+        public string? RpkiStatus { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    /// <summary>
+    /// The mobile network whose space the address is, from our Carrier IP
+    /// <br/>database. Every key is present when the object is populated; the object
+    /// <br/>is `{}` when `is_carrier` is false.
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class CarrierDetail
+    {
+
+        /// <summary>
+        /// The mobile carrier.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        public string? Name { get; set; } = default!;
+
+        /// <summary>
+        /// Its mobile country code.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("mcc")]
+        public string? Mcc { get; set; } = default!;
+
+        /// <summary>
+        /// Its mobile network code.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("mnc")]
+        public string? Mnc { get; set; } = default!;
+
+        /// <summary>
+        /// ISO 3166 country code.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("country")]
+        public string? Country { get; set; } = default!;
+
+        /// <summary>
+        /// `high`, `medium` or `low`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("confidence")]
+        public string? Confidence { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    /// <summary>
+    /// The satellite operator whose space the address is, from our Satellite IP
+    /// <br/>database. Every key is present when the object is populated; the object
+    /// <br/>is `{}` when `is_satellite` is false.
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SatelliteDetail
+    {
+
+        /// <summary>
+        /// The operator's ID in Satellite IP Provider.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("provider")]
+        public string? Provider { get; set; } = default!;
+
+        /// <summary>
+        /// The operator's name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("provider_name")]
+        public string? ProviderName { get; set; } = default!;
+
+        /// <summary>
+        /// The orbit: `leo`, `meo` or `geo`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("orbit")]
+        public string? Orbit { get; set; } = default!;
+
+        /// <summary>
+        /// Who the space serves, such as consumer or maritime.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("segment")]
+        public string? Segment { get; set; } = default!;
+
+        /// <summary>
+        /// ISO 3166 country code.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("country")]
+        public string? Country { get; set; } = default!;
+
+        /// <summary>
+        /// The AS the operator announces it from.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("asn")]
+        public int? Asn { get; set; } = default!;
+
+        /// <summary>
+        /// `high`, `medium` or `low`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("confidence")]
+        public string? Confidence { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    /// <summary>
+    /// The SSH server that answered on the address, from our SSH IP database.
+    /// <br/>Every key is present when the object is populated; the object is `{}`
+    /// <br/>when `is_ssh` is false.
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SshDetail
+    {
+
+        /// <summary>
+        /// The port the server answered on.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("port")]
+        public int? Port { get; set; } = default!;
+
+        /// <summary>
+        /// Its banner.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("banner")]
+        public string? Banner { get; set; } = default!;
+
+        /// <summary>
+        /// Its host key's fingerprint.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("host_key_fp")]
+        public string? HostKeyFp { get; set; } = default!;
+
+        /// <summary>
+        /// A session was set up.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("session_ok")]
+        public bool? SessionOk { get; set; } = default!;
+
+        /// <summary>
+        /// The first day it answered.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("first_seen")]
+        public string? FirstSeen { get; set; } = default!;
+
+        /// <summary>
+        /// The last day it did.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("last_seen")]
+        public string? LastSeen { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    /// <summary>
+    /// The mail server that answered on the address, from our SMTP IP database.
+    /// <br/>Every key is present when the object is populated; the object is `{}`
+    /// <br/>when `is_smtp` is false.
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SmtpDetail
+    {
+
+        /// <summary>
+        /// The port the server answered on.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("port")]
+        public int? Port { get; set; } = default!;
+
+        /// <summary>
+        /// Its banner.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("banner")]
+        public string? Banner { get; set; } = default!;
+
+        /// <summary>
+        /// A session was set up.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("session_ok")]
+        public bool? SessionOk { get; set; } = default!;
+
+        /// <summary>
+        /// The first day it answered.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("first_seen")]
+        public string? FirstSeen { get; set; } = default!;
+
+        /// <summary>
+        /// The last day it did.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("last_seen")]
+        public string? LastSeen { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    /// <summary>
+    /// One port of the address that answered as a web server, from our Web IP database.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class WebDetail
+    {
+
+        /// <summary>
+        /// 80 or 443.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("port")]
+        public int Port { get; set; } = default!;
+
+        /// <summary>
+        /// A TLS handshake completed.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("tls_ok")]
+        public bool TlsOk { get; set; } = default!;
+
+        /// <summary>
+        /// An HTTP response came back.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("session_ok")]
+        public bool SessionOk { get; set; } = default!;
+
+        /// <summary>
+        /// Its status, 0 where none came.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("status_code")]
+        public int StatusCode { get; set; } = default!;
+
+        /// <summary>
+        /// Its `Server` header.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("server")]
+        public string Server { get; set; } = default!;
+
+        /// <summary>
+        /// Where it redirected.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("location")]
+        public string Location { get; set; } = default!;
+
+        /// <summary>
+        /// The page's title.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("title")]
+        public string Title { get; set; } = default!;
+
+        /// <summary>
+        /// The certificate's subject common name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cert_subject_cn")]
+        public string CertSubjectCn { get; set; } = default!;
+
+        /// <summary>
+        /// Its subject organization.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cert_subject_o")]
+        public string CertSubjectO { get; set; } = default!;
+
+        /// <summary>
+        /// Its issuer.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cert_issuer_dn")]
+        public string CertIssuerDn { get; set; } = default!;
+
+        /// <summary>
+        /// Browsers trust it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cert_browser_trusted")]
+        public bool CertBrowserTrusted { get; set; } = default!;
+
+        /// <summary>
+        /// The TLS version negotiated, empty without TLS.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("tls_version")]
+        public string TlsVersion { get; set; } = default!;
+
+        /// <summary>
+        /// The first day the port was open.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("first_seen")]
+        public string FirstSeen { get; set; } = default!;
+
+        /// <summary>
+        /// The last day it was.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("last_seen")]
+        public string LastSeen { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    /// <summary>
+    /// The open DNS resolver that answered on the address, from our DNS
+    /// <br/>Resolver IP database. Every key is present when the object is populated;
+    /// <br/>the object is `{}` when `is_dns_resolver` is false.
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class DnsResolverDetail
+    {
+
+        /// <summary>
+        /// The port it answered on.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("port")]
+        public int? Port { get; set; } = default!;
+
+        /// <summary>
+        /// It offered recursion.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("recursion_available")]
+        public bool? RecursionAvailable { get; set; } = default!;
+
+        /// <summary>
+        /// Its answer's response code.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("rcode")]
+        public int? Rcode { get; set; } = default!;
+
+        /// <summary>
+        /// Its answer was right.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("answer_correct")]
+        public bool? AnswerCorrect { get; set; } = default!;
+
+        /// <summary>
+        /// The first day it answered.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("first_seen")]
+        public string? FirstSeen { get; set; } = default!;
+
+        /// <summary>
+        /// The last day it did.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("last_seen")]
+        public string? LastSeen { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    /// <summary>
+    /// BitTorrent clients seen on the address over the last 90 days, from our
+    /// <br/>BitTorrent IP database. Every key is present when the object is
+    /// <br/>populated; the object is `{}` when `is_bittorrent` is false.
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class BitTorrentDetail
+    {
+
+        /// <summary>
+        /// A client here answered, or two or more reported it at once.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("verified")]
+        public bool? Verified { get; set; } = default!;
+
+        /// <summary>
+        /// A client here derived its node ID from the address (BEP 42).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id_matches_ip")]
+        public bool? IdMatchesIp { get; set; } = default!;
+
+        /// <summary>
+        /// The first day a client was seen here.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("first_seen")]
+        public string? FirstSeen { get; set; } = default!;
+
+        /// <summary>
+        /// The last day.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("last_seen")]
+        public string? LastSeen { get; set; } = default!;
+
+        /// <summary>
+        /// The last day one answered, empty when none did.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("last_reachable")]
+        public string? LastReachable { get; set; } = default!;
+
+        /// <summary>
+        /// On how many days.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("days_seen")]
+        public int? DaysSeen { get; set; } = default!;
+
+        /// <summary>
+        /// Distinct ports over the window.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("num_ports")]
+        public int? NumPorts { get; set; } = default!;
+
+        /// <summary>
+        /// The most on one day.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("peak_num_ports")]
+        public int? PeakNumPorts { get; set; } = default!;
+
+        /// <summary>
+        /// A DHT indexer rather than people.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("indexer")]
+        public bool? Indexer { get; set; } = default!;
+
+        /// <summary>
+        /// The two-letter codes its clients name themselves by.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("clients")]
+        public System.Collections.Generic.IReadOnlyList<string>? Clients { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    /// <summary>
+    /// Who uses the address, from our IP Company database. Paid plans. Every
+    /// <br/>key is present whenever the object is: empty strings where no record
+    /// <br/>covers the address.
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class Company
+    {
+
+        /// <summary>
+        /// Who uses the address.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        public string Name { get; set; } = default!;
+
+        /// <summary>
+        /// Their domain.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("domain")]
+        public string Domain { get; set; } = default!;
+
+        /// <summary>
+        /// What kind of organization: hosting, isp, business, education or government.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        public string? Type { get; set; } = default!;
+
+        /// <summary>
+        /// ISO 3166 country code.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("country")]
+        public string? Country { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    /// <summary>
+    /// Where to report abuse from the address, from our IP Abuse Contact
+    /// <br/>database. Paid plans. Every key is present whenever the object is: empty
+    /// <br/>strings where no record covers the address.
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class AbuseContact
+    {
+
+        /// <summary>
+        /// Where to report abuse from the address.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("email")]
+        public string Email { get; set; } = default!;
+
+        /// <summary>
+        /// The contact.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        public string? Name { get; set; } = default!;
+
+        /// <summary>
+        /// Its phone number.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("phone")]
+        public string? Phone { get; set; } = default!;
+
+        /// <summary>
+        /// Its postal address.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("address")]
+        public string? Address { get; set; } = default!;
+
+        /// <summary>
+        /// ISO 3166 country code.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("country")]
+        public string? Country { get; set; } = default!;
+
+        /// <summary>
+        /// The registry block it was derived from.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("network")]
+        public string? Network { get; set; } = default!;
+
+        /// <summary>
+        /// ARIN reports the contact answered its yearly validation.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("validated")]
+        public bool? Validated { get; set; } = default!;
+
+        /// <summary>
+        /// Since when it has not.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("unvalidated_since")]
+        public string? UnvalidatedSince { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -4582,8 +5334,8 @@ namespace VPNDetection
         /// <summary>
         /// The plan the organization is on, as an identifier that is never
         /// <br/>renamed or reused: `free` for the free plan, or a paid plan's key.
-        /// <br/>Compare against it and show `name`. On `free`, usage counts the
-        /// <br/>day's lookups answered with every field, its daily trial.
+        /// <br/>Compare against it and show `name`. On `free`, usage counts its
+        /// <br/>trial, the lookups answered with every field.
         /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
