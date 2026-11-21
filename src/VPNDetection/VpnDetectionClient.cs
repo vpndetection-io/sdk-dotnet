@@ -550,6 +550,12 @@ public sealed class VpnDetectionClient : IDisposable
                 answers[ip] = BatchResult.Failed(Wire.FromEntry(failed.Status, failed.Error));
                 continue;
             }
+            if ((Unreadable(body.Results, ip) ?? Unreadable(body.Errors, ip)) is { } why)
+            {
+                answers[ip] = BatchResult.Failed(new VpnDetectionException(
+                    ErrorKind.ServerError, $"the batch answer's entry for {ip} could not be read: {why}", 200, null, null));
+                continue;
+            }
             answers[ip] = BatchResult.Failed(new VpnDetectionException(
                 ErrorKind.ServerError, $"the batch answer did not include {ip}", 200, null, null));
         }
@@ -557,6 +563,10 @@ public sealed class VpnDetectionClient : IDisposable
     }
 
     /// <summary>Releases the cache, and the <see cref="HttpClient"/> if this client created it.</summary>
+    // Why a batch entry for this address could not be read, or null when nothing says it could not.
+    private static string? Unreadable<T>(IDictionary<string, T> map, string ip)
+        => map is EntryMap<T> read && read.Unreadable.TryGetValue(ip, out var why) ? why : null;
+
     public void Dispose()
     {
         cache?.Dispose();

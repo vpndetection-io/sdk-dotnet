@@ -498,6 +498,18 @@ internal partial class WireClient
         var nullability = new NullabilityInfoContext();
         foreach (var property in info.Properties)
         {
+            // A batch's entries are read one by one, so an entry this client cannot read is that
+            // address's error alone: 6.2.1 failed every address of the chunk for one, and sent the
+            // chunk again (measured 2026-11-21). A map that is no object still fails the chunk.
+            if (info.Type == typeof(BatchLookupResponse))
+            {
+                property.CustomConverter = property.Name switch
+                {
+                    "results" => new EntryMapConverter<LookupResponse>(),
+                    "errors" => new EntryMapConverter<BatchLookupError>(),
+                    _ => property.CustomConverter,
+                };
+            }
             if (info.Type == typeof(DatabaseMetadata) && property.Name == "sample" && property.Set is { } setSample)
             {
                 property.Set = (target, value) => setSample(target, SampleRows(value));
@@ -623,6 +635,70 @@ internal partial class WireClient
         => apiAuthority ??= Uri.TryCreate(BaseUrl, UriKind.Absolute, out var parsed)
             ? parsed.Authority
             : string.Empty;
+}
+
+/// <summary>
+/// A map of batch entries whose every entry was read on its own: the ones that could not be read
+/// are named in <see cref="Unreadable"/>, each with the reason, and left out of the map.
+/// </summary>
+internal sealed class EntryMap<T> : Dictionary<string, T>
+{
+    internal EntryMap()
+        : base(StringComparer.Ordinal)
+    {
+    }
+
+    internal Dictionary<string, string> Unreadable { get; } = new(StringComparer.Ordinal);
+}
+
+/// <summary>
+/// Reads a batch's <c>results</c> or <c>errors</c> entry by entry with the same options, so the
+/// required members and every converter still apply to each one, into an <see cref="EntryMap{T}"/>.
+/// </summary>
+internal sealed class EntryMapConverter<T> : JsonConverter<IDictionary<string, T>>
+    where T : class
+{
+    public override IDictionary<string, T> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType != JsonTokenType.StartObject)
+        {
+            throw new JsonException($"a batch map is a {reader.TokenType}, not an object");
+        }
+        var map = new EntryMap<T>();
+        while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
+        {
+            var key = reader.GetString()!;
+            reader.Read();
+            using var entry = JsonDocument.ParseValue(ref reader);
+            try
+            {
+                if (entry.Deserialize<T>(options) is { } value)
+                {
+                    map[key] = value;
+                }
+                else
+                {
+                    map.Unreadable[key] = "the entry is null";
+                }
+            }
+            catch (Exception e) when (e is JsonException or InvalidOperationException or FormatException or ArgumentException)
+            {
+                map.Unreadable[key] = e.Message;
+            }
+        }
+        return map;
+    }
+
+    public override void Write(Utf8JsonWriter writer, IDictionary<string, T> value, JsonSerializerOptions options)
+    {
+        writer.WriteStartObject();
+        foreach (var (key, entry) in value)
+        {
+            writer.WritePropertyName(key);
+            JsonSerializer.Serialize(writer, entry, options);
+        }
+        writer.WriteEndObject();
+    }
 }
 
 /// <summary>

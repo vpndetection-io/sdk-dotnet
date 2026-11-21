@@ -59,7 +59,9 @@ public class RequiredMemberTests
 
         Assert.Equal(ErrorKind.ServerError, failure.Kind);
         Assert.Equal(200, failure.StatusCode);
-        Assert.Equal(2, handler.Calls.Count);
+        // A batch entry is read on its own, so one it cannot read is that address's error alone,
+        // and the chunk is not sent again for it.
+        Assert.Equal(call == "batch" ? 1 : 2, handler.Calls.Count);
     }
 
     // The same bodies, whole, are answers: what the spec lets be null or absent still reads.

@@ -44,6 +44,62 @@ public class AnswerTests
         return data;
     }
 
+    // One batch entry this client cannot read is that address's error alone, and the chunk is not
+    // sent again for it. 6.2.1 failed every address of the chunk, retried, for one null, list,
+    // empty or wrong-typed entry or entry error (measured 2026-11-21 against a local origin).
+    [Theory]
+    [InlineData("results", "null")]
+    [InlineData("results", "[]")]
+    [InlineData("results", "{}")]
+    [InlineData("results", "\"x\"")]
+    [InlineData("results", """{"ip":"45.83.91.2","is_vpn":"no"}""")]
+    [InlineData("results", """{"ip":null,"is_vpn":false}""")]
+    [InlineData("results", """{"ip":"45.83.91.2","is_vpn":false,"vpn":{"last_seen":"tomorrow"}}""")]
+    [InlineData("errors", "null")]
+    [InlineData("errors", "[]")]
+    [InlineData("errors", "{}")]
+    [InlineData("errors", """{"status":"x","error":"e"}""")]
+    public async Task ABatchEntryTheCallCannotReadIsThatAddressErrorAlone(string map, string entry)
+    {
+        const string Readable = "45.83.91.1", Unreadable = "45.83.91.2";
+        var served = "{\"" + Readable + "\":{\"ip\":\"" + Readable + "\",\"is_vpn\":true}"
+            + (map == "results" ? ",\"" + Unreadable + "\":" + entry : "") + "}";
+        var failed = map == "errors" ? "{\"" + Unreadable + "\":" + entry + "}" : "{}";
+        var body = "{\"results\":" + served + ",\"errors\":" + failed + "}";
+        var handler = new StubHandler(_ => StubHandler.Json(new Route(body)));
+        using var client = Stub.Client(handler, new VpnDetectionClientOptions { ApiKey = "k", Retries = 2, CacheEnabled = false });
+
+        var batch = await client.LookupBatchAsync(new[] { Readable, Unreadable });
+
+        Assert.True(batch[Readable].Result?.IsVpn, $"{map} {entry}: the readable entry");
+        var error = batch[Unreadable].Error;
+        Assert.NotNull(error);
+        Assert.Equal(ErrorKind.ServerError, error.Kind);
+        Assert.Equal(200, error.StatusCode);
+        Assert.Contains(Unreadable, error.Message, StringComparison.Ordinal);
+        Assert.Single(handler.Calls);
+    }
+
+    // A chunk whose map is no object at all is still unreadable whole, and retried.
+    [Theory]
+    [InlineData("""{"results":[],"errors":{}}""")]
+    [InlineData("""{"results":{},"errors":"x"}""")]
+    [InlineData("""{"results":null,"errors":{}}""")]
+    public async Task ABatchMapThatIsNoObjectFailsTheWholeChunk(string body)
+    {
+        var handler = new StubHandler(_ => StubHandler.Json(new Route(body)));
+        using var client = Stub.Client(handler, new VpnDetectionClientOptions { ApiKey = "k", Retries = 1, CacheEnabled = false });
+
+        var batch = await client.LookupBatchAsync(new[] { "45.83.91.1", "45.83.91.2" });
+
+        foreach (var answer in batch.Values)
+        {
+            Assert.Equal(ErrorKind.ServerError, answer.Error?.Kind);
+            Assert.Equal(200, answer.Error?.StatusCode);
+        }
+        Assert.Equal(2, handler.Calls.Count);
+    }
+
     // A date-time is RFC 3339's and nothing else. 5.9.0 took a date alone as midnight, a time with
     // no offset in the machine's own zone, `+05` and a time without seconds, on every call that
     // carries one (measured 2026-10-25). A DateOnly was already read as `full-date` alone.
