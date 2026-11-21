@@ -5,8 +5,8 @@ public sealed class VpnDetectionClientOptions
 {
     /// <summary>
     /// Your API key. Without one a lookup is on Unlimited, the free plan: <c>ip</c>, <c>is_vpn</c>,
-    /// the Tor and relay members, <c>location</c> and <c>asn</c>, with no daily or monthly cap. A
-    /// batch needs a key on a paid plan.
+    /// the Tor and relay members, <c>is_anycast</c>, <c>hostname</c>, <c>location</c> and <c>asn</c>,
+    /// with no daily or monthly cap. A batch needs a key on a paid plan.
     /// </summary>
     public string? ApiKey { get; set; }
 
