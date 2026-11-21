@@ -2,6 +2,12 @@
 
 What each release changed for you, newest first. Each line is a commit's summary, linked to its full description and diff. Releases before 5.2.4 are described by their release commits.
 
+## 6.2.2 - 2026-11-21
+
+### Fixes
+
+- Batch: an entry that cannot be read fails only its own address, and the chunk is not sent again ([`26befdc`](https://github.com/vpndetection-io/sdk-dotnet/commit/26befdcf0d8d02c9c0534bca964d399a2b537520))
+
 ## 6.2.1 - 2026-11-20
 
 ### Fixes
