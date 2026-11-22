@@ -54,6 +54,7 @@ public sealed class Result
             IsWeb = false,
             IsDnsResolver = false,
             IsBittorrent = false,
+            IsBot = false,
             Vpn = new VpnDetail(),
             Hosting = new ClassDetail(),
             Relay = new ClassDetail(),
@@ -70,6 +71,7 @@ public sealed class Result
             Web = Array.Empty<WebDetail>(),
             DnsResolver = new DnsResolverDetail(),
             Bittorrent = new BitTorrentDetail(),
+            Bot = new BotDetail(),
             Location = new Location
             {
                 Continent = "",
@@ -177,6 +179,13 @@ public sealed class Result
     /// <summary>Whether a BitTorrent client was seen on the address in the last 90 days. On every paid plan.</summary>
     public bool? IsBittorrent => raw.IsBittorrent;
 
+    /// <summary>
+    /// Whether an automated client uses the address, such as a search engine's or an AI company's
+    /// crawler, an uptime monitor, an internet scanner or a webhook sender. On every answer, with or
+    /// without a key.
+    /// </summary>
+    public bool? IsBot => raw.IsBot;
+
     /// <summary>Detail behind <see cref="IsVpn"/>. Empty when it is false. On every paid plan.</summary>
     public VpnDetail? Vpn => raw.Vpn;
 
@@ -227,6 +236,12 @@ public sealed class Result
 
     /// <summary>Detail behind <see cref="IsBittorrent"/>. Empty when it is false. On every paid plan.</summary>
     public BitTorrentDetail? Bittorrent => raw.Bittorrent;
+
+    /// <summary>
+    /// Detail behind <see cref="IsBot"/>: whose bot uses the address, the bots it serves, what they
+    /// do and whether the operator vouches for the address. Empty when it is false. On every paid plan.
+    /// </summary>
+    public BotDetail? Bot => raw.Bot;
 
     /// <summary>
     /// Where the address is, on every answer, with or without a key: the country and its currency on

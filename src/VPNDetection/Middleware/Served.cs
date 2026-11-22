@@ -39,6 +39,7 @@ internal static class Served
         Put(served, "is_web", result.IsWeb);
         Put(served, "is_dns_resolver", result.IsDnsResolver);
         Put(served, "is_bittorrent", result.IsBittorrent);
+        Put(served, "is_bot", result.IsBot);
         PutDetail(served, "vpn", result.Vpn);
         PutDetail(served, "hosting", result.Hosting);
         PutDetail(served, "relay", result.Relay);
@@ -54,6 +55,7 @@ internal static class Served
         PutDetail(served, "smtp", result.Smtp);
         PutDetail(served, "dns_resolver", result.DnsResolver);
         PutDetail(served, "bittorrent", result.Bittorrent);
+        PutDetail(served, "bot", result.Bot);
         if (result.Web is { } web)
         {
             // A list of rows, one per port that answered, each mapped as a detail object is.
@@ -83,8 +85,8 @@ internal static class Served
 
     // The detail models carry their wire names on JsonPropertyName, so System.Text.Json is what
     // turns one into the shape a condition is written against. Their fields are scalars, bar
-    // pubproxy's list of protocols and bittorrent's of clients, so nothing here depends on how
-    // nulls are written: a null simply matches nothing.
+    // pubproxy's list of protocols, bittorrent's of clients and bot's agents and categories, so
+    // nothing here depends on how nulls are written: a null simply matches nothing.
     private static void PutDetail(Dictionary<string, object?> served, string key, object? value)
     {
         if (value is null)

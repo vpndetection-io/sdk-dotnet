@@ -366,6 +366,40 @@ public class ConformanceTests
         Assert.False(result.Vpn.AdditionalProperties?.ContainsKey("provider_name") ?? false);
     }
 
+    // The bot detail read key by key through its typed members, the lists in the order served; on
+    // Unlimited the flag is served and the detail is not.
+    [Fact]
+    public async Task ABotAnswerIsReadThroughTypedMembers()
+    {
+        var paid = Corpus.Case("lookup", "paid-verified-bot");
+        var unlimited = Corpus.Case("lookup", "unlimited-bot");
+        var want = paid.GetProperty("expect").GetProperty("bot");
+        using var paidClient = Stub.Client(StubHandler.Lookups(
+            Stub.Route("66.249.66.1", paid.GetProperty("body").GetRawText())));
+        using var unlimitedClient = Stub.Client(StubHandler.Lookups(
+            Stub.Route("66.249.66.1", unlimited.GetProperty("body").GetRawText())));
+
+        var result = await paidClient.LookupAsync("66.249.66.1");
+        var bot = result.Bot!;
+
+        Assert.True(result.IsBot);
+        Assert.Equal(want.GetProperty("provider").GetString(), bot.Provider);
+        Assert.Equal(want.GetProperty("provider_name").GetString(), bot.ProviderName);
+        Assert.Equal(Strings(want, "agents"), bot.Agents!.ToArray());
+        Assert.Equal(Strings(want, "categories"), bot.Categories!.ToArray());
+        Assert.Equal(want.GetProperty("verified").GetBoolean(), bot.Verified);
+        Assert.Equal(want.GetProperty("identity").GetString(), bot.Identity);
+        Assert.Equal(want.GetProperty("verified_by").GetString(), bot.VerifiedBy);
+        Assert.Equal(want.GetProperty("confidence").GetString(), bot.Confidence);
+        Assert.Equal(want.GetProperty("first_seen").GetString(), bot.FirstSeen);
+        Assert.Equal(want.GetProperty("last_seen").GetString(), bot.LastSeen);
+        Assert.Empty(bot.AdditionalProperties);
+
+        var free = await unlimitedClient.LookupAsync("66.249.66.1");
+        Assert.True(free.IsBot);
+        Assert.Null(free.Bot);
+    }
+
     [Fact]
     public async Task ACacheHitIssuesNoSecondRequest()
     {

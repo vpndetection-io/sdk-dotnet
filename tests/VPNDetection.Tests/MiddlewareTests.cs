@@ -68,6 +68,9 @@ public class MiddlewareTests
     [InlineData("paid-anycast-web-dns-resolver", """{"dns_resolver":{"port":53}}""")]
     [InlineData("paid-satellite", """{"is_satellite":true}""")]
     [InlineData("unlimited-anycast-hostname", """{"hostname":["dns.google","one.one.one.one"]}""")]
+    [InlineData("paid-verified-bot", """{"is_bot":true}""")]
+    [InlineData("paid-verified-bot", """{"bot":{"verified":true,"provider":"google"}}""")]
+    [InlineData("unlimited-bot", """{"is_bot":true}""")]
     public async Task AConditionReachesEveryMemberAnAnswerServes(string corpusCase, string condition)
     {
         var c = Corpus.Data.GetProperty("lookup").EnumerateArray()
@@ -91,6 +94,47 @@ public class MiddlewareTests
                 () => Condition.Validate(ToConditions(c.GetProperty("condition"))));
             Assert.Contains("constrains nothing", error.Message);
         }
+    }
+
+    // A condition on the bot flag, which every plan answers: a crawler's public address is refused
+    // and another visitor's is not, and a private address answered locally carries the flag false,
+    // so a strict core neither blocks it nor reports the member missing.
+    [Fact]
+    public async Task ABotConditionMatchesFromAPublicPeerAndAPrivateAddressCarriesTheFlag()
+    {
+        const string Crawler = "66.249.66.1";
+        var handler = StubHandler.Lookups(new Dictionary<string, Route>
+        {
+            [Crawler] = new Route($$"""{"ip":"{{Crawler}}","is_vpn":false,"is_bot":true}""", 200),
+            [PublicIp] = new Route($$"""{"ip":"{{PublicIp}}","is_vpn":false,"is_bot":false}""", 200),
+        });
+        var client = Stub.Client(handler, new VpnDetectionClientOptions { CacheEnabled = false, Retries = 0 });
+        var conditions = new[] { new Condition { ["is_bot"] = true } };
+        string? peer = null;
+        var core = CoreFor(new MiddlewareOptions<Req>
+        {
+            Client = client,
+            IpSelector = _ => peer!,
+            BlockCondition = conditions,
+            OnMissingField = MiddlewareOptions<Req>.MissingField.Throw,
+        });
+
+        peer = Crawler;
+        var crawler = await core.EvaluateAsync(Req.Of());
+        Assert.True(crawler!.Blocked);
+        Assert.True(crawler.Result!.IsBot);
+
+        peer = PublicIp;
+        var visitor = await core.EvaluateAsync(Req.Of());
+        Assert.False(visitor!.Blocked);
+        Assert.False(visitor.Result!.IsBot);
+
+        var calls = handler.Calls.Count;
+        var bogon = await client.LookupAsync("10.0.0.7");
+        Assert.False(bogon.IsBot);
+        Assert.False(Condition.Matches(conditions, bogon));
+        Assert.Empty(Condition.MissingMembers(conditions, bogon));
+        Assert.Equal(calls, handler.Calls.Count);
     }
 
     [Fact]
