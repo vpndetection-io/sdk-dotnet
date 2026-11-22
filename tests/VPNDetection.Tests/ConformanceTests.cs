@@ -213,7 +213,7 @@ public class ConformanceTests
     [Fact]
     public async Task AnAsNumberPastAnIntReads()
     {
-        const string body = """{"ip":"45.83.91.1","is_vpn":false,"asn":{"asn":4200000001,"name":"n","domain":"d","type":"isp","prefix":"45.83.91.0/24"}}""";
+        const string body = """{"ip":"45.83.91.1","is_vpn":false,"asn":{"asn":4200000001,"name":"n","domain":"d","type":"isp","prefix":"45.83.91.0/24","country":"US","rpki_status":"unknown"}}""";
         using var client = Stub.Client(StubHandler.Lookups(Stub.Route("45.83.91.1", body)));
 
         var result = await client.LookupAsync("45.83.91.1");

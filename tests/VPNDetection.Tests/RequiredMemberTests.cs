@@ -10,7 +10,7 @@ namespace VPNDetection.Tests;
 /// </summary>
 public class RequiredMemberTests
 {
-    private const string Lookup = """{"ip":"45.83.91.1","is_vpn":true,"pubproxy":{"entry":true,"num_ports":2,"protocols":["http"]},"location":{"continent":"EU","continent_name":"Europe","country":"AT","country_name":"Austria","timezone":"Europe/Vienna","currency_code":"EUR","currency_name":"Euro","currency_symbol":"€","flag_emoji":"x","flag_unicode":"x"},"asn":{"asn":9009,"name":"M247 Europe SRL","domain":"m247global.com","type":"hosting","prefix":"146.70.116.0/24"}}""";
+    private const string Lookup = """{"ip":"45.83.91.1","is_vpn":true,"pubproxy":{"entry":true,"num_ports":2,"protocols":["http"]},"location":{"continent":"EU","continent_name":"Europe","country":"AT","country_name":"Austria","timezone":"Europe/Vienna","currency_code":"EUR","currency_name":"Euro","currency_symbol":"€","flag_emoji":"x","flag_unicode":"x"},"asn":{"asn":9009,"name":"M247 Europe SRL","domain":"m247global.com","type":"hosting","prefix":"146.70.116.0/24","country":"RO","rpki_status":"valid"}}""";
     private const string Entitlement = """{"org_id":"85bb51e4-2eb6-4a31-8e4d-02ba8b98fe61","apikey":{"id":"0ab424cc-7619-4dad-b027-afacdc2cedb0","expires":null,"allowed_cidrs":[]},"plan":{"key":"max","name":"Max","tier":"max"},"usage":{"requests":5,"quota":50,"hard_limit":null,"window_start":"2026-10-04T07:00:00Z","window_end":"2026-11-04T07:00:00Z"}}""";
     private const string List = """{"databases":[{"base":"vpn_ip_extended","name":"VPN IP Extended","summary":"s","starts":null,"expires":null,"renews_at":null,"notice_due_at":null,"license_type":"standard","in_term":true,"open":false,"standing":"licensed","versions":[{"id":"vpn_ip_extended_v1","version":1,"formats":[{"format":"mmdb","bytes":1234}],"sample_formats":["csvgz"]}]}]}""";
     private const string Metadata = """{"id":"vpn_ip_extended_v1","update_freq":"daily","updated":"2026-10-05","entries":42,"size":{"mmdb":760},"schema":{"mmdb":[{"name":"ip","type":"string"}]}}""";
@@ -22,6 +22,11 @@ public class RequiredMemberTests
         { "lookup", "\"country\":\"AT\"", "\"country\":null" },
         { "lookup", "\"name\":\"M247 Europe SRL\"", "\"name\":null" },
         { "lookup", "[\"http\"]", "[null]" },
+        { "lookup", "\"country\":\"RO\"", "\"country\":null" },
+        { "lookup", ",\"country\":\"RO\"", "" },
+        { "lookup", "\"rpki_status\":\"valid\"", "\"rpki_status\":null" },
+        { "lookup", ",\"rpki_status\":\"valid\"", "" },
+        { "batch", ",\"rpki_status\":\"valid\"", "" },
         { "batch", "\"country\":\"AT\"", "\"country\":null" },
         { "myEntitlement", "\"key\":\"max\"", "\"key\":null" },
         { "myEntitlement", "\"name\":\"Max\"", "\"name\":null" },
@@ -86,7 +91,8 @@ public class RequiredMemberTests
 
     // The table is the spec's `required` lists less what each marks nullable, and NSwag writes
     // exactly those members as non-nullable properties, so a re-pin that adds one turns this red
-    // until the table has it. Every class an answer reaches that requires a member must be in the
+    // until the table has it. A member the spec requires whose public type stays nullable until a
+    // major is in the table and in HeldOptional both. Every class an answer reaches that requires a member must be in the
     // table, bar the two envelopes matched by their one member.
     [Fact]
     public void TheRequiredMembersAreTheGeneratedTypesNonNullableOnes()
@@ -128,6 +134,11 @@ public class RequiredMemberTests
             {
                 Assert.Subset(WireClient.EnvelopeMembers, members.ToHashSet());
                 continue;
+            }
+            if (WireClient.HeldOptional.TryGetValue(type, out var held))
+            {
+                Assert.DoesNotContain(held, members.Contains);
+                members.UnionWith(held);
             }
             // A detail object requires nothing: it is `{}` where its flag is false.
             var table = WireClient.AnswerMembers.TryGetValue(type, out var named) ? named : [];

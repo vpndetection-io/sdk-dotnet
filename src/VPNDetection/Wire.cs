@@ -464,7 +464,7 @@ internal partial class WireClient
         [typeof(LookupResponse)] = ["ip", "is_vpn"],
         [typeof(Location)] = ["continent", "continent_name", "country", "country_name", "timezone",
             "currency_code", "currency_name", "currency_symbol", "flag_emoji", "flag_unicode"],
-        [typeof(Asn)] = ["asn", "name", "domain", "type", "prefix"],
+        [typeof(Asn)] = ["asn", "name", "domain", "type", "prefix", "country", "rpki_status"],
         [typeof(WebDetail)] = ["port", "tls_ok", "session_ok", "status_code", "server", "location", "title",
             "cert_subject_cn", "cert_subject_o", "cert_issuer_dn", "cert_browser_trusted", "tls_version",
             "first_seen", "last_seen"],
@@ -484,6 +484,13 @@ internal partial class WireClient
         [typeof(DbChecksums)] = ["md5", "sha1", "sha256", "sha512"],
         [typeof(Download)] = ["dataset_id", "format", "outcome", "sample", "open", "created"],
         [typeof(Response2)] = ["id", "format", "checksums"],
+    };
+
+    // Members the spec requires whose generated property stays nullable, so the public type is the
+    // one earlier releases shipped (scripts/generator_input.py); the table above still requires them.
+    internal static readonly IReadOnlyDictionary<Type, string[]> HeldOptional = new Dictionary<Type, string[]>
+    {
+        [typeof(Asn)] = ["country", "rpki_status"],
     };
 
     internal static readonly HashSet<string> EnvelopeMembers = ["databases", "downloads", "checksums"];
