@@ -17,7 +17,7 @@ Targets .NET 8 and newer.
 
 ## Usage
 
-**No API key needed to start.** Unlimited, the free plan, answers `ip`, `is_vpn`, Tor and relay detection, `is_anycast`, `hostname`, `location` and `asn` (the AS's country and RPKI status included), with no daily or monthly cap, with a key or without one.
+**No API key needed to start.** Unlimited, the free plan, answers `ip`, `is_vpn`, Tor and relay detection, `is_bot` (whether a bot such as a crawler uses the address), `is_anycast`, `hostname`, `location` and `asn` (the AS's country and RPKI status included), with no daily or monthly cap, with a key or without one.
 
 ```csharp
 using VPNDetection;
@@ -32,7 +32,7 @@ Console.WriteLine(result.Asn?.Name);          // who runs the announcing network
 
 ### With an API key
 
-Every paid plan answers every field: `is_hosting`, `is_cdn` and the four proxy flags as well, and the provider (its ID and its name), confidence and last-seen detail behind each flag; `is_carrier`, `is_satellite`, `is_ssh`, `is_smtp`, `is_web`, `is_dns_resolver` and `is_bittorrent`, with the detail behind each; the location's region, city, postal code and coordinates; and the address's `company` and `abuse` contact. The plans differ only in how many lookups they include, and a free account tries every field. Create a key in the [console](https://app.vpndetection.io), then pass it in:
+Every paid plan answers every field: `is_hosting`, `is_cdn` and the four proxy flags as well, and the provider (its ID and its name), confidence and last-seen detail behind each flag; `is_carrier`, `is_satellite`, `is_ssh`, `is_smtp`, `is_web`, `is_dns_resolver` and `is_bittorrent`, with the detail behind each; `bot` (whose bot it is and whether its operator vouches for the address); the location's region, city, postal code and coordinates; and the address's `company` and `abuse` contact. The plans differ only in how many lookups they include, and a free account tries every field. Create a key in the [console](https://app.vpndetection.io), then pass it in:
 
 ```csharp
 using var client = new VpnDetectionClient(new VpnDetectionClientOptions
@@ -279,7 +279,7 @@ Each redirect URI must be https on a public host name, or http on a loopback add
 
 ### Absent is not false
 
-Unlimited leaves out `IsHosting`, `IsCdn`, the four proxy flags, the seven network and service flags from `IsCarrier` to `IsBittorrent`, `Company`, `Abuse` and the location's finer fields, and of the detail behind each flag it answers only Tor's and relay's; a free-plan key's answer carries `TrialExpired`, true once its trial is spent, and a paid key's carries `CapReached`, true once its organization's overage cap is reached and the answer has Unlimited's. The flags are `bool?`, where `null` means "not in your plan" rather than "checked, and no".
+Unlimited leaves out `IsHosting`, `IsCdn`, the four proxy flags, the seven network and service flags from `IsCarrier` to `IsBittorrent`, `Bot`, `Company`, `Abuse` and the location's finer fields, and of the detail behind each flag it answers only Tor's and relay's; a free-plan key's answer carries `TrialExpired`, true once its trial is spent, and a paid key's carries `CapReached`, true once its organization's overage cap is reached and the answer has Unlimited's. The flags are `bool?`, where `null` means "not in your plan" rather than "checked, and no".
 
 ```csharp
 result.IsHosting ?? false   // when you only want the flag
