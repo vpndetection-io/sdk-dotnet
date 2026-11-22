@@ -2,6 +2,17 @@
 
 What each release changed for you, newest first. Each line is a commit's summary, linked to its full description and diff. Releases before 5.2.4 are described by their release commits.
 
+## 6.3.0 - 2026-11-22
+
+### Features
+
+- Re-pin the spec to 2026.11.22, every public type kept as it was ([`df51f86`](https://github.com/vpndetection-io/sdk-dotnet/commit/df51f86a1b72b5a13725345d36e5f9632118fbd9))
+- Read whether a bot uses an address, and whose: IsBot and Bot ([`2f3d11c`](https://github.com/vpndetection-io/sdk-dotnet/commit/2f3d11ca6f2bd7aa22b8af5effae494fa7de69a6))
+
+### Fixes
+
+- Refuse an answer missing the AS's country or RPKI status, as the API always sends them ([`52c6646`](https://github.com/vpndetection-io/sdk-dotnet/commit/52c6646b0b17e1086f06ff1f0c2702e3d4695292))
+
 ## 6.2.2 - 2026-11-21
 
 ### Fixes
