@@ -48,6 +48,13 @@ internal static class Staging
                 "peak_num_ports", "indexer", "clients",
             },
             Array.Empty<string>()),
+        ["bot"] = new(
+            new[]
+            {
+                "provider", "provider_name", "agents", "categories", "verified", "identity", "verified_by",
+                "confidence", "first_seen", "last_seen",
+            },
+            Array.Empty<string>()),
     };
 
     // The web detail is a LIST, a row per port that answered and `[]` when is_web is false, so it is
