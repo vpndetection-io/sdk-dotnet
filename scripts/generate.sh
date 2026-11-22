@@ -29,6 +29,12 @@ fi
 echo "==> generating ${OUT}"
 mkdir -p "$(dirname "$OUT")"
 
+# NSwag reads a copy of the pin with the few changes that would move a public type taken out
+# (scripts/generator_input.py says which and why); the pin itself stays the published spec.
+INPUT="$(mktemp -d)/openapi.yaml"
+trap 'rm -rf "$(dirname "$INPUT")"' EXIT
+python3 scripts/generator_input.py spec/openapi.yaml "$INPUT"
+
 # Settings that matter, in the order they bite:
 #   generateOptionalPropertiesAsNullable  the absent-versus-false contract. Without it every
 #                                         tier-gated flag lands as a plain `bool` defaulting to
@@ -38,7 +44,7 @@ mkdir -p "$(dirname "$OUT")"
 #   dateType:System.DateOnly              `format: date` is a calendar day, not an instant.
 #   arrayType:IReadOnlyList               a response collection a caller cannot mutate.
 "${TOOLS}/nswag" openapi2csclient \
-    /input:spec/openapi.yaml \
+    /input:"$INPUT" \
     /output:"$OUT" \
     /namespace:VPNDetection \
     /className:WireClient \

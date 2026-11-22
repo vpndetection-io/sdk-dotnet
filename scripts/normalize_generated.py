@@ -26,6 +26,10 @@ INTERNAL_TYPES = [
     "Response",
     "Response2",
     "Response3",
+    # The answer's user_agent verdict, which scripts/generator_input.py leaves out of LookupResponse
+    # until a lookup sends a user_agent; NSwag still emits every schema the spec defines.
+    "UserAgentVerdict",
+    "UserAgentVerdictVerdict",
 ]
 
 # The spec's one csvgz/mmdb enum is reached from five places, and an inline enum

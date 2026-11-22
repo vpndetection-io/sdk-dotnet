@@ -84,12 +84,16 @@ namespace VPNDetection
         /// <br/>`is_anycast`, `hostname`, `location` and `asn`.
         /// </remarks>
         /// <param name="ip">The IPv4 or IPv6 address to classify.</param>
+        /// <param name="user_agent">The `User-Agent` header of the request you are deciding on. With
+        /// <br/>every field, on a paid plan or the trial, the answer then carries
+        /// <br/>`user_agent`: the agent it names, and whether this address bears
+        /// <br/>that out. Never kept, and nothing sent with a lookup feeds our data.</param>
         /// <returns>The classification. Present fields are those your plan includes; see
         /// <br/>the tier table in the API description.</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task<LookupResponse> LookupIpAsync(string ip)
+        public virtual System.Threading.Tasks.Task<LookupResponse> LookupIpAsync(string ip, string? user_agent)
         {
-            return LookupIpAsync(ip, System.Threading.CancellationToken.None);
+            return LookupIpAsync(ip, user_agent, System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
@@ -103,10 +107,14 @@ namespace VPNDetection
         /// <br/>`is_anycast`, `hostname`, `location` and `asn`.
         /// </remarks>
         /// <param name="ip">The IPv4 or IPv6 address to classify.</param>
+        /// <param name="user_agent">The `User-Agent` header of the request you are deciding on. With
+        /// <br/>every field, on a paid plan or the trial, the answer then carries
+        /// <br/>`user_agent`: the agent it names, and whether this address bears
+        /// <br/>that out. Never kept, and nothing sent with a lookup feeds our data.</param>
         /// <returns>The classification. Present fields are those your plan includes; see
         /// <br/>the tier table in the API description.</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<LookupResponse> LookupIpAsync(string ip, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<LookupResponse> LookupIpAsync(string ip, string? user_agent, System.Threading.CancellationToken cancellationToken)
         {
             if (ip == null)
                 throw new System.ArgumentNullException("ip");
@@ -124,6 +132,12 @@ namespace VPNDetection
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
                     // Operation Path: "{ip}"
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(ip, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append('?');
+                    if (user_agent != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("user_agent")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(user_agent, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -240,12 +254,16 @@ namespace VPNDetection
         /// <br/>or a VPN reports the exit it left through rather than the machine that
         /// <br/>made it. That is usually the point of asking.
         /// </remarks>
+        /// <param name="user_agent">The `User-Agent` header of the request you are deciding on. With
+        /// <br/>every field, on a paid plan or the trial, the answer then carries
+        /// <br/>`user_agent`: the agent it names, and whether this address bears
+        /// <br/>that out. Never kept, and nothing sent with a lookup feeds our data.</param>
         /// <returns>The classification of your own address. Present fields are those
         /// <br/>your plan includes; see the tier table in the API description.</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task<LookupResponse> LookupMyIpAsync()
+        public virtual System.Threading.Tasks.Task<LookupResponse> LookupMyIpAsync(string? user_agent)
         {
-            return LookupMyIpAsync(System.Threading.CancellationToken.None);
+            return LookupMyIpAsync(user_agent, System.Threading.CancellationToken.None);
         }
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
@@ -262,10 +280,14 @@ namespace VPNDetection
         /// <br/>or a VPN reports the exit it left through rather than the machine that
         /// <br/>made it. That is usually the point of asking.
         /// </remarks>
+        /// <param name="user_agent">The `User-Agent` header of the request you are deciding on. With
+        /// <br/>every field, on a paid plan or the trial, the answer then carries
+        /// <br/>`user_agent`: the agent it names, and whether this address bears
+        /// <br/>that out. Never kept, and nothing sent with a lookup feeds our data.</param>
         /// <returns>The classification of your own address. Present fields are those
         /// <br/>your plan includes; see the tier table in the API description.</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<LookupResponse> LookupMyIpAsync(System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<LookupResponse> LookupMyIpAsync(string? user_agent, System.Threading.CancellationToken cancellationToken)
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -280,6 +302,12 @@ namespace VPNDetection
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
                     // Operation Path: "myip"
                     urlBuilder_.Append("myip");
+                    urlBuilder_.Append('?');
+                    if (user_agent != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("user_agent")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(user_agent, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -807,7 +835,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<Error>("Your organization holds no license for this database, or its term has ended (`NOT_LICENSED`); or the key was sent over plain HTTP (`KEY_OVER_HTTP`), so use `https://`", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<Error>("Your organization holds no license for this database (`NOT_LICENSED`), or its license term has ended, so renew it (`LICENSE_EXPIRED`); or the key was sent over plain HTTP (`KEY_OVER_HTTP`), so use `https://`", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 404)
@@ -1120,7 +1148,7 @@ namespace VPNDetection
                             {
                                 throw new WireException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
-                            throw new WireException<Error>("Your organization holds no license for this database, or its term has ended (`NOT_LICENSED`); or the key was sent over plain HTTP (`KEY_OVER_HTTP`), so use `https://`", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                            throw new WireException<Error>("Your organization holds no license for this database (`NOT_LICENSED`), or its license term has ended, so renew it (`LICENSE_EXPIRED`); or the key was sent over plain HTTP (`KEY_OVER_HTTP`), so use `https://`", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 404)
@@ -1416,6 +1444,8 @@ namespace VPNDetection
         /// <br/>
         /// <br/>`scopes` is what the credential may do now, so a client can check
         /// <br/>before it calls.
+        /// <br/>
+        /// <br/>Needs the `account.read` scope.
         /// </remarks>
         /// <returns>The caller.</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
@@ -1439,6 +1469,8 @@ namespace VPNDetection
         /// <br/>
         /// <br/>`scopes` is what the credential may do now, so a client can check
         /// <br/>before it calls.
+        /// <br/>
+        /// <br/>Needs the `account.read` scope.
         /// </remarks>
         /// <returns>The caller.</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
@@ -1537,6 +1569,8 @@ namespace VPNDetection
         /// The organization this credential is scoped to.
         /// <br/>
         /// <br/>A credential belongs to one organization, so this takes no ID.
+        /// <br/>
+        /// <br/>Needs the `org.read` scope.
         /// </remarks>
         /// <returns>The organization.</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
@@ -1553,6 +1587,8 @@ namespace VPNDetection
         /// The organization this credential is scoped to.
         /// <br/>
         /// <br/>A credential belongs to one organization, so this takes no ID.
+        /// <br/>
+        /// <br/>Needs the `org.read` scope.
         /// </remarks>
         /// <returns>The organization.</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
@@ -1651,6 +1687,8 @@ namespace VPNDetection
         /// The members of the organization this credential is scoped to.
         /// <br/>
         /// <br/>Read-only. Members are invited by email from the console.
+        /// <br/>
+        /// <br/>Needs the `org.read` scope.
         /// </remarks>
         /// <returns>The members.</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
@@ -1667,6 +1705,8 @@ namespace VPNDetection
         /// The members of the organization this credential is scoped to.
         /// <br/>
         /// <br/>Read-only. Members are invited by email from the console.
+        /// <br/>
+        /// <br/>Needs the `org.read` scope.
         /// </remarks>
         /// <returns>The members.</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
@@ -1769,6 +1809,8 @@ namespace VPNDetection
         /// <br/>A key issued before this product stored secrets recoverably was never
         /// <br/>kept, so `reveal` will refuse it permanently; rotating produces one
         /// <br/>that can be read.
+        /// <br/>
+        /// <br/>Needs the `apikeys.read` scope.
         /// </remarks>
         /// <returns>The organization's keys, newest first.</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
@@ -1789,6 +1831,8 @@ namespace VPNDetection
         /// <br/>A key issued before this product stored secrets recoverably was never
         /// <br/>kept, so `reveal` will refuse it permanently; rotating produces one
         /// <br/>that can be read.
+        /// <br/>
+        /// <br/>Needs the `apikeys.read` scope.
         /// </remarks>
         /// <returns>The organization's keys, newest first.</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
@@ -1888,6 +1932,8 @@ namespace VPNDetection
         /// <br/>
         /// <br/>Store the secret now. Reading it back later takes `reveal` and the
         /// <br/>`apikeys.reveal` scope.
+        /// <br/>
+        /// <br/>Needs the `apikeys.manage` scope.
         /// </remarks>
         /// <returns>The new key, including its secret.</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
@@ -1905,6 +1951,8 @@ namespace VPNDetection
         /// <br/>
         /// <br/>Store the secret now. Reading it back later takes `reveal` and the
         /// <br/>`apikeys.reveal` scope.
+        /// <br/>
+        /// <br/>Needs the `apikeys.manage` scope.
         /// </remarks>
         /// <returns>The new key, including its secret.</returns>
         /// <exception cref="WireException">A server side error occurred.</exception>
@@ -2154,6 +2202,8 @@ namespace VPNDetection
         /// Stops the key working. Revocation is soft: the key stays listed with a
         /// <br/>`revoked_at`, because the organization still owns whatever it did while
         /// <br/>it was alive.
+        /// <br/>
+        /// <br/>Needs the `apikeys.manage` scope.
         /// </remarks>
         /// <param name="id">The key's ID, as returned by the list endpoint. Never the key itself.</param>
         /// <returns>Revoked.</returns>
@@ -2171,6 +2221,8 @@ namespace VPNDetection
         /// Stops the key working. Revocation is soft: the key stays listed with a
         /// <br/>`revoked_at`, because the organization still owns whatever it did while
         /// <br/>it was alive.
+        /// <br/>
+        /// <br/>Needs the `apikeys.manage` scope.
         /// </remarks>
         /// <param name="id">The key's ID, as returned by the list endpoint. Never the key itself.</param>
         /// <returns>Revoked.</returns>
@@ -2290,6 +2342,8 @@ namespace VPNDetection
         /// <br/>
         /// <br/>Refused with `NOT_RETRIEVABLE` for a key issued before we kept secrets.
         /// <br/>Rotate that key instead.
+        /// <br/>
+        /// <br/>Needs the `apikeys.reveal` scope.
         /// </remarks>
         /// <param name="id">The key's ID, as returned by the list endpoint. Never the key itself.</param>
         /// <returns>The key's secret.</returns>
@@ -2311,6 +2365,8 @@ namespace VPNDetection
         /// <br/>
         /// <br/>Refused with `NOT_RETRIEVABLE` for a key issued before we kept secrets.
         /// <br/>Rotate that key instead.
+        /// <br/>
+        /// <br/>Needs the `apikeys.reveal` scope.
         /// </remarks>
         /// <param name="id">The key's ID, as returned by the list endpoint. Never the key itself.</param>
         /// <returns>The key's secret.</returns>
@@ -3423,6 +3479,12 @@ namespace VPNDetection
         public bool? IsCdn { get; set; } = default!;
 
         /// <summary>
+        /// Whether an automated client uses the address, such as a search engine's or an AI company's crawler, an uptime monitor, an internet scanner or a webhook sender. `bot` says whose, what it does and whether its operator vouches for the address. Every answer, with or without a key.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("is_bot")]
+        public bool? IsBot { get; set; } = default!;
+
+        /// <summary>
         /// Whether the address was seen in a residential proxy pool. Paid plans.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_resproxy")]
@@ -3527,6 +3589,12 @@ namespace VPNDetection
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("cdn")]
         public ClassDetail? Cdn { get; set; } = default!;
+
+        /// <summary>
+        /// Detail for `is_bot`. Empty when false. Paid plans.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("bot")]
+        public BotDetail? Bot { get; set; } = default!;
 
         /// <summary>
         /// Detail for `is_resproxy`. Empty when false. Paid plans.
@@ -4187,6 +4255,126 @@ namespace VPNDetection
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("rpki_status")]
         public string? RpkiStatus { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    internal partial class UserAgentVerdict
+    {
+
+        /// <summary>
+        /// The agent the user agent names, such as `Googlebot` or `Chrome`; `Unknown` where it names none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("agent")]
+        public string Agent { get; set; } = default!;
+
+        /// <summary>
+        /// `browser`, `inapp`, `automation`, `bot`, `ai-bot`, `http-client` or
+        /// <br/>`unknown`: what kind of client the user agent says it is.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        public string Kind { get; set; } = default!;
+
+        /// <summary>
+        /// `verified`: the agent's operator vouches for this address as it.
+        /// <br/>`spoofed`: the operator of a bot that publishes its addresses, or
+        /// <br/>whose registered space it uses, does not vouch for this one, or this
+        /// <br/>address posed as the bot before. `unverifiable`: a bot no published
+        /// <br/>list or registered space can confirm. `not_bot`: a browser, an app or
+        /// <br/>a script.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("verdict")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<UserAgentVerdictVerdict>))]
+        public UserAgentVerdictVerdict Verdict { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    /// <summary>
+    /// Bot IP's row: whose bot uses the address, the bots it serves or claimed to be, what they do, and how that is known.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class BotDetail
+    {
+
+        /// <summary>
+        /// The bot operator's ID; for an address that is not verified, the operator its claim named. Empty where no operator is known.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("provider")]
+        public string? Provider { get; set; } = default!;
+
+        /// <summary>
+        /// That operator's name, empty where no operator is known.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("provider_name")]
+        public string? ProviderName { get; set; } = default!;
+
+        /// <summary>
+        /// The bots the address serves, as their user agents name them (`Googlebot`, `GPTBot`); for an address that is not verified, the bots it claimed to be. One address can serve several, and `[]` means none is named.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("agents")]
+        public System.Collections.Generic.IReadOnlyList<string>? Agents { get; set; } = default!;
+
+        /// <summary>
+        /// What those bots do: `search_engine`, `ai_training`, `ai_search`, `ai_assistant`, `ai_agent`, `seo`, `ads`, `preview`, `feed`, `monitoring`, `archiver`, `scanner`, `link_security`, `webhook` or `other`; `[]` where unknown.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("categories")]
+        public System.Collections.Generic.IReadOnlyList<string>? Categories { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the operator vouches for the address, so the bots in `agents` really are its.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("verified")]
+        public bool? Verified { get; set; } = default!;
+
+        /// <summary>
+        /// `verified` (the operator vouches for the address), `declared` (it names itself a bot that cannot be verified), `spoofed` (it claimed a bot whose operator vouches for other addresses) or `undeclared` (it hides as a browser and behaves as automation).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("identity")]
+        public string? Identity { get; set; } = default!;
+
+        /// <summary>
+        /// How a verified address verified: `list` (the operator publishes it), `rdns` (its reverse DNS name ends in a suffix the operator documents and resolves back) or `owner` (the operator's own space, seen claiming its bot); empty when not verified.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("verified_by")]
+        public string? VerifiedBy { get; set; } = default!;
+
+        /// <summary>
+        /// `high`, `medium` or `low`: how sure we are the address is what the row says.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("confidence")]
+        public string? Confidence { get; set; } = default!;
+
+        /// <summary>
+        /// The first day the address was seen as such.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("first_seen")]
+        public string? FirstSeen { get; set; } = default!;
+
+        /// <summary>
+        /// The last day it was.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("last_seen")]
+        public string? LastSeen { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -6246,6 +6434,24 @@ namespace VPNDetection
             get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
             set { _additionalProperties = value; }
         }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    internal enum UserAgentVerdictVerdict
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"verified")]
+        Verified = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"spoofed")]
+        Spoofed = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"unverifiable")]
+        Unverifiable = 2,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"not_bot")]
+        Not_bot = 3,
 
     }
 
