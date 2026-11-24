@@ -26,10 +26,6 @@ INTERNAL_TYPES = [
     "Response",
     "Response2",
     "Response3",
-    # The answer's user_agent verdict, which scripts/generator_input.py leaves out of LookupResponse
-    # until a lookup sends a user_agent; NSwag still emits every schema the spec defines.
-    "UserAgentVerdict",
-    "UserAgentVerdictVerdict",
 ]
 
 # The spec's one csvgz/mmdb enum is reached from five places, and an inline enum
@@ -43,6 +39,8 @@ TYPE_RENAMES = {
     "SampleFormats": "DatasetFormat",
     "Checksums": "DatasetChecksums",
     "LicensedDatasetLicenseType": "DatasetLicenseType",
+    # The user agent's verdict is read as `result.UserAgent?.Verdict == Verdict.Verified`.
+    "UserAgentVerdictVerdict": "Verdict",
 }
 
 # NSwag 14.6 tags enum members with JsonStringEnumMemberName, which only exists from .NET 9, while

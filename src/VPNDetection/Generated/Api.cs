@@ -3681,6 +3681,14 @@ namespace VPNDetection
         public AbuseContact? Abuse { get; set; } = default!;
 
         /// <summary>
+        /// When the request sent `user_agent`, with every field: the agent it
+        /// <br/>names and whether this address bears it out. Absent otherwise.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("user_agent")]
+        public UserAgentVerdict? UserAgent { get; set; } = default!;
+
+        /// <summary>
         /// On every answer to a key on the free plan, and on no other: `false`
         /// <br/>while its organization's trial of every field lasts, `true` once the
         /// <br/>answer has Unlimited's.
@@ -3722,6 +3730,15 @@ namespace VPNDetection
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("ips")]
         public System.Collections.Generic.IReadOnlyList<string> Ips { get; set; } = new System.Collections.Generic.List<string>();
+
+        /// <summary>
+        /// Each address's `User-Agent`, keyed by the string it is sent as in
+        /// <br/>`ips`. With every field, that address's answer then carries
+        /// <br/>`user_agent`, as a single lookup's does. Never kept.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("user_agents")]
+        public System.Collections.Generic.IDictionary<string, string>? UserAgents { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -4268,7 +4285,7 @@ namespace VPNDetection
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    internal partial class UserAgentVerdict
+    public partial class UserAgentVerdict
     {
 
         /// <summary>
@@ -4295,8 +4312,7 @@ namespace VPNDetection
         /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("verdict")]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<UserAgentVerdictVerdict>))]
-        public UserAgentVerdictVerdict Verdict { get; set; } = default!;
+        public Verdict Verdict { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -6438,21 +6454,53 @@ namespace VPNDetection
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    internal enum UserAgentVerdictVerdict
+    [System.Text.Json.Serialization.JsonConverter(typeof(VocabularyConverter<Verdict>))]
+    public sealed class Verdict : System.IEquatable<Verdict>, IVocabulary<Verdict>
     {
+        /// <summary><c>verified</c></summary>
+        public static Verdict Verified { get; } = new("verified");
 
-        [System.Runtime.Serialization.EnumMember(Value = @"verified")]
-        Verified = 0,
+        /// <summary><c>spoofed</c></summary>
+        public static Verdict Spoofed { get; } = new("spoofed");
 
-        [System.Runtime.Serialization.EnumMember(Value = @"spoofed")]
-        Spoofed = 1,
+        /// <summary><c>unverifiable</c></summary>
+        public static Verdict Unverifiable { get; } = new("unverifiable");
 
-        [System.Runtime.Serialization.EnumMember(Value = @"unverifiable")]
-        Unverifiable = 2,
+        /// <summary><c>not_bot</c></summary>
+        public static Verdict Not_bot { get; } = new("not_bot");
 
-        [System.Runtime.Serialization.EnumMember(Value = @"not_bot")]
-        Not_bot = 3,
+        /// <summary>Every value this release was built with, in the spec's order.</summary>
+        public static System.Collections.Generic.IReadOnlyList<Verdict> Known { get; } = [Verified, Spoofed, Unverifiable, Not_bot];
 
+        /// <summary>A value as the API spells it, one this release was built with or not.</summary>
+        public Verdict(string value)
+        {
+            Value = value ?? throw new System.ArgumentNullException(nameof(value));
+        }
+
+        /// <summary>The value as the API spells it.</summary>
+        public string Value { get; }
+
+        /// <summary>
+        /// Whether this release was built with the value, one of <see cref="Known"/>. A value the API
+        /// added since reads as itself with this false, rather than failing the call.
+        /// </summary>
+        public bool IsKnown => System.Linq.Enumerable.Contains(Known, this);
+
+        public bool Equals(Verdict? other) => other is not null && string.Equals(Value, other.Value, System.StringComparison.Ordinal);
+
+        public override bool Equals(object? obj) => Equals(obj as Verdict);
+
+        public override int GetHashCode() => System.StringComparer.Ordinal.GetHashCode(Value);
+
+        /// <summary>The value as the API spells it.</summary>
+        public override string ToString() => Value;
+
+        public static bool operator ==(Verdict? left, Verdict? right) => left is null ? right is null : left.Equals(right);
+
+        public static bool operator !=(Verdict? left, Verdict? right) => !(left == right);
+
+        static Verdict IVocabulary<Verdict>.Of(string value) => new(value);
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.1.0 (NJsonSchema v11.5.1.0 (Newtonsoft.Json v13.0.0.0))")]

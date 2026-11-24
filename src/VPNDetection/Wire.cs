@@ -470,6 +470,7 @@ internal partial class WireClient
             "first_seen", "last_seen"],
         [typeof(Company)] = ["name", "domain"],
         [typeof(AbuseContact)] = ["email"],
+        [typeof(UserAgentVerdict)] = ["agent", "kind", "verdict"],
         [typeof(BatchLookupResponse)] = ["results", "errors"],
         [typeof(BatchLookupError)] = ["status", "error"],
         [typeof(Entitlement)] = ["org_id", "apikey", "plan", "usage"],
@@ -516,6 +517,12 @@ internal partial class WireClient
                     "errors" => new EntryMapConverter<BatchLookupError>(),
                     _ => property.CustomConverter,
                 };
+            }
+            // An unset or empty map is left out rather than written as null or {}, so a chunk where
+            // no address carries a user agent is the request it always was.
+            if (info.Type == typeof(BatchLookupRequest) && property.Name == "user_agents")
+            {
+                property.ShouldSerialize = (_, value) => value is IDictionary<string, string> { Count: > 0 };
             }
             if (info.Type == typeof(DatabaseMetadata) && property.Name == "sample" && property.Set is { } setSample)
             {

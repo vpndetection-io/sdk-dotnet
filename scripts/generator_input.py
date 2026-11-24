@@ -15,13 +15,14 @@ each must be found exactly where it is expected or the run fails:
 - The same spec gives the satellite operator's `asn` `format: int64`, which
   would turn `SatelliteDetail.Asn` from `int?` into `long?`, so the public type
   keeps its width.
-- The answer's `user_agent` verdict comes only when a lookup sends a
-  `user_agent`, which this client does not yet, so it adds no public type
-  until it does. The batch request's `user_agents` goes too: BatchLookupRequest
-  is a public type, and NSwag would write the unset map as `"user_agents":null`.
+- Spec 2026.11.23 gives `first_seen` and `last_seen` on the bot, SSH, SMTP,
+  web, DNS resolver and BitTorrent details `format: date`, which would turn
+  each from `string?` into `DateOnly?`, so they stay strings. Wire.cs's
+  DayMembers still refuses one that is not a calendar day as YYYY-MM-DD.
 
-The request's `user_agent` query parameter stays in: it reaches only the
-internal WireClient, and the client passes null, which sends nothing.
+Nothing is dropped whole: the answer's `user_agent` verdict and the batch
+request's `user_agents` are generated, and Wire.cs leaves an unset or empty
+`user_agents` out of the request rather than writing it as null.
 """
 
 import sys
@@ -35,13 +36,14 @@ REQUIRED_DROPPED = [
 # (schema, property, line): a line dropped from one property's own block.
 PROPERTY_LINES_DROPPED = [
     ("SatelliteDetail", "asn", "format: int64"),
+] + [
+    (schema, prop, "format: date")
+    for schema in ("BotDetail", "SshDetail", "SmtpDetail", "WebDetail", "DnsResolverDetail", "BitTorrentDetail")
+    for prop in ("first_seen", "last_seen")
 ]
 
 # (schema, property): a property dropped, with everything indented under it.
-PROPERTIES_DROPPED = [
-    ("LookupResponse", "user_agent"),
-    ("BatchLookupRequest", "user_agents"),
-]
+PROPERTIES_DROPPED = []
 
 SCHEMA_INDENT = " " * 4
 FIELD_INDENT = " " * 6
