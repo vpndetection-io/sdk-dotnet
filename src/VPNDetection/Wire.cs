@@ -496,6 +496,29 @@ internal partial class WireClient
 
     internal static readonly HashSet<string> EnvelopeMembers = ["databases", "downloads", "checksums"];
 
+    // Members the spec gives `format: date` whose generated property stays a string, so the public
+    // type is the one earlier releases shipped (scripts/generator_input.py). Each is still read as a
+    // calendar day alone, as the DateOnly members are: through 6.3.0 any string came back as served.
+    internal static readonly IReadOnlyDictionary<Type, string[]> DayMembers = new Dictionary<Type, string[]>
+    {
+        [typeof(BotDetail)] = ["first_seen", "last_seen"],
+        [typeof(SshDetail)] = ["first_seen", "last_seen"],
+        [typeof(SmtpDetail)] = ["first_seen", "last_seen"],
+        [typeof(WebDetail)] = ["first_seen", "last_seen"],
+        [typeof(DnsResolverDetail)] = ["first_seen", "last_seen"],
+        [typeof(BitTorrentDetail)] = ["first_seen", "last_seen"],
+    };
+
+    // RFC 3339's `full-date` and nothing else: ASCII digits, no time, no zone, no final newline, and
+    // a day the calendar has.
+    private static readonly Regex FullDate = new(@"^[0-9]{4}-[0-9]{2}-[0-9]{2}\z", RegexOptions.CultureInvariant);
+
+    internal static string Day(string value, string name)
+        => FullDate.IsMatch(value)
+            && DateOnly.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _)
+            ? value
+            : throw new JsonException($"`{name}` is not a calendar day as YYYY-MM-DD");
+
     private static void RequireAnswerMembers(JsonTypeInfo info)
     {
         if (info.Kind != JsonTypeInfoKind.Object || info.Type.Assembly != typeof(WireClient).Assembly)
@@ -527,6 +550,12 @@ internal partial class WireClient
             if (info.Type == typeof(DatabaseMetadata) && property.Name == "sample" && property.Set is { } setSample)
             {
                 property.Set = (target, value) => setSample(target, SampleRows(value));
+            }
+            if (DayMembers.TryGetValue(info.Type, out var days) && days.Contains(property.Name)
+                && property.Set is { } setDay)
+            {
+                var day = property.Name;
+                property.Set = (target, value) => setDay(target, value is string text ? Day(text, day) : value);
             }
             if (property.Set is not { } set || property.PropertyType.IsValueType)
             {
