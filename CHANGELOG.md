@@ -2,6 +2,12 @@
 
 What each release changed for you, newest first. Each line is a commit's summary, linked to its full description and diff. Releases before 5.2.4 are described by their release commits.
 
+## 6.5.0 - 2026-11-24
+
+### Fixes
+
+- Middleware: a condition on a list member matches any element ([`8d57197`](https://github.com/vpndetection-io/sdk-dotnet/commit/8d5719749b6f51874b53368e76896c807574a19c))
+
 ## 6.4.0 - 2026-11-24
 
 ### Features
