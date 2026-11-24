@@ -2,6 +2,18 @@
 
 What each release changed for you, newest first. Each line is a commit's summary, linked to its full description and diff. Releases before 5.2.4 are described by their release commits.
 
+## 6.4.0 - 2026-11-24
+
+### Features
+
+- Re-pin the spec to 2026.11.23, every public type kept as it was ([`611103f`](https://github.com/vpndetection-io/sdk-dotnet/commit/611103fd9ade5410f1d18151d852b901c373c86d))
+- Send a visitor's user agent with a lookup or a batch ([`9763ec2`](https://github.com/vpndetection-io/sdk-dotnet/commit/9763ec25ee7dfaa0f07e2150700131441792dbea))
+- Middleware: AllowBots lets a verified crawler through ([`b3a5dfe`](https://github.com/vpndetection-io/sdk-dotnet/commit/b3a5dfe98ebbb837e66b514c16aecbe59f048657))
+
+### Fixes
+
+- Read a detail's first_seen and last_seen as a calendar day ([`0c59f63`](https://github.com/vpndetection-io/sdk-dotnet/commit/0c59f635d6fca2c55af57f0ccbca0da43b4d44be))
+
 ## 6.3.0 - 2026-11-22
 
 ### Features
