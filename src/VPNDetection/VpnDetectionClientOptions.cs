@@ -77,6 +77,21 @@ public sealed class LookupOptions
     /// client's own timeout.
     /// </remarks>
     public TimeSpan? RequestTimeout { get; init; }
+
+    /// <summary>
+    /// The <c>User-Agent</c> of the request being decided on, sent as <c>user_agent</c> by
+    /// <see cref="VpnDetectionClient.LookupAsync(string, LookupOptions?, CancellationToken)"/> and
+    /// <see cref="VpnDetectionClient.MyIpAsync(LookupOptions?, CancellationToken)"/>.
+    /// </summary>
+    /// <remarks>
+    /// With every field the answer then carries <see cref="Result.UserAgent"/>: the agent it names
+    /// and whether this address bears it out. The answer is cached on the address and the agent
+    /// together, apart from the address's plain answer and from another agent's. An empty agent is
+    /// none, one longer than the API's 1024 characters is sent as it is, and a bogon is answered
+    /// locally with no verdict. <see cref="VpnDetectionClient.MyEntitlementAsync(LookupOptions?, CancellationToken)"/>
+    /// takes none.
+    /// </remarks>
+    public string? UserAgent { get; init; }
 }
 
 /// <summary>Per-call overrides for one batch. Anything left null falls back to the client's setting.</summary>
@@ -100,6 +115,17 @@ public sealed class BatchOptions
     /// chunk that runs out of it marks every address in it with a retryable network error.
     /// </remarks>
     public TimeSpan? RequestTimeout { get; init; }
+
+    /// <summary>
+    /// Each address's <c>User-Agent</c>, keyed by the address exactly as it is passed in the batch,
+    /// sent as <c>user_agents</c>.
+    /// </summary>
+    /// <remarks>
+    /// Sent only in a chunk where some address carries one. Each address's answer is cached on the
+    /// address and its agent together, as a lookup's is; an empty agent is none, and a bogon is
+    /// answered locally with no verdict.
+    /// </remarks>
+    public IReadOnlyDictionary<string, string>? UserAgents { get; init; }
 }
 
 /// <summary>

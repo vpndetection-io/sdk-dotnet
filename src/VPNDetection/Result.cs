@@ -244,6 +244,14 @@ public sealed class Result
     public BotDetail? Bot => raw.Bot;
 
     /// <summary>
+    /// When the lookup sent a user agent (<see cref="LookupOptions.UserAgent"/>,
+    /// <see cref="BatchOptions.UserAgents"/>), with every field: the agent it names, what kind of
+    /// client that is, and its <see cref="UserAgentVerdict.Verdict"/>. Null when none was sent, on
+    /// a plan that does not serve it, and on a bogon, which is answered locally.
+    /// </summary>
+    public UserAgentVerdict? UserAgent => raw.UserAgent;
+
+    /// <summary>
     /// Where the address is, on every answer, with or without a key: the country and its currency on
     /// every plan, and the region, city and coordinates on a paid one, null on a plan without them.
     /// A field your plan includes is an empty string or zero where it is not known.
