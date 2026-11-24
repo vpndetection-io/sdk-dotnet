@@ -19,7 +19,10 @@ namespace VPNDetection.Middleware;
 /// new Condition { ["vpn"] = new Condition { ["confidence"] = new[] { "high", "medium" } } }
 /// </code>
 /// <para>A value may be a scalar (equality, strings without regard to case), a collection meaning
-/// any-of, a <see cref="Bound"/> comparing a number, or a nested condition. A member set to
+/// any-of, a <see cref="Bound"/> comparing a number, or a nested condition. A term on a member the
+/// answer holds as a list matches when any one element matches it: <c>["pubproxy"] = new
+/// Condition { ["protocols"] = "socks5" }</c>, or <c>["web"] = new Condition { ["port"] = 443 }</c>,
+/// which must hold on a single row. A member set to
 /// <c>false</c> or <c>null</c> is ignored entirely - a condition states the positive signals you
 /// act on, so there is no way to write "block when this is false", which would otherwise read as
 /// blocking everybody.</para>
@@ -135,6 +138,13 @@ public sealed class Condition : Dictionary<string, object?>
     private static bool MatchesValue(object? want, object? got)
     {
         got = Unwrap(got);
+        // A member the answer holds as a list (pubproxy's protocols, the web rows, bittorrent's
+        // clients, bot's agents and categories) matches when any one element does. An object term
+        // is therefore a partial match on a single element, never spread across several.
+        if (got is IList elements)
+        {
+            return elements.Cast<object?>().Any(element => MatchesValue(want, element));
+        }
         switch (want)
         {
             case Bound bound:
@@ -170,6 +180,9 @@ public sealed class Condition : Dictionary<string, object?>
             JsonValueKind.True => true,
             JsonValueKind.False => false,
             JsonValueKind.Null or JsonValueKind.Undefined => null,
+            JsonValueKind.Array => element.EnumerateArray().Select(item => (object?)item).ToList(),
+            JsonValueKind.Object => element.EnumerateObject()
+                .ToDictionary(member => member.Name, member => member.Value),
             _ => value,
         }
         : value;

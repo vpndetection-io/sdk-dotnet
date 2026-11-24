@@ -37,20 +37,29 @@ public class MiddlewareTests
     [Fact]
     public async Task CorpusConditions()
     {
+        // Every case runs before anything is asserted, so a red run names each case it failed.
+        var failures = new List<string>();
         foreach (var c in Middleware.GetProperty("conditions").EnumerateArray())
         {
             var why = $"{c.GetProperty("name").GetString()}: {c.GetProperty("why").GetString()}";
             var result = await ResultFor(c);
             var conditions = ToConditions(c.GetProperty("condition"));
 
-            Assert.Equal(c.GetProperty("expect").GetProperty("blocked").GetBoolean(),
-                Condition.Matches(conditions, result));
+            bool blocked = c.GetProperty("expect").GetProperty("blocked").GetBoolean();
+            if (Condition.Matches(conditions, result) != blocked)
+            {
+                failures.Add($"{why} (want blocked={blocked})");
+            }
 
             var missing = Condition.MissingMembers(conditions, result).OrderBy(m => m).ToList();
             var want = c.GetProperty("expect").GetProperty("missing").EnumerateArray()
                 .Select(m => m.GetString()!).OrderBy(m => m).ToList();
-            Assert.True(want.SequenceEqual(missing), $"{why} (got {string.Join(",", missing)})");
+            if (!want.SequenceEqual(missing))
+            {
+                failures.Add($"{why} (got missing {string.Join(",", missing)})");
+            }
         }
+        Assert.True(failures.Count == 0, string.Join("\n", failures));
     }
 
     // A condition is written in the shape of a result, so it reaches every member an answer serves:
