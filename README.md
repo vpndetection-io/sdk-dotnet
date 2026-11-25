@@ -32,7 +32,7 @@ Console.WriteLine(result.Asn?.Name);          // who runs the announcing network
 
 ### With an API key
 
-Every paid plan answers every field: `is_hosting`, `is_cdn` and the four proxy flags as well, and the provider (its ID and its name), confidence and last-seen detail behind each flag; `is_carrier`, `is_satellite`, `is_ssh`, `is_smtp`, `is_web`, `is_dns_resolver` and `is_bittorrent`, with the detail behind each; `bot` (whose bot it is and whether its operator vouches for the address); `user_agent`, when you send the user agent of the request you are deciding on (below); the location's region, city, postal code and coordinates; and the address's `company` and `abuse` contact. The plans differ only in how many lookups they include, and a free account tries every field. Create a key in the [console](https://app.vpndetection.io), then pass it in:
+A paid plan answers every field: `is_hosting`, `is_cdn` and the four proxy flags as well, and the provider (its ID and its name), confidence and last-seen detail behind each flag; `is_carrier`, `is_satellite`, `is_ssh`, `is_smtp`, `is_web`, `is_dns_resolver` and `is_bittorrent`, with the detail behind each; `bot` (whose bot it is and whether its operator vouches for the address); `user_agent`, when you send the user agent of the request you are deciding on (below); the location's region, city, postal code and coordinates; and the address's `company` and `abuse` contact. Its quotas differ only in how many lookups they include, and a free account tries every field. Create a key in the [console](https://app.vpndetection.io), then pass it in:
 
 ```csharp
 using var client = new VpnDetectionClient(new VpnDetectionClientOptions
@@ -75,8 +75,8 @@ if (result.UserAgent?.Verdict == Verdict.Verified)
 
 ```csharp
 var acct = await client.MyEntitlementAsync();
-Console.WriteLine(acct.Plan.Name);        // Max, what to show
-Console.WriteLine(acct.Plan.Key);         // max, what to compare against
+Console.WriteLine(acct.Plan.Name);        // Data, what to show
+Console.WriteLine(acct.Plan.Key);         // data_4, what to compare against
 Console.WriteLine(acct.Usage.Requests);   // 580
 Console.WriteLine(acct.Usage.WindowEnd);  // when the allowance resets
 ```
