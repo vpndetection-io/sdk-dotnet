@@ -2,6 +2,14 @@
 
 What each release changed for you, newest first. Each line is a commit's summary, linked to its full description and diff. Releases before 5.2.4 are described by their release commits.
 
+## 6.5.1 - 2026-11-25
+
+### Fixes
+
+- README: one paid plan, Data; the entitlement example names it ([`83fb900`](https://github.com/vpndetection-io/sdk-dotnet/commit/83fb900ad306cf9365e5c62645a978bad5f07e6d))
+- Spec 2026.11.25: doc comments name a paid plan, the entitlement example the Data plan ([`a6a1c84`](https://github.com/vpndetection-io/sdk-dotnet/commit/a6a1c8470223aaa162cbe139093d025ee669537e))
+- Doc comments: a field is on a paid plan, not on every paid plan ([`2b6e98f`](https://github.com/vpndetection-io/sdk-dotnet/commit/2b6e98f85bdd2d0d2b77991b76f730738b94ba42))
+
 ## 6.5.0 - 2026-11-24
 
 ### Fixes
