@@ -69,7 +69,7 @@ if (result.UserAgent?.Verdict == Verdict.Verified)
 }
 ```
 
-`Verdict` is `Verified`, `Spoofed`, `Unverifiable` (a bot no published list can confirm) or `NotBot` (a browser, an app or a script). `MyIpAsync` takes one too, and a batch takes each address's in `BatchOptions.UserAgents`, keyed by the address as you list it. The answer is cached on the address and the agent together. `UserAgent` is `null` when none was sent, on Unlimited, and for a private address, which is answered locally. The [ASP.NET Core middleware](https://www.nuget.org/packages/VPNDetection.AspNetCore) sends each request's own with `AllowBots`, and never refuses a verified crawler.
+`Verdict` is `Verified`, `Spoofed`, `Unverifiable` (a bot no published list can confirm) or `Not_bot` (a browser, an app or a script). `MyIpAsync` takes one too, and a batch takes each address's in `BatchOptions.UserAgents`, keyed by the address as you list it. The answer is cached on the address and the agent together. `UserAgent` is `null` when none was sent, on Unlimited, and for a private address, which is answered locally. The [ASP.NET Core middleware](https://www.nuget.org/packages/VPNDetection.AspNetCore) sends each request's own with `AllowBots`, and never refuses a verified crawler.
 
 ### Your plan and usage
 
