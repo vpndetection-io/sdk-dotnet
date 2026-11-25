@@ -125,7 +125,7 @@ public sealed class Result
     /// </summary>
     public bool IsBogon { get; }
 
-    /// <summary>Whether the address belongs to a hosting or cloud provider. On every paid plan.</summary>
+    /// <summary>Whether the address belongs to a hosting or cloud provider. On a paid plan.</summary>
     public bool? IsHosting => raw.IsHosting;
 
     /// <summary>Whether the address is a privacy relay egress. On every answer, with or without a key.</summary>
@@ -134,21 +134,21 @@ public sealed class Result
     /// <summary>Whether the address is a Tor node. On every answer, with or without a key.</summary>
     public bool? IsTor => raw.IsTor;
 
-    /// <summary>Whether the address belongs to a CDN. On every paid plan.</summary>
+    /// <summary>Whether the address belongs to a CDN. On a paid plan.</summary>
     public bool? IsCdn => raw.IsCdn;
 
-    /// <summary>Whether the address was seen in a residential proxy pool. On every paid plan.</summary>
+    /// <summary>Whether the address was seen in a residential proxy pool. On a paid plan.</summary>
     public bool? IsResproxy => raw.IsResproxy;
 
-    /// <summary>Whether the address is one a datacenter proxy service sells or runs on, a proxy company's own ranges included. On every paid plan.</summary>
+    /// <summary>Whether the address is one a datacenter proxy service sells or runs on, a proxy company's own ranges included. On a paid plan.</summary>
     public bool? IsDcproxy => raw.IsDcproxy;
 
-    /// <summary>Whether the address was seen in a mobile proxy pool. On every paid plan.</summary>
+    /// <summary>Whether the address was seen in a mobile proxy pool. On a paid plan.</summary>
     public bool? IsMobproxy => raw.IsMobproxy;
 
     /// <summary>
     /// Whether a public proxy, one anyone can connect through, listens on the address or sends its
-    /// traffic out from it. On every paid plan.
+    /// traffic out from it. On a paid plan.
     /// </summary>
     public bool? IsPubproxy => raw.IsPubproxy;
 
@@ -158,25 +158,25 @@ public sealed class Result
     /// </summary>
     public bool? IsAnycast => raw.IsAnycast;
 
-    /// <summary>Whether the address is a mobile carrier's, where many phones can share one address. On every paid plan.</summary>
+    /// <summary>Whether the address is a mobile carrier's, where many phones can share one address. On a paid plan.</summary>
     public bool? IsCarrier => raw.IsCarrier;
 
-    /// <summary>Whether the address is a satellite operator's. On every paid plan.</summary>
+    /// <summary>Whether the address is a satellite operator's. On a paid plan.</summary>
     public bool? IsSatellite => raw.IsSatellite;
 
-    /// <summary>Whether an SSH server answered on the address. On every paid plan.</summary>
+    /// <summary>Whether an SSH server answered on the address. On a paid plan.</summary>
     public bool? IsSsh => raw.IsSsh;
 
-    /// <summary>Whether a mail server answered on the address. On every paid plan.</summary>
+    /// <summary>Whether a mail server answered on the address. On a paid plan.</summary>
     public bool? IsSmtp => raw.IsSmtp;
 
-    /// <summary>Whether a web server answered on the address, on port 80 or 443. On every paid plan.</summary>
+    /// <summary>Whether a web server answered on the address, on port 80 or 443. On a paid plan.</summary>
     public bool? IsWeb => raw.IsWeb;
 
-    /// <summary>Whether an open DNS resolver answered on the address. On every paid plan.</summary>
+    /// <summary>Whether an open DNS resolver answered on the address. On a paid plan.</summary>
     public bool? IsDnsResolver => raw.IsDnsResolver;
 
-    /// <summary>Whether a BitTorrent client was seen on the address in the last 90 days. On every paid plan.</summary>
+    /// <summary>Whether a BitTorrent client was seen on the address in the last 90 days. On a paid plan.</summary>
     public bool? IsBittorrent => raw.IsBittorrent;
 
     /// <summary>
@@ -186,10 +186,10 @@ public sealed class Result
     /// </summary>
     public bool? IsBot => raw.IsBot;
 
-    /// <summary>Detail behind <see cref="IsVpn"/>. Empty when it is false. On every paid plan.</summary>
+    /// <summary>Detail behind <see cref="IsVpn"/>. Empty when it is false. On a paid plan.</summary>
     public VpnDetail? Vpn => raw.Vpn;
 
-    /// <summary>Detail behind <see cref="IsHosting"/>. Empty when it is false. On every paid plan.</summary>
+    /// <summary>Detail behind <see cref="IsHosting"/>. Empty when it is false. On a paid plan.</summary>
     public ClassDetail? Hosting => raw.Hosting;
 
     /// <summary>Detail behind <see cref="IsRelay"/>. Empty when it is false. On every answer, with or without a key.</summary>
@@ -198,48 +198,48 @@ public sealed class Result
     /// <summary>Detail behind <see cref="IsTor"/>. Empty when it is false. On every answer, with or without a key.</summary>
     public ClassDetail? Tor => raw.Tor;
 
-    /// <summary>Detail behind <see cref="IsCdn"/>. Empty when it is false. On every paid plan.</summary>
+    /// <summary>Detail behind <see cref="IsCdn"/>. Empty when it is false. On a paid plan.</summary>
     public ClassDetail? Cdn => raw.Cdn;
 
-    /// <summary>Detail behind <see cref="IsResproxy"/>. Empty when it is false. On every paid plan.</summary>
+    /// <summary>Detail behind <see cref="IsResproxy"/>. Empty when it is false. On a paid plan.</summary>
     public ProxyDetail? Resproxy => raw.Resproxy;
 
-    /// <summary>Detail behind <see cref="IsDcproxy"/>. Empty when it is false. On every paid plan.</summary>
+    /// <summary>Detail behind <see cref="IsDcproxy"/>. Empty when it is false. On a paid plan.</summary>
     public ProxyDetail? Dcproxy => raw.Dcproxy;
 
-    /// <summary>Detail behind <see cref="IsMobproxy"/>. Empty when it is false. On every paid plan.</summary>
+    /// <summary>Detail behind <see cref="IsMobproxy"/>. Empty when it is false. On a paid plan.</summary>
     public ProxyDetail? Mobproxy => raw.Mobproxy;
 
-    /// <summary>Detail behind <see cref="IsPubproxy"/>. Empty when it is false. On every paid plan.</summary>
+    /// <summary>Detail behind <see cref="IsPubproxy"/>. Empty when it is false. On a paid plan.</summary>
     public PubproxyDetail? Pubproxy => raw.Pubproxy;
 
-    /// <summary>Detail behind <see cref="IsCarrier"/>. Empty when it is false. On every paid plan.</summary>
+    /// <summary>Detail behind <see cref="IsCarrier"/>. Empty when it is false. On a paid plan.</summary>
     public CarrierDetail? Carrier => raw.Carrier;
 
-    /// <summary>Detail behind <see cref="IsSatellite"/>. Empty when it is false. On every paid plan.</summary>
+    /// <summary>Detail behind <see cref="IsSatellite"/>. Empty when it is false. On a paid plan.</summary>
     public SatelliteDetail? Satellite => raw.Satellite;
 
-    /// <summary>Detail behind <see cref="IsSsh"/>. Empty when it is false. On every paid plan.</summary>
+    /// <summary>Detail behind <see cref="IsSsh"/>. Empty when it is false. On a paid plan.</summary>
     public SshDetail? Ssh => raw.Ssh;
 
-    /// <summary>Detail behind <see cref="IsSmtp"/>. Empty when it is false. On every paid plan.</summary>
+    /// <summary>Detail behind <see cref="IsSmtp"/>. Empty when it is false. On a paid plan.</summary>
     public SmtpDetail? Smtp => raw.Smtp;
 
     /// <summary>
     /// Detail behind <see cref="IsWeb"/>: a row per port that answered, lowest first, and empty when
-    /// it is false. On every paid plan.
+    /// it is false. On a paid plan.
     /// </summary>
     public IReadOnlyList<WebDetail>? Web => raw.Web;
 
-    /// <summary>Detail behind <see cref="IsDnsResolver"/>. Empty when it is false. On every paid plan.</summary>
+    /// <summary>Detail behind <see cref="IsDnsResolver"/>. Empty when it is false. On a paid plan.</summary>
     public DnsResolverDetail? DnsResolver => raw.DnsResolver;
 
-    /// <summary>Detail behind <see cref="IsBittorrent"/>. Empty when it is false. On every paid plan.</summary>
+    /// <summary>Detail behind <see cref="IsBittorrent"/>. Empty when it is false. On a paid plan.</summary>
     public BitTorrentDetail? Bittorrent => raw.Bittorrent;
 
     /// <summary>
     /// Detail behind <see cref="IsBot"/>: whose bot uses the address, the bots it serves, what they
-    /// do and whether the operator vouches for the address. Empty when it is false. On every paid plan.
+    /// do and whether the operator vouches for the address. Empty when it is false. On a paid plan.
     /// </summary>
     public BotDetail? Bot => raw.Bot;
 
@@ -264,7 +264,7 @@ public sealed class Result
     /// </summary>
     public Asn? Asn => raw.Asn;
 
-    /// <summary>The organization the address belongs to. On every paid plan.</summary>
+    /// <summary>The organization the address belongs to. On a paid plan.</summary>
     public Company? Company => raw.Company;
 
     /// <summary>
@@ -273,7 +273,7 @@ public sealed class Result
     /// </summary>
     public string? Hostname => raw.Hostname;
 
-    /// <summary>Where to report abuse from the address. On every paid plan.</summary>
+    /// <summary>Where to report abuse from the address. On a paid plan.</summary>
     public AbuseContact? Abuse => raw.Abuse;
 
     /// <summary>
