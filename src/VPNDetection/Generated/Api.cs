@@ -3455,7 +3455,7 @@ namespace VPNDetection
         public bool IsVpn { get; set; } = default!;
 
         /// <summary>
-        /// Whether the address belongs to a hosting or cloud provider. Paid plans.
+        /// Whether the address belongs to a hosting or cloud provider. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_hosting")]
         public bool? IsHosting { get; set; } = default!;
@@ -3473,7 +3473,7 @@ namespace VPNDetection
         public bool? IsTor { get; set; } = default!;
 
         /// <summary>
-        /// Whether the address belongs to a CDN. Paid plans.
+        /// Whether the address belongs to a CDN. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_cdn")]
         public bool? IsCdn { get; set; } = default!;
@@ -3485,25 +3485,25 @@ namespace VPNDetection
         public bool? IsBot { get; set; } = default!;
 
         /// <summary>
-        /// Whether the address was seen in a residential proxy pool. Paid plans.
+        /// Whether the address was seen in a residential proxy pool. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_resproxy")]
         public bool? IsResproxy { get; set; } = default!;
 
         /// <summary>
-        /// Whether the address is one a datacenter proxy service sells or runs on, a proxy company's own ranges included. Paid plans.
+        /// Whether the address is one a datacenter proxy service sells or runs on, a proxy company's own ranges included. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_dcproxy")]
         public bool? IsDcproxy { get; set; } = default!;
 
         /// <summary>
-        /// Whether the address was seen in a mobile proxy pool. Paid plans.
+        /// Whether the address was seen in a mobile proxy pool. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_mobproxy")]
         public bool? IsMobproxy { get; set; } = default!;
 
         /// <summary>
-        /// Whether a public proxy, one anyone can connect through, listens on the address or sends its traffic out from it. Paid plans.
+        /// Whether a public proxy, one anyone can connect through, listens on the address or sends its traffic out from it. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_pubproxy")]
         public bool? IsPubproxy { get; set; } = default!;
@@ -3515,56 +3515,56 @@ namespace VPNDetection
         public bool? IsAnycast { get; set; } = default!;
 
         /// <summary>
-        /// Whether the address is a mobile carrier's, where many phones can share one address. Paid plans.
+        /// Whether the address is a mobile carrier's, where many phones can share one address. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_carrier")]
         public bool? IsCarrier { get; set; } = default!;
 
         /// <summary>
-        /// Whether the address is a satellite operator's. Paid plans.
+        /// Whether the address is a satellite operator's. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_satellite")]
         public bool? IsSatellite { get; set; } = default!;
 
         /// <summary>
-        /// Whether an SSH server answered on the address. Paid plans.
+        /// Whether an SSH server answered on the address. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_ssh")]
         public bool? IsSsh { get; set; } = default!;
 
         /// <summary>
-        /// Whether a mail server answered on the address. Paid plans.
+        /// Whether a mail server answered on the address. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_smtp")]
         public bool? IsSmtp { get; set; } = default!;
 
         /// <summary>
-        /// Whether a web server answered on the address, on port 80 or 443. Paid plans.
+        /// Whether a web server answered on the address, on port 80 or 443. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_web")]
         public bool? IsWeb { get; set; } = default!;
 
         /// <summary>
-        /// Whether an open DNS resolver answered on the address. Paid plans.
+        /// Whether an open DNS resolver answered on the address. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_dns_resolver")]
         public bool? IsDnsResolver { get; set; } = default!;
 
         /// <summary>
-        /// Whether a BitTorrent client was seen on the address in the last 90 days. Paid plans.
+        /// Whether a BitTorrent client was seen on the address in the last 90 days. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_bittorrent")]
         public bool? IsBittorrent { get; set; } = default!;
 
         /// <summary>
-        /// Detail for `is_vpn`. Empty when `is_vpn` is false. Paid plans.
+        /// Detail for `is_vpn`. Empty when `is_vpn` is false. On a paid plan.
         /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("vpn")]
         public VpnDetail? Vpn { get; set; } = default!;
 
         /// <summary>
-        /// Detail for `is_hosting`. Empty when false. Paid plans.
+        /// Detail for `is_hosting`. Empty when false. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("hosting")]
         public ClassDetail? Hosting { get; set; } = default!;
@@ -3585,79 +3585,79 @@ namespace VPNDetection
         public ClassDetail? Tor { get; set; } = default!;
 
         /// <summary>
-        /// Detail for `is_cdn`. Empty when false. Paid plans.
+        /// Detail for `is_cdn`. Empty when false. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("cdn")]
         public ClassDetail? Cdn { get; set; } = default!;
 
         /// <summary>
-        /// Detail for `is_bot`. Empty when false. Paid plans.
+        /// Detail for `is_bot`. Empty when false. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("bot")]
         public BotDetail? Bot { get; set; } = default!;
 
         /// <summary>
-        /// Detail for `is_resproxy`. Empty when false. Paid plans.
+        /// Detail for `is_resproxy`. Empty when false. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("resproxy")]
         public ProxyDetail? Resproxy { get; set; } = default!;
 
         /// <summary>
-        /// Detail for `is_dcproxy`. Empty when false. Paid plans.
+        /// Detail for `is_dcproxy`. Empty when false. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("dcproxy")]
         public ProxyDetail? Dcproxy { get; set; } = default!;
 
         /// <summary>
-        /// Detail for `is_mobproxy`. Empty when false. Paid plans.
+        /// Detail for `is_mobproxy`. Empty when false. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("mobproxy")]
         public ProxyDetail? Mobproxy { get; set; } = default!;
 
         /// <summary>
-        /// Detail for `is_pubproxy`. Empty when false. Paid plans.
+        /// Detail for `is_pubproxy`. Empty when false. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("pubproxy")]
         public PubproxyDetail? Pubproxy { get; set; } = default!;
 
         /// <summary>
-        /// Detail for `is_carrier`. Empty when false. Paid plans.
+        /// Detail for `is_carrier`. Empty when false. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("carrier")]
         public CarrierDetail? Carrier { get; set; } = default!;
 
         /// <summary>
-        /// Detail for `is_satellite`. Empty when false. Paid plans.
+        /// Detail for `is_satellite`. Empty when false. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("satellite")]
         public SatelliteDetail? Satellite { get; set; } = default!;
 
         /// <summary>
-        /// Detail for `is_ssh`. Empty when false. Paid plans.
+        /// Detail for `is_ssh`. Empty when false. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("ssh")]
         public SshDetail? Ssh { get; set; } = default!;
 
         /// <summary>
-        /// Detail for `is_smtp`. Empty when false. Paid plans.
+        /// Detail for `is_smtp`. Empty when false. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("smtp")]
         public SmtpDetail? Smtp { get; set; } = default!;
 
         /// <summary>
-        /// Detail for `is_web`: a row per port that answered, lowest first, and `[]` when false. Paid plans.
+        /// Detail for `is_web`: a row per port that answered, lowest first, and `[]` when false. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("web")]
         public System.Collections.Generic.IReadOnlyList<WebDetail>? Web { get; set; } = default!;
 
         /// <summary>
-        /// Detail for `is_dns_resolver`. Empty when false. Paid plans.
+        /// Detail for `is_dns_resolver`. Empty when false. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("dns_resolver")]
         public DnsResolverDetail? DnsResolver { get; set; } = default!;
 
         /// <summary>
-        /// Detail for `is_bittorrent`. Empty when false. Paid plans.
+        /// Detail for `is_bittorrent`. Empty when false. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("bittorrent")]
         public BitTorrentDetail? Bittorrent { get; set; } = default!;
@@ -4150,61 +4150,61 @@ namespace VPNDetection
         public string FlagUnicode { get; set; } = default!;
 
         /// <summary>
-        /// Region (state or province). Paid plans.
+        /// Region (state or province). On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("region")]
         public string? Region { get; set; } = default!;
 
         /// <summary>
-        /// ISO 3166-2 region code. Paid plans.
+        /// ISO 3166-2 region code. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("region_code")]
         public string? RegionCode { get; set; } = default!;
 
         /// <summary>
-        /// City. Paid plans.
+        /// City. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("city")]
         public string? City { get; set; } = default!;
 
         /// <summary>
-        /// Postal code. Paid plans.
+        /// Postal code. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("postal_code")]
         public string? PostalCode { get; set; } = default!;
 
         /// <summary>
-        /// Latitude of the city. Paid plans.
+        /// Latitude of the city. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("latitude")]
         public double? Latitude { get; set; } = default!;
 
         /// <summary>
-        /// Longitude of the city. Paid plans.
+        /// Longitude of the city. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("longitude")]
         public double? Longitude { get; set; } = default!;
 
         /// <summary>
-        /// Radius in km holding the true location with 67% confidence; 20000 for an address announced everywhere, as an anycast one is. Paid plans.
+        /// Radius in km holding the true location with 67% confidence; 20000 for an address announced everywhere, as an anycast one is. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("accuracy_radius")]
         public int? AccuracyRadius { get; set; } = default!;
 
         /// <summary>
-        /// GeoNames ID of the city. Paid plans.
+        /// GeoNames ID of the city. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("geoname_id")]
         public string? GeonameId { get; set; } = default!;
 
         /// <summary>
-        /// US TV market (DMA) code, empty outside the US. Paid plans.
+        /// US TV market (DMA) code, empty outside the US. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("dma_code")]
         public string? DmaCode { get; set; } = default!;
 
         /// <summary>
-        /// The day the range's location last changed. Paid plans.
+        /// The day the range's location last changed. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("last_changed")]
         public string? LastChanged { get; set; } = default!;
@@ -4866,7 +4866,7 @@ namespace VPNDetection
     }
 
     /// <summary>
-    /// Who uses the address, from our IP Company database. Paid plans. Every
+    /// Who uses the address, from our IP Company database. On a paid plan. Every
     /// <br/>key is present whenever the object is: empty strings where no record
     /// <br/>covers the address.
     /// <br/>
@@ -4912,7 +4912,7 @@ namespace VPNDetection
 
     /// <summary>
     /// Where to report abuse from the address, from our IP Abuse Contact
-    /// <br/>database. Paid plans. Every key is present whenever the object is: empty
+    /// <br/>database. On a paid plan. Every key is present whenever the object is: empty
     /// <br/>strings where no record covers the address.
     /// <br/>
     /// </summary>
@@ -5539,7 +5539,8 @@ namespace VPNDetection
         /// The plan the organization is on, as an identifier that is never
         /// <br/>renamed or reused: `free` for the free plan, or a paid plan's key.
         /// <br/>Compare against it and show `name`. On `free`, usage counts its
-        /// <br/>trial, the lookups answered with every field.
+        /// <br/>trial, the lookups answered with every field. The Data plan is a key
+        /// <br/>per quota, `data_1` to `data_7`, each named Data.
         /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
@@ -5607,13 +5608,17 @@ namespace VPNDetection
         public long? HardLimit { get; set; } = default!;
 
         /// <summary>
-        /// When the current allowance period began.
+        /// When the current allowance period began. On the free plan, when
+        /// <br/>its trial began, or now before a first lookup starts it.
+        /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("window_start")]
         public System.DateTimeOffset WindowStart { get; set; } = default!;
 
         /// <summary>
-        /// When the allowance next resets.
+        /// When the allowance next resets. On the free plan, when its trial
+        /// <br/>ends, which it does once.
+        /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("window_end")]
         public System.DateTimeOffset WindowEnd { get; set; } = default!;
