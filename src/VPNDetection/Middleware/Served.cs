@@ -56,7 +56,7 @@ internal static class Served
         PutDetail(served, "dns_resolver", result.DnsResolver);
         PutDetail(served, "bittorrent", result.Bittorrent);
         PutDetail(served, "bot", result.Bot);
-        // Only with AllowBots, which sends the request's agent: `{ user_agent: { verdict: spoofed } }`.
+        // Only with AllowBots, which sends a crawler's agent: `{ user_agent: { verdict: spoofed } }`.
         PutDetail(served, "user_agent", result.UserAgent);
         if (result.Web is { } web)
         {
