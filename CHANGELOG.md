@@ -2,6 +2,16 @@
 
 What each release changed for you, newest first. Each line is a commit's summary, linked to its full description and diff. Releases before 5.2.4 are described by their release commits.
 
+## 6.6.0 - 2026-11-26
+
+### Features
+
+- Middleware: AllowBots sends only a crawler's User-Agent, at most four an address ([`b466332`](https://github.com/vpndetection-io/sdk-dotnet/commit/b46633215975d813ea2351ccc934c8957e81a0b0))
+
+### Fixes
+
+- README: the verdict for a browser or script is Verdict.Not_bot ([`5c52ad0`](https://github.com/vpndetection-io/sdk-dotnet/commit/5c52ad0f54c02ccaffe3a75794ffcbc5402635a4))
+
 ## 6.5.1 - 2026-11-25
 
 ### Fixes
