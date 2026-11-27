@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 
 namespace VPNDetection.Middleware;
 
@@ -10,11 +11,15 @@ namespace VPNDetection.Middleware;
 /// Built from the Result's own properties rather than by serializing it, and that is the whole
 /// point: a null member means "not in your plan" and has to come out as an ABSENT key, which a
 /// serializer's null-handling setting would decide for us - differently depending on how it
-/// happened to be configured.
+/// happened to be configured. A member that keeps a non-optional type (the AS's <c>type</c>) reads
+/// empty when the wire left it out, so it is left out by what the wire carried, never by its value.
 /// </remarks>
 internal static class Served
 {
-    private static readonly JsonSerializerOptions DetailOptions = new();
+    private static readonly JsonSerializerOptions DetailOptions = new()
+    {
+        TypeInfoResolver = new DefaultJsonTypeInfoResolver { Modifiers = { LeaveOutWhatWasNotServed } },
+    };
 
     internal static Dictionary<string, object?> Of(Result result)
     {
@@ -75,6 +80,19 @@ internal static class Served
         Put(served, "trial_expired", result.TrialExpired);
         Put(served, "cap_reached", result.CapReached);
         return served;
+    }
+
+    private static void LeaveOutWhatWasNotServed(JsonTypeInfo info)
+    {
+        if (!typeof(IHeldAbsent).IsAssignableFrom(info.Type))
+        {
+            return;
+        }
+        foreach (var property in info.Properties)
+        {
+            var name = property.Name;
+            property.ShouldSerialize = (target, _) => ((IHeldAbsent)target).NotServed?.Contains(name) != true;
+        }
     }
 
     private static void Put(Dictionary<string, object?> served, string key, bool? value)

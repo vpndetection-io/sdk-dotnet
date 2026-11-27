@@ -42,13 +42,16 @@ public sealed class Condition : Dictionary<string, object?>
     }
 
     /// <summary>
-    /// The top-level members a condition names that this answer did not carry.
+    /// The members a condition names that this answer did not carry: a top-level member, or one
+    /// inside an object every plan gets, by its path (<c>asn.type</c>).
     /// </summary>
     /// <remarks>
     /// <para>A field your plan does not include is absent rather than false, so a condition naming
-    /// one can never match and the block would silently never fire. Gating is per top-level
-    /// member, which is why only the first path segment is checked: a detail object present but
-    /// empty is a real answer meaning the flag is false, not a plan gap.</para>
+    /// one can never match and the block would silently never fire. An empty object is a real
+    /// answer, meaning the flag above it is false, so nothing inside one is reported: <c>vpn</c>
+    /// present but empty is not a plan gap. A populated object carries every member the plan
+    /// includes, so a member missing there is one, such as the AS's <c>type</c> on an answer the
+    /// wire left it out of.</para>
     /// <para>A locally answered bogon needs no special case: it is synthesized in the widest
     /// shape, so every member is present and nothing reads as missing.</para>
     /// </remarks>
@@ -59,17 +62,7 @@ public sealed class Condition : Dictionary<string, object?>
         var missing = new List<string>();
         foreach (Condition one in conditions)
         {
-            foreach (KeyValuePair<string, object?> entry in one)
-            {
-                if (ConstraintCount(entry.Value) == 0 || missing.Contains(entry.Key))
-                {
-                    continue;
-                }
-                if (!served.ContainsKey(entry.Key))
-                {
-                    missing.Add(entry.Key);
-                }
-            }
+            CollectMissing(one, served, string.Empty, missing);
         }
         return missing;
     }
@@ -109,6 +102,33 @@ public sealed class Condition : Dictionary<string, object?>
         IEnumerable list => list.Cast<object?>().Sum(ConstraintCount),
         _ => 1,
     };
+
+    private static void CollectMissing(
+        IDictionary condition, IDictionary served, string prefix, List<string> missing)
+    {
+        foreach (DictionaryEntry entry in condition)
+        {
+            if (ConstraintCount(entry.Value) == 0)
+            {
+                continue;
+            }
+            string key = (string)entry.Key;
+            string path = prefix + key;
+            if (!served.Contains(key))
+            {
+                if (!missing.Contains(path))
+                {
+                    missing.Add(path);
+                }
+                continue;
+            }
+            if (entry.Value is IDictionary nested
+                && served[key] is IDictionary { Count: > 0 } populated)
+            {
+                CollectMissing(nested, populated, path + ".", missing);
+            }
+        }
+    }
 
     private static bool MatchesObject(IDictionary condition, object? value)
     {

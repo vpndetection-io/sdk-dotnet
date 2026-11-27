@@ -464,7 +464,7 @@ internal partial class WireClient
         [typeof(LookupResponse)] = ["ip", "is_vpn"],
         [typeof(Location)] = ["continent", "continent_name", "country", "country_name", "timezone",
             "currency_code", "currency_name", "currency_symbol", "flag_emoji", "flag_unicode"],
-        [typeof(Asn)] = ["asn", "name", "domain", "type", "prefix", "country", "rpki_status"],
+        [typeof(Asn)] = ["asn", "name", "domain", "prefix", "country", "rpki_status"],
         [typeof(WebDetail)] = ["port", "tls_ok", "session_ok", "status_code", "server", "location", "title",
             "cert_subject_cn", "cert_subject_o", "cert_issuer_dn", "cert_browser_trusted", "tls_version",
             "first_seen", "last_seen"],
@@ -492,6 +492,15 @@ internal partial class WireClient
     internal static readonly IReadOnlyDictionary<Type, string[]> HeldOptional = new Dictionary<Type, string[]>
     {
         [typeof(Asn)] = ["country", "rpki_status"],
+    };
+
+    // Members the spec leaves optional whose generated property stays non-nullable, so the public type
+    // is the one earlier releases shipped (scripts/generator_input.py), and so they are left out of the
+    // table above: an answer may lack the AS's `type`, as Unlimited's will once the API stops
+    // answering it, and one that does reads empty and is remembered as not served (HeldAbsent.cs).
+    internal static readonly IReadOnlyDictionary<Type, string[]> AbsentAllowed = new Dictionary<Type, string[]>
+    {
+        [typeof(Asn)] = ["type"],
     };
 
     internal static readonly HashSet<string> EnvelopeMembers = ["databases", "downloads", "checksums"];
@@ -526,6 +535,18 @@ internal partial class WireClient
             return;
         }
         var members = AnswerMembers.TryGetValue(info.Type, out var named) ? named : [];
+        var absentAllowed = AbsentAllowed.TryGetValue(info.Type, out var held) ? held : [];
+        if (absentAllowed.Length > 0)
+        {
+            info.OnDeserializing = target =>
+            {
+                ((IHeldAbsent)target).NotServed = [.. absentAllowed];
+                if (target is Asn asn)
+                {
+                    asn.Type = string.Empty;
+                }
+            };
+        }
         var nullability = new NullabilityInfoContext();
         foreach (var property in info.Properties)
         {
@@ -557,12 +578,23 @@ internal partial class WireClient
                 var day = property.Name;
                 property.Set = (target, value) => setDay(target, value is string text ? Day(text, day) : value);
             }
+            var name = property.Name;
+            if (absentAllowed.Contains(name) && property.Set is { } served)
+            {
+                // A `type` that is there is read as served, and one that is null or not a string is
+                // still no answer this client can read.
+                property.Set = (target, value) =>
+                {
+                    ((IHeldAbsent)target).NotServed?.Remove(name);
+                    served(target, property.PropertyType.IsValueType ? value : NotNull(value, name));
+                };
+                continue;
+            }
             if (property.Set is not { } set || property.PropertyType.IsValueType)
             {
                 property.IsRequired |= members.Contains(property.Name);
                 continue;
             }
-            var name = property.Name;
             if (members.Contains(name) || EnvelopeMembers.Contains(name))
             {
                 property.IsRequired = true;

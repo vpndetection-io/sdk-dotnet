@@ -181,8 +181,7 @@ public sealed class Result
 
     /// <summary>
     /// Whether an automated client uses the address, such as a search engine's or an AI company's
-    /// crawler, an uptime monitor, an internet scanner or a webhook sender. On every answer, with or
-    /// without a key.
+    /// crawler, an uptime monitor, an internet scanner or a webhook sender. On a paid plan.
     /// </summary>
     public bool? IsBot => raw.IsBot;
 
@@ -260,7 +259,8 @@ public sealed class Result
 
     /// <summary>
     /// The AS announcing the address, on every answer, with or without a key, its country and RPKI
-    /// status included: <see cref="VPNDetection.Asn.Number"/> is 0 where none does.
+    /// status included: <see cref="VPNDetection.Asn.Number"/> is 0 where none does. Its
+    /// <see cref="VPNDetection.Asn.Type"/> is a paid plan's, and reads empty on an answer without it.
     /// </summary>
     public Asn? Asn => raw.Asn;
 

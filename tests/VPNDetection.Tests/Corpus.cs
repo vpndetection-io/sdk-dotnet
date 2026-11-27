@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 
 using Xunit;
 
@@ -84,11 +85,27 @@ internal static class Corpus
         public int GetHashCode(JsonElement obj) => 0;
     }
 
+    // A member the wire left out of an answer (the AS's `type`, which reads empty) is left out of its
+    // rendering too, so an answer is compared with the corpus as it was served.
     private static readonly JsonSerializerOptions WireOptions = new()
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
+        TypeInfoResolver = new DefaultJsonTypeInfoResolver { Modifiers = { LeaveOutWhatWasNotServed } },
     };
+
+    private static void LeaveOutWhatWasNotServed(JsonTypeInfo info)
+    {
+        if (!typeof(IHeldAbsent).IsAssignableFrom(info.Type))
+        {
+            return;
+        }
+        foreach (var property in info.Properties)
+        {
+            var name = property.Name;
+            property.ShouldSerialize = (target, _) => ((IHeldAbsent)target).NotServed?.Contains(name) != true;
+        }
+    }
 
     private static JsonElement Load()
     {

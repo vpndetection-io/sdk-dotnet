@@ -140,6 +140,11 @@ public class ConformanceTests
                     Corpus.Member(result, field) is null,
                     $"{name}: {field} must be ABSENT, not false");
             }
+            // The AS's `type` keeps its non-optional public type, so an answer without it reads empty.
+            if (expect.TryGetProperty("asn", out var asn) && !asn.TryGetProperty("type", out _))
+            {
+                Assert.True(result.Asn!.Type is "", $"{name}: asn.type is held at string, so absent reads empty");
+            }
             foreach (var field in Each(expect, "emptyPresent"))
             {
                 Assert.Equal("{}", Corpus.AsWire(Corpus.Member(result, field)));
@@ -367,7 +372,7 @@ public class ConformanceTests
     }
 
     // The bot detail read key by key through its typed members, the lists in the order served; on
-    // Unlimited the flag is served and the detail is not.
+    // Unlimited neither the flag nor the detail is served.
     [Fact]
     public async Task ABotAnswerIsReadThroughTypedMembers()
     {
@@ -396,7 +401,7 @@ public class ConformanceTests
         Assert.Empty(bot.AdditionalProperties);
 
         var free = await unlimitedClient.LookupAsync("66.249.66.1");
-        Assert.True(free.IsBot);
+        Assert.Null(free.IsBot);
         Assert.Null(free.Bot);
     }
 

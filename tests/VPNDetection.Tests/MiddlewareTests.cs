@@ -79,7 +79,6 @@ public class MiddlewareTests
     [InlineData("unlimited-anycast-hostname", """{"hostname":["dns.google","one.one.one.one"]}""")]
     [InlineData("paid-verified-bot", """{"is_bot":true}""")]
     [InlineData("paid-verified-bot", """{"bot":{"verified":true,"provider":"google"}}""")]
-    [InlineData("unlimited-bot", """{"is_bot":true}""")]
     public async Task AConditionReachesEveryMemberAnAnswerServes(string corpusCase, string condition)
     {
         var c = Corpus.Data.GetProperty("lookup").EnumerateArray()
@@ -105,9 +104,10 @@ public class MiddlewareTests
         }
     }
 
-    // A condition on the bot flag, which every plan answers: a crawler's public address is refused
-    // and another visitor's is not, and a private address answered locally carries the flag false,
-    // so a strict core neither blocks it nor reports the member missing.
+    // A condition on the bot flag, a paid plan's, under an answer that carries it: a crawler's
+    // public address is refused and another visitor's is not, and a private address answered
+    // locally carries the flag false, so a strict core neither blocks it nor reports the member
+    // missing.
     [Fact]
     public async Task ABotConditionMatchesFromAPublicPeerAndAPrivateAddressCarriesTheFlag()
     {

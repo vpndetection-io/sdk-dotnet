@@ -19,6 +19,12 @@ each must be found exactly where it is expected or the run fails:
   web, DNS resolver and BitTorrent details `format: date`, which would turn
   each from `string?` into `DateOnly?`, so they stay strings. Wire.cs's
   DayMembers still refuses one that is not a calendar day as YYYY-MM-DD.
+- Spec 2026.11.26 stops requiring the AS's `type`, which the API will not answer
+  to Unlimited. Generated as optional it would turn `Asn.Type` from `string`
+  into `string?`, so the copy requires it again and the public type stays a
+  `string` until a major. The decoder accepts an answer without it (Wire.cs's
+  AnswerMembers leaves it out, AbsentAllowed says why) and an absent `type`
+  reads empty.
 
 Nothing is dropped whole: the answer's `user_agent` verdict and the batch
 request's `user_agents` are generated, and Wire.cs leaves an unset or empty
@@ -31,6 +37,13 @@ import sys
 REQUIRED_DROPPED = [
     ("Asn", "country"),
     ("Asn", "rpki_status"),
+]
+
+# (schema, entry, after): an entry put back into a schema's `required` list, right after the
+# entry it followed in the spec that last required it. It fails once the spec requires it
+# again, or when `after` is not there once.
+REQUIRED_KEPT = [
+    ("Asn", "type", "domain"),
 ]
 
 # (schema, property, line): a line dropped from one property's own block.
@@ -101,6 +114,17 @@ def drop_required(lines, schema, entry):
     del lines[hits[0]]
 
 
+def keep_required(lines, schema, entry, after):
+    start, end = schema_span(lines, schema)
+    first, last = field_span(lines, start, end, "required", schema)
+    if any(lines[i] == f"{MEMBER_INDENT}- {entry}\n" for i in range(first, last)):
+        raise SystemExit(f"schema {schema}: `{entry}` is required again; review the transform")
+    anchors = [i for i in range(first, last) if lines[i] == f"{MEMBER_INDENT}- {after}\n"]
+    if len(anchors) != 1:
+        raise SystemExit(f"schema {schema}: `{after}` is not in `required` once; review the transform")
+    lines.insert(anchors[0] + 1, f"{MEMBER_INDENT}- {entry}\n")
+
+
 def drop_property_line(lines, schema, prop, line):
     start, stop = property_span(lines, schema, prop)
     wanted = f"{ATTRIBUTE_INDENT}{line}\n"
@@ -122,6 +146,9 @@ def main() -> int:
     for schema, entry in REQUIRED_DROPPED:
         drop_required(lines, schema, entry)
         print(f"  generator input: {schema}.{entry} left optional")
+    for schema, entry, after in REQUIRED_KEPT:
+        keep_required(lines, schema, entry, after)
+        print(f"  generator input: {schema}.{entry} required again")
     for schema, prop, line in PROPERTY_LINES_DROPPED:
         drop_property_line(lines, schema, prop, line)
         print(f"  generator input: {schema}.{prop} without `{line}`")

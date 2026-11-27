@@ -3479,7 +3479,7 @@ namespace VPNDetection
         public bool? IsCdn { get; set; } = default!;
 
         /// <summary>
-        /// Whether an automated client uses the address, such as a search engine's or an AI company's crawler, an uptime monitor, an internet scanner or a webhook sender. `bot` says whose, what it does and whether its operator vouches for the address. Every answer, with or without a key.
+        /// Whether an automated client uses the address, such as a search engine's or an AI company's crawler, an uptime monitor, an internet scanner or a webhook sender. `bot` says whose, what it does and whether its operator vouches for the address. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("is_bot")]
         public bool? IsBot { get; set; } = default!;
@@ -4250,7 +4250,7 @@ namespace VPNDetection
         public string Domain { get; set; } = default!;
 
         /// <summary>
-        /// The kind of network the AS runs: isp, hosting, education, government or business.
+        /// The kind of network the AS runs: isp, hosting, education, government or business. On a paid plan.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         public string Type { get; set; } = default!;
