@@ -2,6 +2,16 @@
 
 What each release changed for you, newest first. Each line is a commit's summary, linked to its full description and diff. Releases before 5.2.4 are described by their release commits.
 
+## 6.7.0 - 2026-11-27
+
+### Features
+
+- Read an answer without the AS's type ([`03ddd27`](https://github.com/vpndetection-io/sdk-dotnet/commit/03ddd27a6b0e3f8a0f40ebe434ecb4ac8c5bf9ef))
+
+### Fixes
+
+- README: the bot flag and the AS's type are a paid plan's ([`3487a89`](https://github.com/vpndetection-io/sdk-dotnet/commit/3487a89652996e09542808f58436a14e4e00c8c5))
+
 ## 6.6.1 - 2026-11-26
 
 ### Fixes
