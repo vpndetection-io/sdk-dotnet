@@ -23,6 +23,22 @@ public class LookupTests
         Staging.AssertServedByTier(fixture);
     }
 
+    // The AS's type is a paid plan's, and the API stops answering it without a key once it is
+    // deployed, so an answer with or without one is read: a type that is there reads as served, and
+    // one the wire left out reads empty.
+    [Fact]
+    public async Task ALookupWithoutAKeyReadsTheAsTypeWhetherTheAnswerCarriesItOrNot()
+    {
+        var fixture = await Staging.AnswerFor(Rung.Unauth);
+
+        Assert.True(fixture.Raw.TryGetProperty("asn", out var asn), "the AS is on every plan");
+        Assert.Equal(asn.GetProperty("asn").GetInt64(), fixture.Result.Asn!.Number);
+        Assert.Equal(asn.GetProperty("name").GetString(), fixture.Result.Asn.Name);
+        Assert.Equal(
+            asn.TryGetProperty("type", out var served) ? served.GetString() : string.Empty,
+            fixture.Result.Asn.Type);
+    }
+
     [Theory]
     [InlineData("trial")]
     [InlineData("starter")]
