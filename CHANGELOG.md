@@ -2,6 +2,13 @@
 
 What each release changed for you, newest first. Each line is a commit's summary, linked to its full description and diff. Releases before 5.2.4 are described by their release commits.
 
+## 6.7.1 - 2026-11-28
+
+### Fixes
+
+- Middleware: a bogon's answer reports no missing member ([`5d9ed35`](https://github.com/vpndetection-io/sdk-dotnet/commit/5d9ed354212b60d5f14ea5a28da90b1a03795bf1))
+- Re-pin the spec to 2026.11.27: wording only, and say a spent trial is not renewed ([`0db37ec`](https://github.com/vpndetection-io/sdk-dotnet/commit/0db37ecf5b65ba33db8b1a55444c2f5ff5f08d82))
+
 ## 6.7.0 - 2026-11-27
 
 ### Features
