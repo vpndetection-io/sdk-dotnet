@@ -142,7 +142,7 @@ using var client = new VpnDetectionClient(new VpnDetectionClientOptions
 using var noCache = new VpnDetectionClient(new VpnDetectionClientOptions { CacheEnabled = false });
 ```
 
-An answer with `TrialExpired` or `CapReached` true is cached for a minute at most, so a renewed trial or a raised cap reaches you within a minute.
+An answer with `TrialExpired` or `CapReached` true is cached for a minute at most, so a plan change or a raised cap reaches you within a minute.
 
 The cache belongs to the client instance, never to the process, because two keys can be on different plans and so entitled to different fields.
 
