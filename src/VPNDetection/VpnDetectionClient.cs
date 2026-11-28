@@ -252,7 +252,7 @@ public sealed class VpnDetectionClient : IDisposable
     internal static readonly TimeSpan ReducedAnswerLife = TimeSpan.FromSeconds(60);
 
     // An answer with Unlimited's fields because the trial is spent or the overage cap is reached
-    // holds only until the organization's plan changes or the cap is raised, so it is kept a minute
+    // can change as soon as the organization's trial, plan or cap does, so it is kept a minute
     // at most rather than the whole TTL. It is still kept, so a busy address is not asked again on
     // every lookup.
     internal static TimeSpan LifeOf(Result result, TimeSpan ttl)

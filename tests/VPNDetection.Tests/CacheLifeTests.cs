@@ -8,9 +8,10 @@ namespace VPNDetection.Tests;
 
 /// <summary>
 /// How long an answer stays cached: the client's TTL, except an answer past the trial or the
-/// overage cap, which a plan change or a raised cap ends, so it stays a minute at most, or the TTL
-/// where that is shorter. The cache's clock is moved rather than waited on, so each row pins the
-/// expiry to the instant: still cached a millisecond before it, asked again at it.
+/// overage cap, which can change as soon as the organization's trial, plan or cap does, so it stays
+/// a minute at most, or the TTL where that is shorter. The cache's clock is moved rather than
+/// waited on, so each row pins the expiry to the instant: still cached a millisecond before it,
+/// asked again at it.
 /// </summary>
 public class CacheLifeTests
 {

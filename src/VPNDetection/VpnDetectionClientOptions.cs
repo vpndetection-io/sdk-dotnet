@@ -26,7 +26,7 @@ public sealed class VpnDetectionClientOptions
     /// <summary>
     /// How long an answer stays fresh. Default 1 hour. An answer whose
     /// <see cref="Result.TrialExpired"/> or <see cref="Result.CapReached"/> is true stays a minute
-    /// at most, since a plan change or a raised cap ends it.
+    /// at most, since it can change as soon as the organization's trial, plan or cap does.
     /// </summary>
     public TimeSpan CacheTtl { get; set; } = TimeSpan.FromHours(1);
 
