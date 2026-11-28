@@ -11,8 +11,8 @@ namespace VPNDetection.Tests;
 /// <summary>
 /// <c>AllowBots</c> sends a crawler's <c>User-Agent</c> with its lookup, at most four an address, and
 /// a request whose answer's verdict is <c>verified</c> is never refused, whatever its condition
-/// matches. Every request comes from a public peer, since a bogon is answered locally and passes
-/// vacuously.
+/// matches. Every request but a bogon test's comes from a public peer, since a bogon is answered
+/// locally and passes vacuously.
 /// </summary>
 public class AllowBotsTests
 {
@@ -309,6 +309,35 @@ public class AllowBotsTests
         await off.EvaluateAsync(new Req(Peer));
         Assert.Single(warned);
         Assert.Contains("user_agent", warned[0], StringComparison.Ordinal);
+    }
+
+    // A bogon peer, local development behind no proxy, is answered locally and carries no verdict,
+    // and that is no plan gap: OnMissingField set to Throw used to answer a crawler's request there
+    // with an exception. Every other test here comes from a public peer.
+    [Theory]
+    [InlineData("127.0.0.1", true)]
+    [InlineData("127.0.0.1", false)]
+    [InlineData("10.0.0.1", true)]
+    [InlineData("10.0.0.1", false)]
+    [InlineData("::1", true)]
+    [InlineData("::1", false)]
+    public async Task ABogonPeerWithACrawlerAgentIsNoPlanGap(string peer, bool throws)
+    {
+        IReadOnlyList<Condition> forged = [new Condition { ["user_agent"] = new Condition { ["verdict"] = "spoofed" } }];
+        var origin = new Origin(new(), any: "spoofed");
+        var warnings = new List<string>();
+        var onMissing = throws ? MiddlewareOptions<Req>.MissingField.Throw : MiddlewareOptions<Req>.MissingField.Warn;
+        var core = CoreFor(origin, allowBots: true, warnings, onMissing, forged);
+
+        var lookup = await core.EvaluateAsync(new Req(peer), Googlebot);
+
+        Assert.NotNull(lookup);
+        Assert.False(lookup.Blocked);
+        Assert.NotNull(lookup.Result);
+        Assert.True(lookup.Result.IsBogon);
+        Assert.Empty(origin.Agents);
+        Assert.DoesNotContain(warnings, message => message.Contains("does not include", StringComparison.Ordinal));
+        Assert.Empty(Condition.MissingMembers(forged, lookup.Result));
     }
 
     [Fact]
